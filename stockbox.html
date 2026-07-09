@@ -192,6 +192,9 @@
   .reconnect-bar .as-dot.warn{background:var(--gold)}
   .reconnect-bar:hover{background:#0d1917}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <header class="top">
@@ -702,6 +705,49 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   document.body.classList.add("boot");
   await load(); render(); autoConnectFolder(); updateStorageNote();
   setTimeout(()=>document.body.classList.remove("boot"),1200);
+})();
+</script>
+<script>
+/* ---------- Cloud sync (Firebase Firestore) ---------- */
+(function(){
+  var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
+  var APP_KEY="stockbox", SHOP="main";
+  var db=null, ready=false, pushTimer=null;
+  function note(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
+  if(typeof firebase==="undefined"){ return; }        // SDK blocked/offline -> stay on-device
+  try{
+    firebase.initializeApp(FB);
+    db=firebase.firestore();
+    // suppress the on-device note once cloud is active
+    if(typeof updateStorageNote==="function"){ var _u=updateStorageNote; updateStorageNote=function(){ if(window.__cloudActive) return; _u(); }; }
+    firebase.auth().signInAnonymously().catch(function(){ note('<span style="color:var(--warn)">\u2601 Cloud sign-in off \u2014 enable Anonymous sign-in in Firebase. Saved on this device.</span>'); });
+    firebase.auth().onAuthStateChanged(function(user){ if(user) start(); });
+  }catch(e){ return; }
+  function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
+  function start(){
+    window.__cloudActive=true; note("\u2601 Connecting\u2026");
+    var _op=persist; persist=function(){ _op(); schedulePush(); };
+    ref().onSnapshot(function(snap){
+      window.__cloudActive=true;
+      if(snap.exists){
+        var d=snap.data()&&snap.data().state;
+        if(d){
+          var rt=(d.settings&&d.settings.updatedAt)||0;
+          var lt=(State.settings&&State.settings.updatedAt)||0;
+          if(rt>lt){ if(typeof applyLoaded==="function") applyLoaded(d); if(typeof render==="function") render(); try{lsSave();}catch(_){} }
+        }
+        ready=true; note("\u2601 Synced across your devices.");
+      }else{ ready=true; pushNow(); }
+    }, function(){ note('\u2601 Offline \u2014 saved on this device.'); });
+  }
+  function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
+  function pushNow(){
+    if(!db) return;
+    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      ref().set({state:State, ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); })
+        .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });
+    }catch(e){}
+  }
 })();
 </script>
 </body>
