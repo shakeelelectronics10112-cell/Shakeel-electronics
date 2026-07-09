@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Ledger — Dues Management</title>
+<meta name="theme-color" content="#10564A" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Ledger" />
+<meta name="application-name" content="Ledger" />
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22Shakeel%20Electronics%20%5Cu2014%20Ledger%22%2C%20%22short_name%22%3A%20%22Ledger%22%2C%20%22description%22%3A%20%22Dues%2C%20payments%20and%20collections%20tracker%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22scope%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait-primary%22%2C%20%22background_color%22%3A%20%22%23F4F5F2%22%2C%20%22theme_color%22%3A%20%22%2310564A%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/png%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAJRUlEQVR4nO2da28VRRjHn%2BWcAO45Lee0xcTEBPwCyrXQcinUgjEqJL4RlRd%2BhibwISDpd/CVdxDkqlxU5I2AX0GMBBNFOG2xAtEcX2zdbndP2515ZnZu/18asrt0d5%2Bd%2BZ1nZrqze6KBD94mAGSpd7td0zEAh1llOgDgNhAIsIBAgAUEAizqhD40YFAnGAQYoAkDLCAQYAGBAAt0ogELZCDAAqMwwAIZCLCAQIBF3XQA80xuGTAdgntM/fTQdAhGR2GTWyENi%2BynbuqOGZkMZKCe3pi6fqfJlmS6XHFJRu2jh6s5U9EbSKMQU8UbtY8equA0k1sH0%2BWpO39WcMZgqbiotQsEdYxQWbFH7fc1CpReBtQxQgXlr0sgqGMPWutCyx8SYY9VpLWQbddUEbVUZyDYYyea6iVqvf%2BWwsMlUUIda1FeQVHrPWUCTW4bJKKp27DHatRWk7I%2BEOxxhaSOkvrio0YgVdGAKlFSaypHYUg/rqCwphQIhMbLRVQ1ZFyBYI%2B7KHGoTsz3AyV74yVDjsKuPlYGmtw2RERTtx9wDgIMktRdUo9yyAvEOSuwDena5PaBkH5ch1mDeCoDsIhaR96U2G1y%2BxARTd1C%2BvEE6QplPpmKwZdnCFcomjDAQkagye3riWjq1h%2BqgwHGSGozqVkhkIEAC8aTqej/eIlgtSIDARariLpCP5PDQ0TdqR9/F90xtJ9HH58zHoPQT1KnSf2W/0EG0sKjj8%2BbDqEiIJB6EnvaR95IVv958MhoOHqBQHrx2x4iqgtPBekSEeb/LEnnk/nGq9udt6c%2B1HamuMQrFxlIJak9rXfeMBtJZUAgZaT2JHjfeCVI30x1JSlXROeTC9nVfx7Mv9ypPtR2sKwEAkYGUk/z1RHTIVSH7K0M5z5UOul8uij9LCocFwsKnegqyduToT7UrjISI2h8S2vfc7G%2Bg1vCrx9%2Bntvy/Ov74jVrkuU11pTA7N9zmo6sUSB9QVtCz9wz9/RpuvzM9xIgqVFYN/MvKDJfMi6PvwTCFu9Ewx8iIup8drG4sbl/58KKi0UkXrnoRMvQ054wgUDCwJ4sEEiMZezJtl8hDOATIJAAyD1FIBBgIft%2BIGdmuCij8/mlZf63uW9HulwfartdPiLBIwOVYnl7QgYCrQzsWQYItAJl7Mm3XyEBgQAL3MpYjs4X4o2X0yUjXrmY0roknS8ui%2B5SH2x5UTIYhbEpb0%2B2AxQgdbRgRabFc0%2BC68UiUbmYkcglnX%2B4er293zijc0aiti7Q7JyT8/GmTwmkn%2BbYQvv11M3r7QHmA0kjZA8gTGnNMn3qa/Gd5suh5tX4C6MwcSTsaY4N64jELSAQYAGBiCQbrwVqgy1FgbgHHm2m6dMy9jT3Ztovj0qDCKMwEeTsASlBCwR7%2BOBmqgzNvdvTZV8G8FkwjC/B9OlvTIfgA4HOB5r%2BkmeP628AWgo82lwGpj3NPbn2K2iCE4ibe8BiwhII9igHN1PFaO7Zli77O/7S%2Bn6g7ImcYvrMFf5BHt%2B4zTzCusMT/DD0gk50ESX28HHAHkF0TmmNbZnSeu%2Bjs6ZDICJ68d1DpspE3%2BxQnS/ZtGOKpyW5h4g69%2B5nV2sDLUOBqCSUJsw42d43%2BWIPeS%2BQJenHV3uIqN4VfZPN/FdKOTAMmzl71XQIRESN3VtzW%2BwtPfHK9TYDWWuPT%2BmHfBXIEnuKeGYP%2BSqQJeTSj3/2kJcCWZJ%2BQrCH/LuVMfOVHfbsynd9rC2xHmh%2BP5DVN1P73xpPl/99OC1xhL9u3mHGULSnNrDO2hJbDJ5M/R9T9hSpDaxTfkx70Hgrwyymqi2Xfvy2hzzOQEYIzR7yrxPNYebcNc7ujVGXO85ZMB%2Boeor2hJB%2BCA8WKqExuiW3xZ1hV08wChNn5tx1VYcKJPckBDEjUSvrx0fjtWvT1dVWftUBZiRaSq7xqg2s8%2BdVm%2BUI9NHmHDPnZdqvYtfH%2BWLBo82V0aPj3A6o65MCgdQQpj2EYTwRzZz/VnSXxujm7Gqt7fSgvQiG8TrpZU%2B44FaGGI2RzflN/hUFOtHlmbnwbflfLtoTePohCMQB9hC%2BL6w88Ui%2B6%2BNfIch9X1i4Cs1e%2BK7kb8Yjm7Kr3g27Uip4P5A//pQl3rkpv8nXy8dfopVTtAddnywQSAzYkyNcgWYvrtwByqUf2FMkXIFWBPaUAQL1pkfHGfSiTnLvqimxV1/ckDlyJdw/dXGZ/x0a2xmvWZvdsnrQxnmG5Zmd%2B0vgt0WU0DojUSRom5h78iS7Wmv3P3X2WnSDJixPvGNTdrXW7jcUiBuEKNDspe%2BX%2Bi/YI0qIAi1Fzh5QBswHmqdoT63V799lliLk9wOtyOzlG8WN8Y5XcltqrX53r5EB3g%2BkgloLXZ%2ByQKB8%2BoE9QoQlULH9gj1Mgp4PFA/nuz5%2BXJc8mA9UnqI9SD8SBPRg4ezXPyzesOgSQh129QSjsJWIh1/OriL3SBOiQH0Hd2dXYQ%2BHUARK26%2B%2Bg7v/7cyYDcYn6tqmA9lI88BuWhx8rdXv6LXoQ6hAQslAPUHjxUfrOxJtmZH425nLRPTC4df64sazhx1a%2BxwRrfb063N6om9yX9SYGBXd59j%2BDUR08vovGuLRwuNvbjYP7EqWkw4Qck8RuWoNoglL7QHKkZoP5OzdjIX042Dw2pGq1iAyUBY0XmqREShpJpMm0y1gz1JI92uDy0BALcybqehKeINkhUaN8RG5Ex4b30BEJ685M5gHS8GpSjRhgAVXoERe4C7MGpQXCI2XT0jXJisDJWdFEnIXfkcWfSDAImrs38k8xLHxjUR08tpdfjSgSpRUnIIMlESQRANcQdXHXmUTBodcQWFNqREI7ZeLKKk1ZRkIDZkrqO2zRo193E50lmOvbiSik1fvKjwmUIjyCooa%2B3aoOlZCEiJBI8vQVC/q/w6UxpdGDIyj71MdxaozUMLx/yM%2BgTxkGq11oUugBGhklgrKP4rHNApERMcnNqbLJ67c1XoukFJZsWsXKAEaVUbFRR3FY8O6z5FwfOKl3JYTV36u5tQhYKp4qxMopXipBJmksKEkDQiU0vP6gRymPoEmBcoCmSSwIW1H8V4rBAKOghmJgAUEAiykn0wFgAgZCDCR/b4wAIgIGQgwgUCABQQCLDAKAyzQiQYs0IQBFhAIsIBAgAUEAiz%2BA4iKsk1kQYfMAAAAAElFTkSuQmCC%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/png%22%2C%20%22purpose%22%3A%20%22any%20maskable%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/png%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAWsUlEQVR4nO3d249kR30H8JpsxzazF8/srpEioeD8AwkJxjcuxoshUiJAygvh8pC/YaX1H4El/w%2BRIgUIdzAXA4aE8BLgbwgkJHmAwO4OXmwCmjzMurd3Lt2nu8%2Bp%2BlXV5/M09o69pek6329VnZ7TO5f/7m8SAP2ZHR4elh4DAAX8QekBAFCGAgDolAIA6JQCAOiUAgDolAIA6JQCAOiUAgDolAIA6JQCAOiUAgDolAIA6JQCAOjULHkYKECX7AAAOqUAADo1S86AALpkBwDQKQUA0CkFANApBQDQKQUA0CkFANApBQDQKQUA0CkFANApBQDQKU8DBeiUHQBApxQAQKcUAECnFABApxQAQKd8IAxAp%2BwAADqlAAA6pQAAOqUAADqlAAA6pQAAOqUAADrlaaAAnZqVHkDXrr/9cukhQHkv/viXpYfQKQWQiayHs5x6dWiFDBTAVCQ%2BbOPYFaQPpqAAxrRu6JvTkIZdOIvf48IZy87%2BJz5cegzVGzJ9TVlYi8sqAwWwueUT1NSEEbncpqAANrFkLpqIMClX34gUwBrOmnmmHRThktzSzv4nPlR6DBW4/vYrp/77F3/8v5lHAhzj8tyYAljh1LllYkFArtZ1KYAzmUxQI1fucArgFCcnkNkD1XEhr6QA7mPGQGNc1Evs7H9cAdx1bKKYJdAMV/epFEBKJgf0wZV%2BTO8FYHsIXXHJL%2Bq6ACwHoE%2Bu/SP9fiSkGQDdOna9n/WrZM3rcQcg%2BoEjnadBdzuAzl9vYFHnW4G%2BdgCLr67oB%2Bb6DIedvT4KwMIfWK7DlOjiCKjD1xVYV4fHQe3vAPrc2QEb6yc0Gt8B9PNCAmNZzIq29wE7ex//YOkxTEX6AxvrIUCa3QH08OIB0%2BlhH9BmAUh/YHvNd8DO3sdaOwK6/thC%2Bv9I%2BgNbaThSWtsBNPxSAUUsJsliwjSgqQKQ/sAUWu2AdgpA%2BgPTabIDGikA6Q9Mrb0OaKEApD%2BQR2Md0EIBzEl/YGot5Uz1BTAv4ZZeFSCyedrUvgmouwBq/%2BkDtas6hSouAEf/QClt3AyouADmpD%2BQXwPJU2sBOPoHiqv9ZkCVBVDpzxpoWI25VF8BOPoH4qj6ZsAsHR6WHsOa3hjviz/6RdFxAKSU0os//MX1x67e/YeqErWyHcC9nzJAPHVlVGUFMGf5D8RRaSLVVADzaq30Zw00bJ5LFW0CqimAin6mQOdqyatqCmDO8h%2BIqbp0qqMAHP4AVajrIKiOAgBgdBUUgOU/UJGKNgEVFAAAU4heAJb/QHVq2QRELwAAJhK6ACz/gUpVsQkIXQAATGeWoj667vo7Fmoz6iABVrr%2B2NUXfxjxGKOCHUDMHxzAcvGzq4ICAGAKO3t/%2B9elx3CK6%2B945OiLF3/487IjAdhG5DSzAwDoVMQCmBcmQDMCJlvEApgLuGMCWEvkHAtdAABMJ1wBRL5hArCBeZpFOwUKVwAA5KEAADoVqwCi7Y8AxhUq5WIVwJwbAEBLYmZa0AIAYGpRnwYac1QA2wuTb4F2ANcff%2BMNoP8Wca8EsI15ss2zrrhABQBATgoAoFMKAKBTCgCgUzt7H/mr0mNIyR1guN%2BvPvXSfsgPa2JLobLODgDC%2BdWnXio9BLqgACCWo/S3/CcDBQDQKQUAgTj8IScFAFHM09/5D3koAAjB2p/8QhRAqPdFQX4D0/93v/jV1CNhaqGeCBSiAIC5s85/pD%2Bjmx1GeDDpG2MIMRjI6%2Ban71v%2Bn3oVHKX/7Oq%2Ba6QFYRLPDgBKOpb%2BkJMCgGJOpv/eR045/3H4w0QUAJQxcO0/T//Z1f0ph0OPFADEZe3PpBQAFHDq8v/Y%2BY/0Z2oKAHLb4Mav8x%2BmoAAgq3WP/mE6s3tvSQ0h1GBgZDc//bWlf353/p%2BW/i6NJhV%2BWe0AIIT5Z/OdTH/nP0xEAUAmq5b/KTn5IS8FADkMSX/ITAHA5Fam/9H5z6nLf%2Bc/TEcBwLQGrv0d/pDfrPRd6PuFGgzk8rufn53%2BLoqGlX5x7QBgQjc/s3r5f%2BHaUxlGAicpAJjKkPRfzg0AJqUAYBLbpz9MTQHA%2BIanv/MfClIAEJTzH6amAGBkDn%2BohQKAMa2V/s5/KGtWegAFXHzTbukh0Kb//PvPrvX9uw8%2BeNYfPfjmq1sPh/Uc/OZO6SHkZgcA41g3/aG4HncAHfY8AS0///mtWcr0gnwgzOGJL6AmNz/z9fX/ozNn%2B%2BzqvmuhaVESzxEQbGuj9IfyFABsZbP0v3DtydFHAuuK8TTQKPshWM/Nf9p07X/2VJ9d3XchNC5M4tkBAHRKAcCGNl7%2BX3jW%2BQ8hKADYxOaHP0t5/g85KQBY20TpD5kpAFjPlunv/Ic4FACsYdK1v/MfMlMAAJ1SADDU9st/5z%2BEogBgkKlv/Dr/IT8FAKt52w9NUgCwgvSnVQoAMllyA8D5D0UoAFjG8p%2BGzdJh6efRLQo1GLp387PfGPN/t2R6m/l9Kv262wHA6cZN/wvvfeKsP3L%2BQykKAE4x8tofQlIAAJ1SAHDc6Mv/Jec/UJACgPtkPvxxA4CCFADc4%2BifrigAuGui9Hf%2BQ1gKAIpx/kNZCgBScvhDlxQATJj%2Bzn%2BITAHQu1Jrf%2Bc/FKcA6JqTH3qmAGAqzn8IbpYiPIXw8MQXML2bnyu2/J9d2Tfb%2BxUm8ewA6FTB9IcgFAA9ypD%2Bzn%2BIb1Z%2BE3KfUIOhTTc/982yA5hd2TPVSSkVnwZ2AACdUgD0Jc/y3/kPVVAAdKT44U%2B6e/4DISgAehEh/SGUWYRbUWHeFEuzbmVM/%2BXnPyY5cRLPDgDyOef8h0gUAO3LufyHiigAGpc5/b3/h4ooAFoWau3v/IdoFADNCpX%2BENCs9AAKuPim3dJDoFm7Dz541h89YOLFdvCbO6WHkFuMx0HPhRoMNfvZP3wh/1/65r98z1l/9MAjV3KOhE3kz5/SidfjDuDgTnc935tbny9z%2BHPntdfP%2BqPXzTricQ%2BA1pRKf6iOAqApBdP/wjNnvgHU%2B3%2BISQEAdCrIB8LEeTYGFbv1%2BZeL/v1LZq%2BJzaIoiWcHQCPKpv%2BFZx4v%2BLfDZhQALSi99l/GDQDCUgBUL3L6Q2QKALbl/IdKKQDqFnz57/yHyBQAFQue/hCcAqBWQdLf%2BQ/1UgBUKUj6L%2Bf8h%2BA8DRS249e/2FjpGWIHQH1ufSHK8v/Ce5z/UDEFQGXipP9yzn%2BITwFQk1rSH6qgAKhGtPR3/kPtFACMz/kPVVAA1CHa8h8aoACoQMD0d/5DA4J8IMxcqMEQwq0vfKv0EE515lw9d2XPTGYYHwgDZ4ua/tACBQBru/Ced5QeAoxAARBXjct/7/%2BhIgqAoGpMf6iLAiCiyOnv/IdmxHga6OGJL%2BjYrS/GTf%2BUls3Sc1f2zGFWC5N4dgAAnVIAxBJ9%2BQ8NUQAEEj/9L7z7zBsA3v9DdRQAUcRPf2iMAiAE6Q/5KQAYyvkPjVEAlGf5D0UoAAqT/lCKAqCkitJ/yfkPVEoBUExF6b%2BcGwBUKsgHwoT5zWhyufXFb5cewrqWTE7zlrVESTw7AFjtwrsfKz0EGJ8CoIAKl/9ncv5DvWI8DXQu1GCYxq0vtZP%2BKZm0bKH05LEDIKsa09/5D62alR4AHakx/VNKv/7%2Bj0oPYT0Pf/i50kOgDnYA0BTpz3AKgEwqXf7XRfqzFgVADtIfAurxHsDF3d3SQ%2BjLz/7xy6WH0IW3fPRD5vY2Du7cKT2E3OwAmJb0z%2BMtH/1Q6SFQnx53AB32PG1z9M9meiwAsnH0n8HAX1M4d3lv4oFQH0dATEX6xyH9OZUCYBLSP48hy3/pz1kUAOOT/nl4RgVbUgBQJUf/bE8BMDLL/wykP6OYHR6WfiBpuvdM1BCDYQu3v/yd0kPowpAr5dzlPRdUUGESzw6A0Uj/PM6/6%2B0rv8fanyEUAOOQ/nkMSX8YSAFANQamv%2BU/AykARmD5n4H0Z3QKgG1J/zikP2tRAGxF%2Bufhxi9TUABsTvrn4cYvE1EAEJqjf6ajANiQ5X8G0p9JKQA2If3jkP5sTAGwNumfhxu/TE0BsB7pn4cbv2SgACAcR//kMUuhHhcYajCccPsrlv%2BTO//Owenveqld6VfQDoChpH8c1v6MYlZ6AFTj0gfft/J7fv/Lm9MPZKhXf/Dj0kNY25Dlv/RnLLPym5CUFsYQYTBs6Pe/vFV6CPe0mv4pJZdJ/aIkniMgxhEq/Ws0%2BOj/4alHQj8UACOQ/luS/hShAGhQjec/K0l/RqcA2Jbl/5aG3fiV/oxPAbAV6b%2BlwTd%2BYXzeBspWAq5Mb3/lldJDGMrRP2XZAUAZ0p/iFAAUIP2JQAHQlIrOf1aS/kxNAUBubvwShKeBQlbnnx58%2BONyaF7pl9gOgHbc/mr085810h%2BmpwAgE%2BlPNAoAApH%2B5KQAIIchy3/pT2YKgEZEvgEw8PAHMgvygTBzoQYDIzj/9F8M%2BbZzlx82//vjA2GgXeukP%2BSmAGjB7a9%2Bt/QQNif9KUUBwFSGLP%2BlPwUpAJjEwMMfKKjHzwO4uLtbegiM6b8%2B81LpIRz3yLWndx96aOW3PXB1P8NgGOjgzp3SQ8jNDgBG9si1p4d8m/SnuB53AB32PDndee21ld9z7vLDr5uHlBbjaaCHJ76AYW6/FOv9P4Nu/O570mffwiSeIyAYjRu/1EUBwDiG/s7Xvvd9EoUCoGJxzn%2BkPzVSAJCJ9CcaBQDbGnrjF4JRANQqyPmPG7/USwHA5hz9UzUFABuS/tTOB8JQpdsvfa/0ENKQ6Xpu38e8sIQPhIEKnX/6z1d%2Bj7U/wSkAWNuQ9If4FAD1KXv%2BMzD9Lf%2BJTwHAGqQ/LYnxNNC5UIOBkwZMUQ/7ZKjS88QOgMrc/tr3Sv3V559y45emKAAYZEj6Q10UAKw2MP0t/6mLAqAmRc5/pD%2BtUgAwAulPjRQALOPGLw1TAHAmN35p26z0%2B1BTWngvbITBENZB3hsAu4OP/s1b1hIn8ewA4BTD03/qkcB0FABsSPpTOwVAHXKe/wxZ/kt/GhDkA2HinInRu92n3jbsG81VNhYl8ewA4J6B6W/5TxsUABU4%2BNo/Z/hbpD%2B9ifE46Cj7IfrmUc/kESbx7AAgpZR2n3zbyu%2Bx9qcxCoDoDr4%2B%2BfnPkPSH9igAejcw/S3/aY8CoGvSn54pAELLcP6zkvSnVQqAfrnxS%2BcUAJ1y4xcUAHFNd/7j6B%2BSAqBD0h%2BOKAA4hfSnBwqAoCY6/3HjF%2BYUAB1x4xcWKQB64egfjpmlw9LPo1sUajCUc/CNfxn3f7j7xNuGfNu5/UsmIfmUnmx2AHDXuf1LpYcAWSkA2jdk%2BS/96dCs9AAKuLh7vvQQWOa/P//1Ef9vV595cvehh1Z%2B2wNmRfcO7rxaegi52QHQsqvPPDnk2x64sj/1SCCgHncAHfZ8n4bf%2BH3dlKBLdgDEMvr7f5Zz9E/PFABtcuMXVlIANGjg4Q90TgHQmjV%2B5wv6pgAIZPsbANIfhlMAdEf6wxEFQDvc%2BIW1KACi2PL8x41fWNcshXr0YajBUI%2BhR/97l8wxAik9G%2B0AqN4a6Q8sUACEcPDNDc9/pD9sbFZ%2BE5LSwhgiDIa6rJ4z5/YumVpEEiXx7ACo2O4Tf1Z6CFAxBUB5B9/8/gb/1cD0d/gDZ1EAVEn6w/YUAPWR/jAKBUBhm53/rCT9YSUFQGWGLP%2BlPwyhAKiJt/3AiBQAJa11/uPoH8alAKiD9IfRKQDaIf1hLTGeBhrl96LJ6uDloec/u48Pu/Fr/lCFMIlnB0B0Q9If2IACILSB6e/wBzagAChjyPmP9IdJKQDqJv1hYwqAoIbe%2BAU2FeQDYeZCDYapHLz8r8u/YffxPx32fzJhqJoPhIH7DUx/y3/YkgIgFukP2SgAclt5/rOS9IdRKAACGbL8l/4wFgVAFBc/8K7SQ4C%2BKABCGJj%2Blv8wIgVAVqfeADhK/9/fvL38v5X%2BMC4FQB2kP4xudhjpN2lCDYY8Lrz/7uHPklf/3N4lc4P2FJ/VIXYAL3z3P46%2BuPHsH5cdCZP69beOn//M03/l%2BQ%2B0YZ5y89wrKEQB0Kd5%2Bi/n8AcmogAoQ/pDcQqATE6e/6wk/WFSCoACji3/T70BIP1hagqA3AYe/gBTUwDkMD//cfQPceycf%2B7p0mO468azbz364oXv/rTsSBjdr7/1g5TShfe/8%2BQfnTz/kf60KlrKzUoPoICLu%2BdLD6FTp/7kf/va/y3%2B4wOX9zKNBu53cOfV0kPIzREQk/ufL72cUvqjD39g5XdKf8ipxx1Ahz1f3KmHP%2BnE%2Bc/rd/4wy3CAlOwAyOCs9D/G0T9kFqgA5ndF5vdJ6If0p3nR7gCnlGap9OPo7nN44gvaNT//Obd3yStO%2B%2BLlW6AdAH2y9odSghaAUyCgJTEzLVYBxDkaY2pH5z%2BW//QmVMrFKgC6Iv2hLAVAGdIfigtXAN4MCjQm4BtAj4QrAADyCF0ANgFA7SLnWMQCiLZLAthewGSLWAAAZLBz/n1PlR7D6cLeNgEYKHiO2QEAdKqCAoh8CwXgLPGzK9jTQBe88MpPb1x748cXdZAAK73wSsTzn1TFDgCAKYQugHlt3tsKANRgnlphl/8peAEAMJ3oBWATAFSniuV/il8AAEykggKwCQAqUsvyP1VRAABMoY4CsAkAqlDR8j/VUgCLdAAQU3XpVE0BVFGnAKmevKqmAJKDICCwug5/jtRUAIt0ABBHpYlUWQFUVK1Ah%2BrKqFk6rO1Jm2%2BM98azb33hlZ%2BUHAlASjeuPXrvicVVJWplO4CU0mLo37j2aLFxANyfQtUtSesrgFThTxloXo25VGUBpIWftU0AUMo8f2pM/1RvASzSAUB%2BDSRPxQXgZgBQStVH/3MVF0Cq%2BecOtKHqFKq7AJKbAUB2tR/9z1VfAIt0ADC1lnKmhQJwMwDIo42j/7kWCiDpAGB6jaV/aqYAkg4AptRe%2BqeWCiDpAGAaTaZ/aqwAkg4AxtZq%2BqeUds6/98nSYxjfjfc9Ov/6he/8pNg4gMq1HSat7QCOLL5Oi68fwHBtp39qtQCSDgC203z6p5R2zr/3idJjmFAPLyEwuk6io9kdwBH7AGBdnaR/an4HcORY9Lf9igIb6y0rGt8BHDn2KtoKACf1lv6pkx3AXD87O2AtfYbDzm5PBZBSev7%2Bkv9kN680cKqeM6GLI6BFx17d5x0HQcd6Tv/U4Q5grvMXHjonAVKHO4A5WwHolvQ/0u8O4MjJ3O92KkAPXPKLei%2BAI5YD0ANX%2BjEK4B6TA1rl6j7Vzu4zCuCe55979Ni/%2BeS3f1JgHMBIXNRLKIBTmDHQABfySgrgTCdnTzKBIDxX7nAKYAWTCWrhal2XAhjk1ImVzC0IwOW5sZ3dZx4vPYZqPP/cn5z67z/57X/PPBIguSS3pgA2cda0S2YeTMzVNyIFsLklEzGZizAql9sUFMAIlk/NIyYorMVllYECGNOQKbvI9IXkwilHAUxl3TkNLCH0p6AAMtEHsBaJn4ECKEkrQJL15SgAgE7N0mHpIQBQQr8fCQnQOQUA0CkFANApBQDQKQUA0CkFANApBQDQqVnyiwAAXbIDAOiUAgDolAIA6JQCAOiUAgDolKeBAnTKDgCgUwoAoFMKAKBTCgCgUwoAoFMKAKBTCgCgUwoAoFMKAKBTCgCgUz4QBqBTdgAAnVIAAJ3yNFCATtkBAHRKAQB0SgEAdEoBAHRKAQB0SgEAdEoBAHRKAQB0SgEAdEoBAHRKAQB0SgEAdEoBAHTq/wGH%2Bxjyd66DuAAAAABJRU5ErkJggg%3D%3D%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/png%22%2C%20%22purpose%22%3A%20%22any%20maskable%22%7D%5D%7D" />
+<link rel="apple-touch-icon" href="data:image/png;base64,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" />
+<link rel="icon" type="image/png" href="data:image/png;base64,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" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#F4F5F2;
+    --panel:#FFFFFF;
+    --ink:#16211F;
+    --muted:#6B7975;
+    --faint:#9AA6A2;
+    --line:#E2E6E1;
+    --line-strong:#CDD4CF;
+    --green:#10564A;
+    --green-hi:#0C453B;
+    --green-soft:#E7F0EC;
+    --paid:#2E7D5B;
+    --warn:#B8492C;
+    --warn-soft:#F7E9E1;
+    --gold:#B08A3E;
+    --shadow:0 1px 2px rgba(22,33,31,.04),0 8px 24px rgba(22,33,31,.06);
+    --radius:14px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;}
+  .grot{font-family:"Space Grotesk",system-ui,sans-serif;}
+
+  /* ---------- Shell ---------- */
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px 80px;}
+  header.top{
+    position:sticky;top:0;z-index:20;
+    background:rgba(244,245,242,.85);
+    backdrop-filter:saturate(180%) blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .top-inner{
+    max-width:1120px;margin:0 auto;padding:14px 20px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;cursor:default}
+  .brand .mark{
+    font-family:"Space Grotesk";font-weight:700;font-size:20px;letter-spacing:-.02em;
+    color:var(--ink);
+  }
+  .brand .mark b{color:var(--green)}
+  .brand .org{
+    font-size:12.5px;color:var(--muted);border-left:1px solid var(--line-strong);
+    padding-left:10px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .brand .org.editable{cursor:text}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:13.5px;font-weight:600;
+    padding:9px 14px;border-radius:10px;border:1px solid var(--line-strong);
+    background:var(--panel);color:var(--ink);transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--faint);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn.primary:hover{background:var(--green-hi)}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:9px 10px}
+  .btn.ghost:hover{background:var(--line);color:var(--ink)}
+  .btn.danger{color:var(--warn);border-color:transparent}
+  .btn.danger:hover{background:var(--warn-soft)}
+  .btn svg{width:16px;height:16px}
+  .btn.sm{padding:6px 11px;font-size:12.5px}
+
+  :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:6px}
+
+  /* ---------- Summary ---------- */
+  .summary{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 20px;
+  }
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .stat .lab{
+    font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:6px;
+  }
+  .stat .val{font-size:26px;font-weight:600;margin-top:8px;letter-spacing:-.01em}
+  .stat .val .cur{font-size:14px;color:var(--faint);margin-right:2px;font-weight:500}
+  .stat .sub{font-size:12px;color:var(--muted);margin-top:3px}
+  .stat.accent{border-color:#D8C9A6;background:linear-gradient(180deg,#FCFAF4,#FFFFFF)}
+  .stat.accent .val{color:var(--green)}
+  .stat.warn .val{color:var(--warn)}
+  .stat .tick{position:absolute;top:0;left:0;height:100%;width:3px}
+  .stat.accent .tick{background:var(--gold)}
+  .stat.warn .tick{background:var(--warn)}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .search{
+    flex:1;min-width:200px;display:flex;align-items:center;gap:9px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 12px;
+  }
+  .search:focus-within{border-color:var(--faint)}
+  .search svg{width:16px;height:16px;color:var(--faint);flex-shrink:0}
+  .search input{
+    border:none;outline:none;background:none;font-family:inherit;font-size:14px;color:var(--ink);
+    padding:11px 0;width:100%;
+  }
+  .segmented{display:flex;background:var(--line);border-radius:10px;padding:3px;gap:2px}
+  .segmented button{
+    font-size:12.5px;font-weight:600;color:var(--muted);padding:7px 13px;border-radius:8px;transition:.15s;
+  }
+  .segmented button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .seg-count{font-size:10.5px;opacity:.7;margin-left:5px}
+
+  /* ---------- Table ---------- */
+  .board{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .thead,.trow{
+    display:grid;
+    grid-template-columns:minmax(170px,2.3fr) 1.15fr .85fr .85fr .85fr 88px 44px;
+    align-items:center;gap:12px;padding:0 20px;
+  }
+  .thead{
+    height:44px;border-bottom:1px solid var(--line);
+    font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  }
+  .thead .r,.trow .r{text-align:right}
+  .trow{
+    min-height:64px;border-bottom:1px solid var(--line);transition:background .12s;cursor:pointer;
+  }
+  .trow:last-child{border-bottom:none}
+  .trow:hover{background:#FAFBF9}
+  .m-name{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:9px}
+  .m-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .avatar{
+    width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+    font-family:"Space Grotesk";font-weight:600;font-size:13px;color:var(--green);
+    background:var(--green-soft);
+  }
+  .contact{font-size:13px;color:var(--muted)}
+  .figure{font-size:14px;text-align:right}
+  .figure.pos{color:var(--warn);font-weight:600}
+  .figure.zero{color:var(--faint)}
+  .figure.credit{color:var(--paid);font-weight:600}
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+    padding:3px 9px;border-radius:20px;white-space:nowrap;
+  }
+  .pill.overdue{background:var(--warn-soft);color:var(--warn)}
+  .pill.owing{background:#FBF3E2;color:#8a6a1e}
+  .pill.clear{background:var(--green-soft);color:var(--paid)}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .row-actions{display:flex;justify-content:flex-end;gap:2px}
+  .chev{color:var(--faint);transition:transform .2s}
+  /* WhatsApp quick action */
+  .wa-btn{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+    background:#EAF7EF;color:#1F9D55;border:1px solid #D3EEDD;transition:.15s;
+  }
+  .wa-btn:hover{background:#25D366;color:#fff;border-color:#25D366;transform:translateY(-1px)}
+  .wa-btn:disabled{background:var(--line);color:var(--faint);border-color:transparent;cursor:not-allowed;transform:none}
+  .wa-btn svg{width:17px;height:17px}
+  .btn.wa{background:#25D366;color:#fff;border-color:#25D366}
+  .btn.wa:hover{background:#1Fb457;border-color:#1Fb457}
+  .btn.wa svg{width:16px;height:16px}
+
+  /* ---------- Empty ---------- */
+  .empty{padding:64px 24px;text-align:center;color:var(--muted)}
+  .empty .big{font-family:"Space Grotesk";font-size:19px;color:var(--ink);font-weight:600;margin-bottom:6px}
+  .empty p{max-width:360px;margin:0 auto 18px;font-size:14px}
+  .empty .ledger-lines{margin:0 auto 22px;width:120px;height:2px;background:
+    repeating-linear-gradient(180deg,var(--line) 0 1px,transparent 1px 14px);
+    height:56px;border-radius:2px}
+
+  /* ---------- Footer bar ---------- */
+  .footbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .footbar .note{font-size:12px;color:var(--faint)}
+  .footbar .r{display:flex;gap:8px}
+
+  /* ---------- Modal / Drawer ---------- */
+  .scrim{
+    position:fixed;inset:0;background:rgba(22,33,31,.34);backdrop-filter:blur(2px);
+    z-index:40;display:flex;opacity:0;pointer-events:none;transition:opacity .26s var(--ease);
+  }
+  .scrim.show{opacity:1;pointer-events:auto}
+  .modal{
+    background:var(--panel);border-radius:16px;box-shadow:0 20px 60px rgba(22,33,31,.28);
+    width:min(460px,calc(100% - 32px));margin:auto;max-height:90vh;overflow:auto;
+    transform:translateY(14px) scale(.97);transition:transform .3s var(--ease), opacity .3s var(--ease);opacity:0;
+  }
+  .scrim.show .modal{transform:none;opacity:1}
+  /* right drawer for member detail */
+  .drawer{
+    margin:0 0 0 auto;height:100vh;width:min(520px,100%);border-radius:0;max-height:none;
+    transform:translateX(20px);
+  }
+  .scrim.show .drawer{transform:none}
+  .m-head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .m-head h2{font-family:"Space Grotesk";font-size:18px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .m-head .close{margin-left:auto}
+  .m-body{padding:20px 22px}
+  .m-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:#FCFDFB}
+
+  label.fld{display:block;margin-bottom:14px}
+  label.fld .lt{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .inp{
+    width:100%;font-family:inherit;font-size:14px;color:var(--ink);
+    padding:11px 12px;border:1px solid var(--line-strong);border-radius:10px;background:#fff;transition:.15s;
+  }
+  .inp:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+  .inp.mono{font-family:"JetBrains Mono",monospace}
+  .money-inp{position:relative}
+  .money-inp .cursign{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px;font-family:"JetBrains Mono",monospace}
+  .money-inp .inp{padding-left:38px;font-family:"JetBrains Mono",monospace}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .checkline{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);margin-bottom:6px;cursor:pointer}
+  .checkline input{width:16px;height:16px;accent-color:var(--green)}
+  .hint{font-size:12px;color:var(--faint);margin-top:-6px;margin-bottom:12px}
+
+  /* member detail ledger */
+  .detail-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+  .detail-sum .cell{background:var(--paper);border-radius:11px;padding:12px 13px;border:1px solid var(--line)}
+  .detail-sum .cell .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+  .detail-sum .cell .v{font-size:18px;font-weight:600;margin-top:5px}
+  .detail-sum .cell.bal .v.pos{color:var(--warn)}
+  .detail-sum .cell.bal .v.credit{color:var(--paid)}
+
+  .ledger-title{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}
+  .ledger-title h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0}
+  .txn{
+    display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);
+  }
+  .txn:last-child{border-bottom:none}
+  .txn .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+  .txn.charge .ic{background:var(--warn-soft);color:var(--warn)}
+  .txn.payment .ic{background:var(--green-soft);color:var(--paid)}
+  .txn .ic svg{width:15px;height:15px}
+  .txn .desc{font-size:13.5px;font-weight:500}
+  .txn .meta{font-size:11.5px;color:var(--muted);margin-top:2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .txn .amt{margin-left:auto;font-size:14px;font-weight:600;white-space:nowrap}
+  .txn.charge .amt{color:var(--warn)}
+  .txn.payment .amt{color:var(--paid)}
+  .txn .del{opacity:0;transition:.15s}
+  .txn:hover .del{opacity:1}
+  .tag-overdue{color:var(--warn);font-weight:600}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-size:13.5px;font-weight:500;
+    padding:11px 18px;border-radius:11px;box-shadow:0 10px 30px rgba(0,0,0,.25);
+    z-index:60;opacity:0;transition:.25s;display:flex;align-items:center;gap:9px;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .toast svg{width:16px;height:16px;color:#7FDCB6}
+
+  @media (max-width:760px){
+    .summary{grid-template-columns:1fr 1fr}
+    .thead{display:none}
+    .trow{grid-template-columns:1fr auto auto;grid-auto-rows:auto;padding:14px 16px;gap:6px 10px;min-height:0;align-items:center}
+    .trow .contact{display:none}
+    .trow .c-charged,.trow .c-paid{display:none}
+    .trow .c-name{grid-column:1;grid-row:1}
+    .trow .c-balance{grid-column:2;grid-row:1;text-align:right}
+    .trow .c-wa{grid-column:3;grid-row:1 / span 2;align-self:center}
+    .trow .c-status{grid-column:1;grid-row:2}
+    .figure{text-align:left}
+    .trow .c-balance .figure{text-align:right}
+    .brand .org{max-width:120px}
+    .detail-sum{grid-template-columns:1fr 1fr 1fr}
+  }
+
+  /* ---------- Motion ---------- */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes rowIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  @keyframes flashRow{0%{background:var(--green-soft)}70%{background:var(--green-soft)}100%{background:transparent}}
+  @keyframes popIn{0%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:none}}
+  @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(37,211,102,.45)}100%{box-shadow:0 0 0 8px rgba(37,211,102,0)}}
+
+  /* one-time load sequence */
+  body.boot .stat{animation:fadeUp .55s var(--ease) both}
+  body.boot .stat:nth-child(1){animation-delay:.02s}
+  body.boot .stat:nth-child(2){animation-delay:.09s}
+  body.boot .stat:nth-child(3){animation-delay:.16s}
+  body.boot .stat:nth-child(4){animation-delay:.23s}
+  body.boot .toolbar{animation:fadeUp .5s var(--ease) both;animation-delay:.2s}
+  body.boot .board{animation:fadeUp .5s var(--ease) both;animation-delay:.16s}
+  body.boot .footbar{animation:fadeUp .5s var(--ease) both;animation-delay:.28s}
+
+  /* row entrance (only when board is flagged animate) */
+  .board.animate .trow{animation:rowIn .42s var(--ease) both}
+  .trow.flash{animation:flashRow 1.25s var(--ease) both}
+
+  /* smoother interactions */
+  .stat{transition:transform .25s var(--ease), box-shadow .25s var(--ease)}
+  .stat:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(22,33,31,.05),0 14px 34px rgba(22,33,31,.09)}
+  .trow{transition:background .18s var(--ease), transform .18s var(--ease)}
+  .stat .val{transition:color .3s var(--ease)}
+  .pill{transition:background .25s var(--ease), color .25s var(--ease)}
+  .avatar{transition:transform .2s var(--spring)}
+  .trow:hover .avatar{transform:scale(1.06) rotate(-2deg)}
+  .wa-btn:not(:disabled):hover{animation:pulseRing 1s var(--ease)}
+
+  /* ---------- Accounts & Collections ---------- */
+  .acc-badge{
+    width:38px;height:38px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;
+    font-family:"Space Grotesk";font-weight:700;font-size:13px;color:#fff;letter-spacing:-.02em;
+  }
+  .acc-badge.sm{width:30px;height:30px;font-size:11px;border-radius:8px}
+  .win-total{
+    background:linear-gradient(180deg,#0F5C4C,#0C453B);color:#fff;border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow);
+  }
+  .win-total .l{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+  .win-total .v{font-size:32px;font-weight:600;margin-top:6px;letter-spacing:-.01em}
+  .win-total .v .cur{font-size:16px;opacity:.7;margin-right:3px}
+  .win-total .s{font-size:12.5px;opacity:.8;margin-top:4px}
+  .acc-row{
+    display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);
+  }
+  .acc-row:last-child{border-bottom:none}
+  .acc-row .info{min-width:0;flex:1}
+  .acc-row .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .acc-row .meta{font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acc-row .amt{text-align:right;flex-shrink:0}
+  .acc-row .amt .big{font-size:15px;font-weight:600}
+  .acc-row .amt .cnt{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .bar{height:5px;border-radius:4px;background:var(--line);margin-top:9px;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:4px;transition:width .6s var(--ease)}
+  .type-chip{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    background:var(--line);padding:2px 7px;border-radius:6px}
+  .paylist{margin-top:8px}
+  .payrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .payrow:last-child{border-bottom:none}
+  .payrow .who{font-weight:500}
+  .payrow .when{font-size:11.5px;color:var(--muted)}
+  .payrow .pa{margin-left:auto;font-weight:600;color:var(--paid);white-space:nowrap}
+  .codeblock{
+    background:#0F1A18;color:#DCE7E3;border-radius:12px;padding:15px 16px;font-size:12.5px;line-height:1.7;
+    white-space:pre-wrap;word-break:break-word;font-family:"JetBrains Mono",monospace;max-height:230px;overflow:auto;
+  }
+  .mini-acc{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px}
+  .mini-acc .info{flex:1;min-width:0}
+  .mini-acc .nm{font-weight:600;font-size:13.5px}
+  .mini-acc .meta{font-size:12px;color:var(--muted)}
+  .acc-select-note{font-size:12px;color:var(--faint);margin:-6px 0 12px}
+  .as-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+  .as-dot.off{background:var(--faint)}
+  .as-dot.on{background:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+  .as-dot.warn{background:var(--gold);box-shadow:0 0 0 3px rgba(176,138,62,.18)}
+  #autoSaveBtn{gap:8px}
+
+  /* ---------- App feel ---------- */
+  html{ -webkit-text-size-adjust:100%; }
+  body{ overscroll-behavior-y:none; }
+  button{ -webkit-tap-highlight-color:transparent; }
+  .btn, .segmented button, .wa-btn, .brand .mark, .lab, .thead, .m-head h2{ user-select:none; -webkit-user-select:none; }
+  .btn.install{ background:var(--gold); color:#26200E; border-color:var(--gold); font-weight:700; }
+  .btn.install:hover{ background:#C79B4A; border-color:#C79B4A; }
+  .top-inner{ padding-top:calc(14px + env(safe-area-inset-top)); padding-left:calc(20px + env(safe-area-inset-left)); padding-right:calc(20px + env(safe-area-inset-right)); }
+  .wrap{ padding-left:calc(20px + env(safe-area-inset-left)); padding-right:calc(20px + env(safe-area-inset-right)); padding-bottom:calc(80px + env(safe-area-inset-bottom)); }
+  .drawer{ padding-bottom:env(safe-area-inset-bottom); }
+  @media (display-mode:standalone){ header.top{ background:var(--paper); } }
+  .ios-steps{ list-style:none;padding:0;margin:8px 0 0;counter-reset:s; }
+  .ios-steps li{ display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px; }
+  .ios-steps li:last-child{ border-bottom:none; }
+  .ios-steps li::before{ counter-increment:s;content:counter(s);flex-shrink:0;width:24px;height:24px;border-radius:7px;background:var(--green-soft);color:var(--green);font-weight:700;font-size:12px;display:grid;place-items:center;font-family:"Space Grotesk"; }
+  .kbd{display:inline-flex;align-items:center;gap:4px;background:var(--line);border-radius:6px;padding:1px 6px;font-weight:600;font-size:12px}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+  .reconnect-bar{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:55;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:13px 16px;font-family:inherit;font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.28);display:flex;align-items:center;gap:9px;justify-content:center;cursor:pointer}
+  .reconnect-bar .as-dot.warn{background:var(--gold)}
+  .reconnect-bar:hover{background:#0d1917}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <span class="mark grot">Led<b>ger</b></span>
+      <span class="org editable" id="orgName" title="Click to rename your organization">Shakeel Electronics</span>
+    </div>
+    <div class="actions">
+      <button class="btn install" id="installBtn" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 21h14"/></svg>
+        Install app
+      </button>
+      <button class="btn" id="collectionsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Collections
+      </button>
+      <button class="btn" id="addChargeBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add charge
+      </button>
+      <button class="btn primary" id="addMemberBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Add member
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="summary" id="summary"></section>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Search members by name, unit, or phone" autocomplete="off"/>
+    </div>
+    <div class="segmented" id="filters"></div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="footbar">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <span class="note" id="countNote"></span>
+      <span class="note" id="storageNote"></span>
+      <span class="note" id="autoSaveNote"></span>
+    </div>
+    <div class="r">
+      <button class="btn ghost sm" id="autoSaveBtn"><span class="as-dot off"></span>Auto-save to folder</button>
+      <button class="btn ghost sm" id="importBtn">Import backup</button>
+      <button class="btn ghost sm" id="exportCsvBtn">Export CSV</button>
+      <button class="btn ghost sm" id="exportJsonBtn">Backup data</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none"/>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Dues Management — "Ledger"
+   Persists to window.storage (Claude artifact storage) with an
+   in-memory fallback so it also runs standalone.
+   ============================================================ */
+
+const KEY = "dues:data:v1";
+let hasStore = (typeof window !== "undefined" && window.storage && typeof window.storage.get === "function");
+
+const State = {
+  settings: { org: "Shakeel Electronics", currency: "Rs", countryCode: "92", slipNumber: "0312-6617887", accountsSeeded: false },
+  members: [],       // {id,name,unit,phone,email,createdAt}
+  transactions: [],  // {id,memberId,type:'charge'|'payment',amount,description,date,dueDate,accountId,createdAt}
+  accounts: [],      // {id,provider,type:'wallet'|'bank',number,holder,color}
+};
+
+let ui = { search: "", filter: "all", openMemberId: null, flashId: null };
+
+/* ---------- storage ---------- */
+/* ---------- storage ----------
+   Three layers, most-durable wins on load:
+   1) window.storage  (Claude artifact storage — only inside the app preview)
+   2) localStorage    (this device's browser — works when the file is opened directly)
+   3) chosen folder   (a real file on disk — see Folder auto-save)
+   This makes data survive reopening and PC restarts wherever the app runs.        */
+async function load(){
+  let d = null;
+  // prefer artifact storage when present
+  if(hasStore){
+    try{
+      const r = await window.storage.get(KEY);
+      if(r && r.value) d = JSON.parse(r.value);
+    }catch(e){ /* key not set yet */ }
+  }
+  // fall back to this device's localStorage (standalone / downloaded file)
+  if(!d) d = lsLoad();
+  if(d){
+    State.settings = Object.assign(State.settings, d.settings||{});
+    State.members = d.members||[];
+    State.transactions = d.transactions||[];
+    State.accounts = d.accounts||[];
+  }
+  seedAccounts();
+}
+
+function lsLoad(){
+  try{ const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }
+  catch(e){ return null; }
+}
+function lsSave(){
+  try{ localStorage.setItem(KEY, JSON.stringify(State)); return true; }
+  catch(e){ return false; }
+}
+
+function seedAccounts(){
+  if(State.settings.accountsSeeded) return;
+  State.accounts = [
+    { id:uid(), provider:"Easypaisa",   type:"wallet", number:"0328-0995780",  holder:"Husnain Ali",    color:"#1CA63A" },
+    { id:uid(), provider:"JazzCash",    type:"wallet", number:"0310-1666888",  holder:"Husnain Ali",    color:"#E11A2C" },
+    { id:uid(), provider:"Meezan Bank", type:"bank",   number:"04820104330529",holder:"Shakeel Ashraf", color:"#00563F" },
+    { id:uid(), provider:"UBL Bank",    type:"bank",   number:"1940313671528", holder:"Husnain Ali",    color:"#0A4DA1" },
+  ];
+  State.settings.accountsSeeded = true;
+  save();
+}
+let saveTimer=null;
+let storageOK = true;
+async function save(){
+  let ok = false;
+  if(hasStore){
+    try{ await window.storage.set(KEY, JSON.stringify(State)); ok = true; }catch(e){}
+  }
+  // always keep a copy in this device's browser storage
+  if(lsSave()) ok = true;
+  storageOK = ok;
+  updateStorageNote();
+}
+function persist(){ // debounce a touch
+  State.settings.updatedAt=Date.now();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(save, 120);
+  if(dirHandle) writeToFolder(false);   // also mirror to the chosen folder
+}
+
+function updateStorageNote(){
+  const el = document.getElementById("storageNote");
+  if(!el) return;
+  if(!storageOK){
+    el.innerHTML = `<span style="color:var(--warn)">⚠ Couldn't save on this device — use “Backup data”, or your browser may be blocking storage (private mode?).</span>`;
+  }else if(dirHandle && State.settings.autoSaveFolder){
+    el.textContent = "";
+  }else{
+    el.textContent = "Saved automatically on this device.";
+  }
+}
+
+/* ---------- Folder auto-save (File System Access API) ---------- */
+const FS_SUPPORTED = (typeof window !== "undefined" && "showDirectoryPicker" in window);
+let dirHandle = null;      // FileSystemDirectoryHandle
+let fsTimer = null;
+let fsLastSaved = null;
+const DATA_FILE = "shakeel-electronics-ledger.json";
+const CSV_FILE  = "dues-summary.csv";
+
+// tiny IndexedDB store for the directory handle (guarded — never throws to caller)
+function idb(op, val){
+  return new Promise((res)=>{
+    try{
+      const r = indexedDB.open("ledger-fs", 1);
+      r.onupgradeneeded = ()=> r.result.createObjectStore("h");
+      r.onerror = ()=> res(null);
+      r.onsuccess = ()=>{
+        const db = r.result;
+        const mode = op==="get" ? "readonly" : "readwrite";
+        const tx = db.transaction("h", mode);
+        const st = tx.objectStore("h");
+        let rq;
+        if(op==="get") rq = st.get("dir");
+        else if(op==="set") rq = st.put(val, "dir");
+        else rq = st.delete("dir");
+        rq.onsuccess = ()=>{ const out = op==="get"? rq.result : true; tx.oncomplete=()=>{db.close();res(out);}; };
+        rq.onerror = ()=>{ db.close(); res(null); };
+      };
+    }catch(e){ res(null); }
+  });
+}
+
+async function ensurePerm(h){
+  try{
+    const opts = {mode:"readwrite"};
+    if((await h.queryPermission(opts))==="granted") return true;
+    if((await h.requestPermission(opts))==="granted") return true;
+  }catch(e){}
+  return false;
+}
+async function writeFile(dir, name, text){
+  const fh = await dir.getFileHandle(name, {create:true});
+  const w = await fh.createWritable();
+  await w.write(text);
+  await w.close();
+}
+async function writeToFolder(immediate){
+  if(!dirHandle) return;
+  const doWrite = async ()=>{
+    if(!(await ensurePerm(dirHandle))){ setAutoSaveState("warn"); return; }
+    try{
+      await writeFile(dirHandle, DATA_FILE, JSON.stringify(State,null,2));
+      await writeFile(dirHandle, CSV_FILE, buildMembersCsv());
+      fsLastSaved = new Date();
+      setAutoSaveState("on");
+    }catch(e){ console.warn("folder write failed", e); setAutoSaveState("warn"); }
+  };
+  clearTimeout(fsTimer);
+  if(immediate) return doWrite();
+  fsTimer = setTimeout(doWrite, 500);
+}
+
+async function pickFolder(){
+  if(!FS_SUPPORTED){
+    flash("Folder auto-save needs Chrome or Edge — open this file there");
+    return;
+  }
+  try{
+    const h = await window.showDirectoryPicker({mode:"readwrite", id:"ledger-autosave"});
+    dirHandle = h;
+    await idb("set", h);
+    State.settings.autoSaveFolder = h.name;
+    persist();
+    await writeToFolder(true);
+    toast(`Auto-saving to “${h.name}”`);
+  }catch(e){
+    if(e && e.name==="AbortError") return;              // user cancelled the picker
+    flash("Your browser blocked folder access here. Open the downloaded file directly in Chrome or Edge.");
+  }
+}
+
+async function turnOffAutoSave(){
+  dirHandle = null; fsLastSaved = null;
+  State.settings.autoSaveFolder = null;
+  await idb("del");
+  persist();
+  setAutoSaveState("off");
+  toast("Auto-save to folder turned off");
+}
+
+function setAutoSaveState(state){
+  const btn = document.getElementById("autoSaveBtn");
+  const note = document.getElementById("autoSaveNote");
+  if(!btn) return;
+  const folder = State.settings.autoSaveFolder;
+  const dot = c => `<span class="as-dot ${c}"></span>`;
+  if(state==="on"){
+    btn.innerHTML = dot("on") + `Saving to “${esc(folder||"folder")}”`;
+    const t = fsLastSaved ? fsLastSaved.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
+    note.textContent = t ? `Folder file updated at ${t}` : "";
+  }else if(state==="warn"){
+    btn.innerHTML = dot("warn") + `Reconnect folder “${esc(folder||"")}”`;
+    note.textContent = "Click to grant folder access again";
+  }else{
+    btn.innerHTML = dot("off") + `Auto-save to folder`;
+    note.textContent = FS_SUPPORTED ? "" : "Open in Chrome or Edge to save into a folder";
+  }
+}
+
+// small chooser when auto-save is already on
+function openAutoSaveMenu(){
+  openScrim(`
+    <div class="m-head"><h2>Folder auto-save</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="mini-acc"><span class="acc-badge" style="background:#22C55E">✓</span>
+        <div class="info"><div class="nm">Saving to “${esc(State.settings.autoSaveFolder||"folder")}”</div>
+        <div class="meta">Two files kept up to date: ${DATA_FILE} and ${CSV_FILE}</div></div></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">These files are rewritten after every entry so the folder always holds your latest ledger.</p>
+    </div>
+    <div class="m-foot">
+      <button class="btn danger" id="as-off" style="margin-right:auto">Turn off</button>
+      <button class="btn" data-close>Close</button>
+      <button class="btn primary" id="as-change">Change folder</button>
+    </div>
+  `);
+  document.getElementById("as-off").onclick = ()=>{ turnOffAutoSave(); closeScrim(); };
+  document.getElementById("as-change").onclick = ()=>{ closeScrim(); pickFolder(); };
+}
+
+function onAutoSaveClick(){
+  if(dirHandle && State.settings.autoSaveFolder){
+    // if permission was lost, reconnect; otherwise show menu
+    ensurePerm(dirHandle).then(ok=>{
+      if(ok){ writeToFolder(true); openAutoSaveMenu(); }
+      else openAutoSaveMenu();
+    });
+  }else{
+    pickFolder();
+  }
+}
+
+async function initAutoSave(){
+  setAutoSaveState("off");
+  if(!FS_SUPPORTED) return;
+  const h = await idb("get");
+  if(h){
+    dirHandle = h;
+    try{
+      const perm = await h.queryPermission({mode:"readwrite"});
+      setAutoSaveState(perm==="granted" ? "on" : "warn");
+    }catch(e){ setAutoSaveState("warn"); }
+  }
+}
+
+/* ---------- helpers ---------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+function localISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+const todayISO = () => localISO(new Date());
+function cur(n){
+  const s = Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?"-":"") + s;
+}
+function initials(name){
+  const p = name.trim().split(/\s+/);
+  return ((p[0]?.[0]||"") + (p[1]?.[0]||"")).toUpperCase() || "?";
+}
+function fmtDate(iso){
+  if(!iso) return "";
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+}
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- Accounts ---------- */
+function accountById(id){ return State.accounts.find(a=>a.id===id) || null; }
+function accColor(a){ return (a&&a.color) || (a&&a.type==="bank" ? "#0A4DA1" : "#10564A"); }
+function accInitials(a){
+  if(!a) return "?";
+  const p = a.provider.trim().split(/\s+/);
+  return ((p[0]?.[0]||"")+(p[1]?.[0]||"")).toUpperCase() || "?";
+}
+function accBadge(a, sm){
+  return `<span class="acc-badge ${sm?"sm":""}" style="background:${accColor(a)}">${esc(accInitials(a))}</span>`;
+}
+function daysAgoISO(days){
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(days-1));
+  return localISO(d);
+}
+// Collections grouped by account within a window (days=null => all time).
+function collections(days){
+  const start = days==null ? null : daysAgoISO(days);
+  const pays = State.transactions.filter(t=>t.type==="payment" && (start==null || (t.date||"") >= start));
+  const byAcc = new Map();
+  let total = 0;
+  for(const p of pays){
+    total += p.amount;
+    const key = p.accountId || "__none__";
+    if(!byAcc.has(key)) byAcc.set(key, {accountId:p.accountId||null, total:0, count:0});
+    const g = byAcc.get(key); g.total += p.amount; g.count++;
+  }
+  const groups = [...byAcc.values()].sort((a,b)=>b.total-a.total);
+  return { total, count: pays.length, groups, pays };
+}
+// The shareable "where to pay" block, mirroring the shop's own format.
+function payDetailsText(){
+  const wallets = State.accounts.filter(a=>a.type==="wallet");
+  const banks = State.accounts.filter(a=>a.type==="bank");
+  let s = `💎 ACCOUNT DETAILS 💎\n`;
+  for(const a of wallets){ s += `\n📲 ${a.provider}: ${a.number}\n👤 ${a.holder}`; }
+  for(const a of banks){ s += `\n🏦 ${a.provider}: ${a.number}\n👤 ${a.holder}`; }
+  if(State.settings.slipNumber) s += `\n\n📩 Share payment slip: ${State.settings.slipNumber}`;
+  s += `\n⚡ ${State.settings.org}`;
+  return s;
+}
+
+/* ---------- WhatsApp ---------- */
+// Convert a locally-typed number to international format for wa.me (digits only, no +).
+function waNumber(phone){
+  if(!phone) return "";
+  let d = String(phone).replace(/[^\d+]/g,"");
+  const cc = (State.settings.countryCode||"92").replace(/\D/g,"");
+  if(d.startsWith("+")) d = d.slice(1);
+  else if(d.startsWith("00")) d = d.slice(2);
+  else if(d.startsWith("0")) d = cc + d.slice(1);      // local 03xx -> 923xx
+  else if(!d.startsWith(cc) && d.length<=10) d = cc + d; // bare number -> prefix cc
+  return d;
+}
+function reminderText(m){
+  const f = figures(m.id);
+  const C = State.settings.currency, org = State.settings.org;
+  const bal = `${C} ${cur(Math.max(0,f.balance))}`;
+  if(f.balance<=0.0001){
+    return `Dear ${m.name}, thank you — your account with ${org} is fully settled. We appreciate your business.`;
+  }
+  const overdue = f.overdueAmt>0.0001 ? ` (${C} ${cur(f.overdueAmt)} of this is past its due date.)` : "";
+  return `Dear ${m.name},\n`
+    + `Kindly clear your outstanding payment of ${bal} with ${org} at your earliest convenience.${overdue}\n\n`
+    + `You can pay into any of the accounts below:\n\n`
+    + payDetailsText();
+}
+function openLink(url){
+  const a = document.createElement("a");
+  a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function sendWhatsApp(m, text){
+  const num = waNumber(m.phone);
+  const msg = encodeURIComponent(text!=null ? text : reminderText(m));
+  const url = num ? `https://wa.me/${num}?text=${msg}` : `https://wa.me/?text=${msg}`;
+  openLink(url);
+  toast(num ? "Opening WhatsApp…" : "Opening WhatsApp (no number on file)");
+}
+
+/* ---------- Statement PDF ---------- */
+function statementPdf(m, {download=true}={}){
+  if(!(window.jspdf && window.jspdf.jsPDF)){ flash("PDF engine still loading — try again in a moment"); return null; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"pt",format:"a4"});
+  const W = doc.internal.pageSize.getWidth();
+  const L = 48, R = W-48;
+  const C = State.settings.currency, f = figures(m.id);
+  const green = [16,86,74], ink=[22,33,31], muted=[107,121,117], warn=[184,73,44], line=[210,214,213];
+  let y = 56;
+
+  // Header
+  doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(...green);
+  doc.text(State.settings.org, L, y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...muted);
+  doc.text("Account Statement", R, y-11, {align:"right"});
+  doc.setFontSize(9);
+  doc.text(fmtDate(todayISO()), R, y+2, {align:"right"});
+  y += 18; doc.setDrawColor(...line); doc.setLineWidth(1); doc.line(L,y,R,y); y += 26;
+
+  // Bill-to
+  doc.setFont("helvetica","bold"); doc.setFontSize(9.5); doc.setTextColor(...muted);
+  doc.text("BILLED TO", L, y);
+  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...ink);
+  doc.text(m.name, L, y+18);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(...muted);
+  let sub = [m.unit?`Unit ${m.unit}`:"", m.phone||"", m.email||""].filter(Boolean).join("   •   ");
+  if(sub) doc.text(sub, L, y+34);
+  y += 58;
+
+  // Table header
+  const cols = { date:L, desc:L+80, charge:R-190, pay:R-95, run:R };
+  doc.setFillColor(240,242,239); doc.rect(L, y-14, R-L, 22, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text("DATE", cols.date+4, y);
+  doc.text("DESCRIPTION", cols.desc, y);
+  doc.text("CHARGE", cols.charge, y, {align:"right"});
+  doc.text("PAYMENT", cols.pay, y, {align:"right"});
+  doc.text("BALANCE", cols.run, y, {align:"right"});
+  y += 20;
+
+  // Rows (chronological, running balance)
+  const txns = State.transactions.filter(t=>t.memberId===m.id)
+    .sort((a,b)=> (a.date||"").localeCompare(b.date||"") || a.createdAt-b.createdAt);
+  const today = todayISO();
+  let run = 0;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+  if(txns.length===0){
+    doc.setTextColor(...muted); doc.text("No transactions on record.", L, y+6); y += 22;
+  }
+  for(const t of txns){
+    if(y > doc.internal.pageSize.getHeight()-120){ doc.addPage(); y = 60; }
+    const isCharge = t.type==="charge";
+    run += isCharge ? t.amount : -t.amount;
+    doc.setTextColor(...ink);
+    doc.text(fmtDate(t.date), cols.date+4, y);
+    let d = t.description || (isCharge?"Charge":"Payment");
+    const overdue = isCharge && t.dueDate && t.dueDate<today && f.balance>0.0001;
+    if(isCharge && t.dueDate) d += `  (due ${fmtDate(t.dueDate)}${overdue?" — overdue":""})`;
+    if(!isCharge){ const pa = t.accountId?accountById(t.accountId):null; d += `  (via ${pa?pa.provider:"Cash"})`; }
+    doc.text(d.length>52?d.slice(0,50)+"…":d, cols.desc, y);
+    if(isCharge){ doc.setTextColor(...warn); doc.text(cur(t.amount), cols.charge, y, {align:"right"}); }
+    else { doc.setTextColor(16,120,80); doc.text(cur(t.amount), cols.pay, y, {align:"right"}); }
+    doc.setTextColor(...ink); doc.text(cur(run), cols.run, y, {align:"right"});
+    doc.setDrawColor(...line); doc.setLineWidth(.5); doc.line(L, y+7, R, y+7);
+    y += 22;
+  }
+
+  // Totals
+  y += 10;
+  const boxY = y;
+  doc.setFillColor(247,248,246); doc.roundedRect(R-230, boxY, 230, 78, 6, 6, "F");
+  const bx = R-214, bv = R-16; let by = boxY+20;
+  doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...muted);
+  doc.text("Total charged", bx, by); doc.setTextColor(...ink); doc.text(`${C} ${cur(f.charged)}`, bv, by, {align:"right"}); by+=18;
+  doc.setTextColor(...muted); doc.text("Total paid", bx, by); doc.setTextColor(16,120,80); doc.text(`${C} ${cur(f.paid)}`, bv, by, {align:"right"}); by+=8;
+  doc.setDrawColor(...line); doc.line(bx, by, bv, by); by+=16;
+  doc.setFont("helvetica","bold"); doc.setFontSize(11);
+  doc.setTextColor(...(f.balance>0.0001?warn:green));
+  doc.text(f.balance<-0.0001?"Credit balance":"Balance due", bx, by);
+  doc.text(`${C} ${cur(Math.abs(f.balance))}`, bv, by, {align:"right"});
+
+  // Footer
+  const fy = doc.internal.pageSize.getHeight()-40;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text(`Generated by ${State.settings.org} • ${fmtDate(todayISO())}`, L, fy);
+
+  const fname = `statement-${m.name.replace(/[^\w]+/g,"-").toLowerCase()}-${todayISO()}.pdf`;
+  if(download){ doc.save(fname); }
+  return { doc, fname };
+}
+
+/* Compute per-member figures with FIFO payment allocation to detect overdue. */
+function figures(memberId){
+  const txns = State.transactions.filter(t=>t.memberId===memberId);
+  const charges = txns.filter(t=>t.type==="charge").sort((a,b)=>(a.dueDate||a.date||"").localeCompare(b.dueDate||b.date||""));
+  const payments = txns.filter(t=>t.type==="payment");
+  const charged = charges.reduce((s,t)=>s+t.amount,0);
+  const paid = payments.reduce((s,t)=>s+t.amount,0);
+  const balance = charged - paid;
+  // allocate payments oldest-first to find unpaid/overdue charges
+  let pool = paid;
+  const today = todayISO();
+  let overdueAmt = 0, nextDue = null;
+  for(const c of charges){
+    const remaining = Math.max(0, c.amount - Math.min(pool, c.amount));
+    pool = Math.max(0, pool - c.amount);
+    if(remaining > 0.0001){
+      if(c.dueDate && c.dueDate < today) overdueAmt += remaining;
+      if(!nextDue || (c.dueDate||"") < nextDue) nextDue = c.dueDate || nextDue;
+    }
+  }
+  const status = balance <= 0.0001 ? "clear" : (overdueAmt > 0.0001 ? "overdue" : "owing");
+  return { charged, paid, balance, overdueAmt, nextDue, status, count: txns.length };
+}
+
+/* ---------- rendering ---------- */
+function render(opts={}){
+  document.getElementById("orgName").textContent = State.settings.org;
+  renderSummary();
+  renderFilters();
+  renderBoard({animate: !!opts.animate});
+}
+
+function renderSummary(){
+  let outstanding=0, collected=0, overdue=0, owingCount=0, overdueCount=0;
+  for(const m of State.members){
+    const f = figures(m.id);
+    collected += f.paid;
+    if(f.balance>0.0001){ outstanding += f.balance; owingCount++; }
+    if(f.overdueAmt>0.0001){ overdue += f.overdueAmt; overdueCount++; }
+  }
+  const C = State.settings.currency;
+  const el = document.getElementById("summary");
+  const payCount = State.transactions.filter(t=>t.type==="payment").length;
+  el.innerHTML = `
+    <div class="stat accent">
+      <span class="tick"></span>
+      <div class="lab">Outstanding</div>
+      <div class="val mono"><span class="cur">${C}</span><span data-count="out" data-target="${outstanding}">${cur(outstanding)}</span></div>
+      <div class="sub">${owingCount} member${owingCount===1?"":"s"} owing</div>
+    </div>
+    <div class="stat">
+      <div class="lab">Collected</div>
+      <div class="val mono"><span class="cur">${C}</span><span data-count="col" data-target="${collected}">${cur(collected)}</span></div>
+      <div class="sub">across ${payCount} payment${payCount===1?"":"s"}</div>
+    </div>
+    <div class="stat ${overdue>0.0001?"warn":""}">
+      ${overdue>0.0001?'<span class="tick"></span>':''}
+      <div class="lab">Overdue</div>
+      <div class="val mono"><span class="cur">${C}</span><span data-count="over" data-target="${overdue}">${cur(overdue)}</span></div>
+      <div class="sub">${overdueCount} member${overdueCount===1?"":"s"} past due</div>
+    </div>
+    <div class="stat">
+      <div class="lab">Members</div>
+      <div class="val mono"><span data-count="mem" data-int="1" data-target="${State.members.length}">${State.members.length}</span></div>
+      <div class="sub">${State.members.length-owingCount} fully paid up</div>
+    </div>`;
+  countUp();
+}
+
+const prevCounts = {};
+function countUp(){
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll("#summary [data-count]").forEach(el=>{
+    const key = el.dataset.count;
+    const target = parseFloat(el.dataset.target)||0;
+    const isInt = el.dataset.int==="1";
+    const from = prevCounts[key]==null ? (reduce?target:0) : prevCounts[key];
+    prevCounts[key] = target;
+    const fmt = v => isInt ? String(Math.round(v)) : cur(v);
+    if(reduce || Math.abs(from-target)<0.005){ el.textContent = fmt(target); return; }
+    const dur=680, t0=performance.now();
+    (function step(now){
+      let p=Math.min(1,(now-t0)/dur);
+      p = 1-Math.pow(1-p,3);
+      el.textContent = fmt(from + (target-from)*p);
+      if(p<1) requestAnimationFrame(step);
+    })(performance.now());
+  });
+}
+
+function renderFilters(){
+  const counts = { all:0, owing:0, overdue:0, clear:0 };
+  for(const m of State.members){
+    counts.all++;
+    const s = figures(m.id).status;
+    counts[s]++;
+  }
+  const defs = [["all","All"],["owing","Owing"],["overdue","Overdue"],["clear","Paid up"]];
+  document.getElementById("filters").innerHTML = defs.map(([k,label])=>
+    `<button class="${ui.filter===k?"on":""}" data-filter="${k}">${label}<span class="seg-count">${counts[k]}</span></button>`
+  ).join("");
+}
+
+function filteredMembers(){
+  const q = ui.search.trim().toLowerCase();
+  return State.members
+    .map(m=>({m, f:figures(m.id)}))
+    .filter(({m,f})=>{
+      if(ui.filter==="owing" && f.status!=="owing") return false;
+      if(ui.filter==="overdue" && f.status!=="overdue") return false;
+      if(ui.filter==="clear" && f.status!=="clear") return false;
+      if(q){
+        const hay = (m.name+" "+(m.unit||"")+" "+(m.phone||"")+" "+(m.email||"")).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a,b)=> b.f.balance - a.f.balance || a.m.name.localeCompare(b.m.name));
+}
+
+function renderBoard(opts={}){
+  const board = document.getElementById("board");
+  board.classList.toggle("animate", !!opts.animate);
+  const C = State.settings.currency;
+  const rows = filteredMembers();
+
+  document.getElementById("countNote").textContent =
+    State.members.length===0 ? "" :
+    `Showing ${rows.length} of ${State.members.length} member${State.members.length===1?"":"s"}`;
+
+  if(State.members.length===0){
+    board.innerHTML = `
+      <div class="empty">
+        <div class="ledger-lines"></div>
+        <div class="big grot">Start your ledger</div>
+        <p>Add the people who owe dues — members, tenants, or students. Then record charges and payments against each one.</p>
+        <button class="btn primary" id="emptyAdd" style="margin:0 auto">Add your first member</button>
+      </div>`;
+    document.getElementById("emptyAdd").onclick = ()=>openMemberForm();
+    return;
+  }
+  if(rows.length===0){
+    board.innerHTML = `<div class="empty"><div class="big grot">No matches</div><p>No members match “${esc(ui.search)}” in this view. Try clearing the search or switching filters.</p></div>`;
+    return;
+  }
+
+  const head = `<div class="thead">
+    <div>Member</div><div>Contact</div>
+    <div class="r">Charged</div><div class="r">Paid</div><div class="r">Balance</div><div class="r">Status</div><div></div>
+  </div>`;
+  const waIcon = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.4 0-.5 0-.2-.6-1.5-.9-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg>';
+
+  const body = rows.map(({m,f},i)=>{
+    const balClass = f.balance>0.0001 ? "pos" : (f.balance<-0.0001 ? "credit" : "zero");
+    const balText = f.balance<-0.0001 ? `${C} ${cur(f.balance)}` : `${C} ${cur(Math.max(0,f.balance))}`;
+    const status = f.status==="overdue"
+      ? `<span class="pill overdue"><span class="dot"></span>Overdue</span>`
+      : f.status==="owing"
+        ? `<span class="pill owing"><span class="dot"></span>Owing</span>`
+        : `<span class="pill clear"><span class="dot"></span>Paid up</span>`;
+    const delay = opts.animate ? ` style="animation-delay:${Math.min(i,14)*24}ms"` : "";
+    const flash = (ui.flashId===m.id) ? " flash" : "";
+    return `<div class="trow${flash}" data-id="${m.id}"${delay}>
+      <div class="c-name">
+        <div class="m-name"><span class="avatar grot">${esc(initials(m.name))}</span>
+          <span>${esc(m.name)}${m.unit?`<span class="m-sub">Unit ${esc(m.unit)}</span>`:""}</span>
+        </div>
+      </div>
+      <div class="contact c-contact">${esc(m.phone||m.email||"—")}</div>
+      <div class="figure c-charged mono zero">${C} ${cur(f.charged)}</div>
+      <div class="figure c-paid mono">${C} ${cur(f.paid)}</div>
+      <div class="figure c-balance mono ${balClass}">${balText}</div>
+      <div class="c-status">${status}</div>
+      <div class="c-wa" style="justify-self:end">
+        <button class="wa-btn" data-wa="${m.id}" title="${m.phone?`Send WhatsApp reminder to ${esc(m.name)}`:"No number on file — add one to send"}" ${m.phone?"":"disabled"}>${waIcon}</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  board.innerHTML = head + body;
+  ui.flashId = null;
+  board.querySelectorAll(".trow").forEach(r=>{
+    r.onclick = ()=>openMemberDetail(r.dataset.id);
+  });
+  board.querySelectorAll("[data-wa]").forEach(b=>{
+    b.onclick = (e)=>{
+      e.stopPropagation();
+      const m = State.members.find(x=>x.id===b.dataset.wa);
+      if(m) sendWhatsApp(m);
+    };
+  });
+}
+
+/* ============================================================
+   Modals
+   ============================================================ */
+const scrim = document.getElementById("scrim");
+function openScrim(html, {drawer=false}={}){
+  scrim.innerHTML = `<div class="modal ${drawer?"drawer":""}">${html}</div>`;
+  requestAnimationFrame(()=>scrim.classList.add("show"));
+  scrim.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeScrim);
+}
+function closeScrim(){
+  scrim.classList.remove("show");
+  setTimeout(()=>{ if(!scrim.classList.contains("show")) scrim.innerHTML=""; }, 220);
+  ui.openMemberId=null;
+}
+scrim.addEventListener("click", e=>{ if(e.target===scrim) closeScrim(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeScrim(); });
+
+/* ---- Add / edit member ---- */
+function openMemberForm(existing){
+  const m = existing || {};
+  openScrim(`
+    <div class="m-head">
+      <h2>${existing?"Edit member":"Add member"}</h2>
+      <button class="btn ghost close" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="m-body">
+      <label class="fld"><span class="lt">Full name</span>
+        <input class="inp" id="f-name" value="${esc(m.name||"")}" placeholder="e.g. Ayesha Khan" autofocus></label>
+      <div class="two">
+        <label class="fld"><span class="lt">Unit / ID <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+          <input class="inp" id="f-unit" value="${esc(m.unit||"")}" placeholder="A-12"></label>
+        <label class="fld"><span class="lt">Phone <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+          <input class="inp" id="f-phone" value="${esc(m.phone||"")}" placeholder="0300 1234567"></label>
+      </div>
+      <label class="fld"><span class="lt">Email <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+        <input class="inp" id="f-email" value="${esc(m.email||"")}" placeholder="name@email.com"></label>
+    </div>
+    <div class="m-foot">
+      ${existing?`<button class="btn danger" id="f-delete" style="margin-right:auto">Delete member</button>`:""}
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="f-save">${existing?"Save changes":"Add member"}</button>
+    </div>
+  `);
+  const nameEl = document.getElementById("f-name");
+  nameEl.focus();
+  document.getElementById("f-save").onclick = ()=>{
+    const name = nameEl.value.trim();
+    if(!name){ nameEl.focus(); nameEl.classList.add("inp"); flash("Please enter a name"); return; }
+    const data = {
+      name,
+      unit: document.getElementById("f-unit").value.trim(),
+      phone: document.getElementById("f-phone").value.trim(),
+      email: document.getElementById("f-email").value.trim(),
+    };
+    if(existing){
+      Object.assign(existing, data);
+      ui.flashId = existing.id;
+      toast("Member updated");
+    }else{
+      const nm = Object.assign({id:uid(),createdAt:Date.now()}, data);
+      State.members.push(nm);
+      ui.flashId = nm.id;
+      toast("Member added");
+    }
+    persist(); render(); closeScrim();
+  };
+  if(existing){
+    document.getElementById("f-delete").onclick = ()=>{
+      if(confirm(`Delete ${existing.name} and all their charges & payments? This cannot be undone.`)){
+        State.members = State.members.filter(x=>x.id!==existing.id);
+        State.transactions = State.transactions.filter(t=>t.memberId!==existing.id);
+        persist(); render(); closeScrim(); toast("Member deleted");
+      }
+    };
+  }
+}
+
+/* ---- Add charge ---- */
+function openChargeForm(presetMemberId){
+  if(State.members.length===0){ flash("Add a member first"); openMemberForm(); return; }
+  const opts = State.members.slice().sort((a,b)=>a.name.localeCompare(b.name))
+    .map(m=>`<option value="${m.id}" ${presetMemberId===m.id?"selected":""}>${esc(m.name)}${m.unit?` · ${esc(m.unit)}`:""}</option>`).join("");
+  openScrim(`
+    <div class="m-head"><h2>Add charge</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="m-body">
+      <label class="checkline" for="c-all"><input type="checkbox" id="c-all"> Apply to every member (e.g. monthly dues)</label>
+      <label class="fld" id="c-member-wrap"><span class="lt">Member</span>
+        <select class="inp" id="c-member">${opts}</select></label>
+      <label class="fld"><span class="lt">Description</span>
+        <input class="inp" id="c-desc" placeholder="e.g. Maintenance — July 2026"></label>
+      <div class="two">
+        <label class="fld"><span class="lt">Amount</span>
+          <div class="money-inp"><span class="cursign">${esc(State.settings.currency)}</span>
+          <input class="inp mono" id="c-amt" inputmode="decimal" placeholder="0.00"></div></label>
+        <label class="fld"><span class="lt">Due date</span>
+          <input class="inp" id="c-due" type="date" value="${todayISO()}"></label>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="c-save">Add charge</button>
+    </div>
+  `);
+  const allBox = document.getElementById("c-all");
+  const memWrap = document.getElementById("c-member-wrap");
+  allBox.onchange = ()=> memWrap.style.display = allBox.checked ? "none" : "block";
+  document.getElementById("c-desc").focus();
+  document.getElementById("c-save").onclick = ()=>{
+    const amt = parseFloat(document.getElementById("c-amt").value);
+    const desc = document.getElementById("c-desc").value.trim() || "Charge";
+    const due = document.getElementById("c-due").value || todayISO();
+    if(!(amt>0)){ flash("Enter an amount greater than zero"); return; }
+    const targets = allBox.checked ? State.members.map(m=>m.id) : [document.getElementById("c-member").value];
+    for(const mid of targets){
+      State.transactions.push({id:uid(),memberId:mid,type:"charge",amount:amt,description:desc,date:todayISO(),dueDate:due,createdAt:Date.now()});
+    }
+    persist();
+    toast(allBox.checked ? `Charge added to ${targets.length} members` : "Charge added");
+    closeScrim();
+    if(ui.openMemberId && !allBox.checked && targets[0]===ui.openMemberId){ openMemberDetail(ui.openMemberId); }
+    else { if(!allBox.checked) ui.flashId = targets[0]; render(); }
+  };
+}
+
+/* ---- Record payment ---- */
+function openPaymentForm(memberId){
+  const m = State.members.find(x=>x.id===memberId);
+  const f = figures(memberId);
+  openScrim(`
+    <div class="m-head"><h2>Record payment</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="m-body">
+      <div class="detail-sum" style="grid-template-columns:1fr;margin-bottom:16px">
+        <div class="cell bal"><div class="l">${esc(m.name)} currently owes</div>
+          <div class="v mono ${f.balance>0.0001?"pos":""}">${esc(State.settings.currency)} ${cur(Math.max(0,f.balance))}</div></div>
+      </div>
+      <div class="two">
+        <label class="fld"><span class="lt">Amount received</span>
+          <div class="money-inp"><span class="cursign">${esc(State.settings.currency)}</span>
+          <input class="inp mono" id="p-amt" inputmode="decimal" placeholder="0.00" value="${f.balance>0.0001?f.balance.toFixed(2):""}"></div></label>
+        <label class="fld"><span class="lt">Date</span>
+          <input class="inp" id="p-date" type="date" value="${todayISO()}"></label>
+      </div>
+      <label class="fld"><span class="lt">Received in account</span>
+        <select class="inp" id="p-acc">${paymentAccountOptions()}</select></label>
+      <label class="fld"><span class="lt">Note <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+        <input class="inp" id="p-note" placeholder="Transaction ID / cheque # / reference"></label>
+    </div>
+    <div class="m-foot">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="p-save">Record payment</button>
+    </div>
+  `);
+  document.getElementById("p-amt").focus();
+  document.getElementById("p-save").onclick = ()=>{
+    const amt = parseFloat(document.getElementById("p-amt").value);
+    if(!(amt>0)){ flash("Enter an amount greater than zero"); return; }
+    const accId = document.getElementById("p-acc").value || null;
+    ui.lastAccountId = accId;
+    State.transactions.push({
+      id:uid(),memberId,type:"payment",amount:amt,
+      description: document.getElementById("p-note").value.trim() || "Payment",
+      accountId: accId,
+      date: document.getElementById("p-date").value || todayISO(), createdAt:Date.now()
+    });
+    persist(); toast("Payment recorded"); closeScrim();
+    if(ui.openMemberId===memberId) openMemberDetail(memberId); else { ui.flashId = memberId; render(); }
+  };
+}
+
+function paymentAccountOptions(){
+  const sel = ui.lastAccountId || (State.accounts[0] && State.accounts[0].id) || "";
+  const opts = State.accounts.map(a=>{
+    const label = `${a.provider} — ${a.number}${a.type==="bank"?" (bank)":""}`;
+    return `<option value="${a.id}" ${sel===a.id?"selected":""}>${esc(label)}</option>`;
+  });
+  opts.push(`<option value="" ${!sel?"selected":""}>Cash / other</option>`);
+  return opts.join("");
+}
+
+/* ---- Member detail drawer ---- */
+function openMemberDetail(memberId){
+  const m = State.members.find(x=>x.id===memberId);
+  if(!m) return;
+  ui.openMemberId = memberId;
+  const f = figures(memberId);
+  const C = State.settings.currency;
+  const txns = State.transactions.filter(t=>t.memberId===memberId)
+    .sort((a,b)=> (b.date||"").localeCompare(a.date||"") || b.createdAt-a.createdAt);
+
+  const today = todayISO();
+  const ledger = txns.length===0
+    ? `<div class="empty" style="padding:34px 0"><p style="margin-bottom:14px">No charges or payments yet.</p></div>`
+    : txns.map(t=>{
+        const isCharge = t.type==="charge";
+        const overdue = isCharge && t.dueDate && t.dueDate<today && f.balance>0.0001;
+        const acc = !isCharge && t.accountId ? accountById(t.accountId) : null;
+        return `<div class="txn ${t.type}">
+          <div class="ic">${isCharge
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'}</div>
+          <div>
+            <div class="desc">${esc(t.description)}</div>
+            <div class="meta">
+              <span>${fmtDate(t.date)}</span>
+              ${isCharge && t.dueDate?`<span>·</span><span class="${overdue?"tag-overdue":""}">due ${fmtDate(t.dueDate)}${overdue?" · overdue":""}</span>`:""}
+              ${acc?`<span>·</span><span style="color:${accColor(acc)};font-weight:600">${esc(acc.provider)}</span>`:(!isCharge && !t.accountId?`<span>·</span><span>Cash</span>`:"")}
+            </div>
+          </div>
+          <div class="amt mono">${isCharge?"+":"−"} ${C} ${cur(t.amount)}</div>
+          <button class="btn ghost sm del" data-del="${t.id}" title="Delete entry">✕</button>
+        </div>`;
+      }).join("");
+
+  const balClass = f.balance>0.0001?"pos":(f.balance<-0.0001?"credit":"");
+  const balLabel = f.balance<-0.0001?"In credit":"Balance due";
+
+  openScrim(`
+    <div class="m-head">
+      <span class="avatar grot" style="width:40px;height:40px;font-size:15px">${esc(initials(m.name))}</span>
+      <div>
+        <h2>${esc(m.name)}</h2>
+        <div style="font-size:12.5px;color:var(--muted)">${m.unit?`Unit ${esc(m.unit)} · `:""}${esc(m.phone||m.email||"no contact on file")}</div>
+      </div>
+      <button class="btn ghost close" data-close aria-label="Close" style="align-self:flex-start">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="detail-sum">
+        <div class="cell"><div class="l">Charged</div><div class="v mono">${C} ${cur(f.charged)}</div></div>
+        <div class="cell"><div class="l">Paid</div><div class="v mono" style="color:var(--paid)">${C} ${cur(f.paid)}</div></div>
+        <div class="cell bal"><div class="l">${balLabel}</div><div class="v mono ${balClass}">${C} ${cur(Math.abs(f.balance))}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn primary" id="d-pay" style="flex:1">Record payment</button>
+        <button class="btn" id="d-charge" style="flex:1">Add charge</button>
+        <button class="btn ghost" id="d-edit" title="Edit member">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:22px">
+        <button class="btn wa" id="d-remind" style="flex:1">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.4 0-.5 0-.2-.6-1.5-.9-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg>
+          Send reminder
+        </button>
+        <button class="btn" id="d-statement" style="flex:1" title="Download PDF statement">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+          Statement PDF
+        </button>
+        <button class="btn ghost" id="d-paydetails" title="Send payment / account details">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="ledger-title"><h3>Ledger</h3><span style="font-size:12px;color:var(--faint)">${txns.length} entr${txns.length===1?"y":"ies"}</span></div>
+      ${ledger}
+    </div>
+  `, {drawer:true});
+
+  document.getElementById("d-pay").onclick = ()=>openPaymentForm(memberId);
+  document.getElementById("d-charge").onclick = ()=>openChargeForm(memberId);
+  document.getElementById("d-edit").onclick = ()=>openMemberForm(m);
+  document.getElementById("d-remind").onclick = ()=>{
+    if(!m.phone){ flash("Add a phone number for this customer first"); openMemberForm(m); return; }
+    sendWhatsApp(m);
+  };
+  document.getElementById("d-statement").onclick = ()=>openStatementShare(m);
+  document.getElementById("d-paydetails").onclick = ()=>openPayShare(m);
+  scrim.querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick = (e)=>{
+      e.stopPropagation();
+      const tid = b.dataset.del;
+      const t = State.transactions.find(x=>x.id===tid);
+      if(confirm(`Delete this ${t.type} of ${C} ${cur(t.amount)}?`)){
+        State.transactions = State.transactions.filter(x=>x.id!==tid);
+        persist(); openMemberDetail(memberId);
+        toast("Entry removed");
+      }
+    };
+  });
+}
+
+/* ---- Statement: download or share via WhatsApp ---- */
+function openStatementShare(m){
+  const f = figures(m.id);
+  const C = State.settings.currency;
+  openScrim(`
+    <div class="m-head"><h2>Statement for ${esc(m.name)}</h2><button class="btn ghost close" data-close>✕</button></div>
+    <div class="m-body">
+      <div class="detail-sum" style="grid-template-columns:1fr;margin-bottom:16px">
+        <div class="cell bal"><div class="l">Balance due</div>
+          <div class="v mono ${f.balance>0.0001?"pos":""}">${C} ${cur(Math.max(0,f.balance))}</div></div>
+      </div>
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 18px">
+        This creates a PDF statement listing every charge and payment with a running balance. To send it on WhatsApp, download it, then attach the saved PDF in the chat that opens.
+      </p>
+      <label class="fld"><span class="lt">Message to send with it</span>
+        <textarea class="inp" id="s-msg" rows="4" style="resize:vertical">${esc(statementMessage(m))}</textarea></label>
+    </div>
+    <div class="m-foot">
+      <button class="btn" id="s-download">Download PDF only</button>
+      <button class="btn wa" id="s-send">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.4 0-.5 0-.2-.6-1.5-.9-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg>
+        Download & open WhatsApp
+      </button>
+    </div>
+  `);
+  document.getElementById("s-download").onclick = ()=>{
+    if(statementPdf(m)) toast("Statement PDF saved");
+    closeScrim();
+  };
+  document.getElementById("s-send").onclick = ()=>{
+    if(!m.phone){ flash("Add a phone number for this customer first"); return; }
+    const msg = document.getElementById("s-msg").value;
+    const out = statementPdf(m);
+    if(!out) return;
+    toast("PDF saved — attach it in WhatsApp");
+    setTimeout(()=>{ sendWhatsApp(m, msg); }, 700);
+    closeScrim();
+  };
+}
+function statementMessage(m){
+  const f = figures(m.id), C = State.settings.currency, org = State.settings.org;
+  if(f.balance<=0.0001)
+    return `Dear ${m.name}, please find attached your account statement from ${org}. Your account is fully settled — thank you.`;
+  return `Dear ${m.name}, please find attached your account statement from ${org}. Your outstanding balance is ${C} ${cur(Math.max(0,f.balance))}. Kindly arrange payment at your convenience. Thank you.`;
+}
+
+/* ============================================================
+   Collections (money received per account, by time window)
+   ============================================================ */
+let collWindow = 7; // 3 | 7 | 30 | null(all)
+function openCollections(){
+  renderCollections();
+}
+function renderCollections(){
+  const C = State.settings.currency;
+  const windows = [[3,"3 days"],[7,"7 days"],[30,"30 days"],[null,"All time"]];
+  const data = collections(collWindow);
+  const memberName = id => { const m = State.members.find(x=>x.id===id); return m?m.name:"—"; };
+
+  const winLabel = (windows.find(w=>w[0]===collWindow)||[null,"All time"])[1];
+  const rangeText = collWindow==null ? "all time" : `${fmtDate(daysAgoISO(collWindow))} – ${fmtDate(todayISO())}`;
+
+  // per-account rows (include every account, even with 0 in window, plus Cash if present)
+  const rowsData = State.accounts.map(a=>{
+    const g = data.groups.find(x=>x.accountId===a.id);
+    return { acc:a, total:g?g.total:0, count:g?g.count:0 };
+  });
+  const cashG = data.groups.find(x=>!x.accountId);
+  if(cashG) rowsData.push({ acc:null, total:cashG.total, count:cashG.count });
+  rowsData.sort((a,b)=>b.total-a.total);
+  const max = Math.max(1, ...rowsData.map(r=>r.total));
+
+  const accRows = rowsData.map(r=>{
+    const a = r.acc;
+    const badge = a ? accBadge(a) : `<span class="acc-badge" style="background:#6B7975">₨</span>`;
+    const name = a ? a.provider : "Cash / other";
+    const meta = a ? `${a.number} · ${a.holder}` : "Not tied to an account";
+    const color = a ? accColor(a) : "#6B7975";
+    const pct = data.total>0 ? Math.round(r.total/data.total*100) : 0;
+    return `<div class="acc-row">
+      ${badge}
+      <div class="info">
+        <div class="nm">${esc(name)} ${a?`<span class="type-chip">${a.type}</span>`:""}</div>
+        <div class="meta">${esc(meta)}</div>
+        <div class="bar"><i style="width:${data.total>0?(r.total/max*100):0}%;background:${color}"></i></div>
+      </div>
+      <div class="amt">
+        <div class="big mono">${C} ${cur(r.total)}</div>
+        <div class="cnt">${r.count} pmt${r.count===1?"":"s"} · ${pct}%</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const recent = data.pays.slice().sort((a,b)=> (b.date||"").localeCompare(a.date||"") || b.createdAt-a.createdAt).slice(0,12);
+  const recentRows = recent.length ? recent.map(p=>{
+    const a = p.accountId ? accountById(p.accountId) : null;
+    return `<div class="payrow">
+      ${a?accBadge(a,true):`<span class="acc-badge sm" style="background:#6B7975">₨</span>`}
+      <div><div class="who">${esc(memberName(p.memberId))}</div><div class="when">${fmtDate(p.date)} · ${a?esc(a.provider):"Cash"}</div></div>
+      <div class="pa mono">${C} ${cur(p.amount)}</div>
+    </div>`;
+  }).join("") : `<div style="color:var(--muted);font-size:13px;padding:14px 0">No payments received in this period.</div>`;
+
+  openScrim(`
+    <div class="m-head">
+      <div>
+        <h2>Collections</h2>
+        <div style="font-size:12.5px;color:var(--muted)">${esc(rangeText)}</div>
+      </div>
+      <button class="btn ghost close" data-close aria-label="Close" style="margin-left:auto;align-self:flex-start">✕</button>
+    </div>
+    <div class="m-body">
+      <div class="segmented" id="coll-win" style="width:100%;margin-bottom:18px">
+        ${windows.map(([d,label])=>`<button class="${collWindow===d?"on":""}" data-w="${d==null?"all":d}" style="flex:1">${label}</button>`).join("")}
+      </div>
+      <div class="win-total">
+        <div class="l">Received · ${esc(winLabel)}</div>
+        <div class="v mono"><span class="cur">${C}</span>${cur(data.total)}</div>
+        <div class="s">${data.count} payment${data.count===1?"":"s"} across ${rowsData.filter(r=>r.total>0).length} account${rowsData.filter(r=>r.total>0).length===1?"":"s"}</div>
+      </div>
+      <div class="ledger-title"><h3>By account</h3></div>
+      ${accRows || '<div style="color:var(--muted);font-size:13px">No accounts yet.</div>'}
+      <div class="ledger-title" style="margin-top:22px"><h3>Recent payments</h3></div>
+      <div class="paylist">${recentRows}</div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" id="coll-manage">Manage accounts</button>
+      <button class="btn primary" id="coll-share">Payment details</button>
+    </div>
+  `, {drawer:true});
+
+  document.getElementById("coll-win").querySelectorAll("[data-w]").forEach(b=>{
+    b.onclick = ()=>{ collWindow = b.dataset.w==="all"?null:parseInt(b.dataset.w,10); renderCollections(); };
+  });
+  document.getElementById("coll-manage").onclick = openAccounts;
+  document.getElementById("coll-share").onclick = ()=>openPayShare();
+}
+
+/* ---- Account manager ---- */
+function openAccounts(){
+  const C = State.settings.currency;
+  const list = State.accounts.length ? State.accounts.map(a=>{
+    const allTime = collections(null).groups.find(g=>g.accountId===a.id);
+    return `<div class="mini-acc">
+      ${accBadge(a)}
+      <div class="info">
+        <div class="nm">${esc(a.provider)} <span class="type-chip">${a.type}</span></div>
+        <div class="meta">${esc(a.number)} · ${esc(a.holder)}${allTime?` · ${C} ${cur(allTime.total)} lifetime`:""}</div>
+      </div>
+      <button class="btn ghost sm" data-edit-acc="${a.id}" title="Edit">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+      </button>
+    </div>`;
+  }).join("") : `<div style="color:var(--muted);font-size:13px;margin-bottom:12px">No accounts yet.</div>`;
+
+  openScrim(`
+    <div class="m-head"><h2>Receiving accounts</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      ${list}
+      <button class="btn" id="acc-add" style="width:100%;justify-content:center;margin-top:6px">+ Add account</button>
+      <label class="fld" style="margin-top:20px"><span class="lt">Slip sharing number (WhatsApp)</span>
+        <input class="inp" id="acc-slip" value="${esc(State.settings.slipNumber||"")}" placeholder="0312-6617887"></label>
+      <div class="acc-select-note">Customers send their payment slip to this number.</div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" data-close>Close</button>
+      <button class="btn primary" id="acc-back">Back to collections</button>
+    </div>
+  `);
+  document.getElementById("acc-add").onclick = ()=>openAccountForm();
+  document.getElementById("acc-slip").addEventListener("change", e=>{ State.settings.slipNumber = e.target.value.trim(); persist(); });
+  document.getElementById("acc-back").onclick = ()=>{ State.settings.slipNumber = document.getElementById("acc-slip").value.trim(); persist(); renderCollections(); };
+  scrim.querySelectorAll("[data-edit-acc]").forEach(b=>{
+    b.onclick = ()=> openAccountForm(accountById(b.dataset.editAcc));
+  });
+}
+
+function openAccountForm(existing){
+  const a = existing || {};
+  openScrim(`
+    <div class="m-head"><h2>${existing?"Edit account":"Add account"}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="two">
+        <label class="fld"><span class="lt">Provider / bank</span>
+          <input class="inp" id="a-provider" value="${esc(a.provider||"")}" placeholder="Easypaisa"></label>
+        <label class="fld"><span class="lt">Type</span>
+          <select class="inp" id="a-type">
+            <option value="wallet" ${a.type==="wallet"?"selected":""}>Mobile wallet</option>
+            <option value="bank" ${a.type==="bank"?"selected":""}>Bank account</option>
+          </select></label>
+      </div>
+      <label class="fld"><span class="lt">Account / mobile number</span>
+        <input class="inp mono" id="a-number" value="${esc(a.number||"")}" placeholder="0328-0995780"></label>
+      <label class="fld"><span class="lt">Account holder name</span>
+        <input class="inp" id="a-holder" value="${esc(a.holder||"")}" placeholder="Husnain Ali"></label>
+      <label class="fld"><span class="lt">Colour tag</span>
+        <input class="inp" id="a-color" type="color" value="${a.color||"#10564A"}" style="height:44px;padding:4px"></label>
+    </div>
+    <div class="m-foot">
+      ${existing?`<button class="btn danger" id="a-del" style="margin-right:auto">Delete</button>`:""}
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="a-save">${existing?"Save":"Add account"}</button>
+    </div>
+  `);
+  document.getElementById("a-save").onclick = ()=>{
+    const provider = document.getElementById("a-provider").value.trim();
+    const number = document.getElementById("a-number").value.trim();
+    if(!provider || !number){ flash("Enter a provider and number"); return; }
+    const data = {
+      provider, number,
+      type: document.getElementById("a-type").value,
+      holder: document.getElementById("a-holder").value.trim(),
+      color: document.getElementById("a-color").value,
+    };
+    if(existing){ Object.assign(existing, data); toast("Account updated"); }
+    else { State.accounts.push(Object.assign({id:uid()}, data)); toast("Account added"); }
+    persist(); openAccounts();
+  };
+  if(existing){
+    document.getElementById("a-del").onclick = ()=>{
+      const used = State.transactions.some(t=>t.accountId===existing.id);
+      const msg = used ? `Delete ${existing.provider}? Past payments will show as "Cash / other".` : `Delete ${existing.provider}?`;
+      if(confirm(msg)){
+        State.accounts = State.accounts.filter(x=>x.id!==existing.id);
+        persist(); openAccounts(); toast("Account deleted");
+      }
+    };
+  }
+}
+
+/* ---- Share payment details ---- */
+function openPayShare(prefillMember){
+  const text = payDetailsText();
+  openScrim(`
+    <div class="m-head"><h2>Payment details</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 14px">Send these account details to a customer so they know where to pay. Copy it, or open WhatsApp to share.</p>
+      <div class="codeblock" id="pay-block">${esc(text)}</div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" id="pay-copy">Copy</button>
+      <button class="btn wa" id="pay-wa">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.1-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.2-.5.1-.2 0-.4 0-.5 0-.2-.6-1.5-.9-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1.1 2.7c.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.4z"/><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg>
+        WhatsApp
+      </button>
+    </div>
+  `);
+  document.getElementById("pay-copy").onclick = ()=>{
+    const t = payDetailsText();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(()=>toast("Copied to clipboard")).catch(()=>fallbackCopy(t));
+    } else fallbackCopy(t);
+  };
+  document.getElementById("pay-wa").onclick = ()=>{
+    const t = payDetailsText();
+    if(prefillMember && prefillMember.phone){ sendWhatsApp(prefillMember, t); }
+    else { openLink(`https://wa.me/?text=${encodeURIComponent(t)}`); toast("Opening WhatsApp…"); }
+    closeScrim();
+  };
+}
+function fallbackCopy(t){
+  const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("Copied to clipboard"); }catch(e){ flash("Couldn't copy — select the text manually"); }
+  ta.remove();
+}
+
+/* ============================================================
+   Import / Export
+   ============================================================ */
+function exportJson(){
+  const blob = new Blob([JSON.stringify(State,null,2)],{type:"application/json"});
+  downloadBlob(blob, `ledger-backup-${todayISO()}.json`);
+  toast("Backup downloaded");
+}
+function buildMembersCsv(){
+  const rows = [["Name","Unit","Phone","Email","Charged","Paid","Balance","Status"]];
+  for(const m of State.members){
+    const f = figures(m.id);
+    rows.push([m.name,m.unit||"",m.phone||"",m.email||"",f.charged.toFixed(2),f.paid.toFixed(2),f.balance.toFixed(2),f.status]);
+  }
+  return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+}
+function exportCsv(){
+  downloadBlob(new Blob([buildMembersCsv()],{type:"text/csv"}), `dues-summary-${todayISO()}.csv`);
+  toast("CSV exported");
+}
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function importJson(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const d = JSON.parse(reader.result);
+      if(!d.members || !Array.isArray(d.members)) throw new Error("bad file");
+      if(!confirm("Replace all current data with this backup? Your existing entries will be overwritten.")) return;
+      State.settings = Object.assign({org:"Shakeel Electronics",currency:"Rs",countryCode:"92",slipNumber:"0312-6617887",accountsSeeded:true}, d.settings||{});
+      State.members = d.members||[];
+      State.transactions = d.transactions||[];
+      State.accounts = d.accounts||[];
+      persist(); render(); toast("Backup restored");
+    }catch(e){ flash("That file isn't a valid Ledger backup"); }
+  };
+  reader.readAsText(file);
+}
+
+/* ============================================================
+   Toast + flash
+   ============================================================ */
+let toastTimer=null;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${esc(msg)}`;
+  t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"), 2200);
+}
+function flash(msg){
+  const t = document.getElementById("toast");
+  t.innerHTML = esc(msg);
+  t.style.background = "var(--warn)";
+  t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{t.classList.remove("show"); setTimeout(()=>t.style.background="",250);}, 2200);
+}
+
+/* ============================================================
+   Wire up
+   ============================================================ */
+document.getElementById("addMemberBtn").onclick = ()=>openMemberForm();
+document.getElementById("addChargeBtn").onclick = ()=>openChargeForm();
+document.getElementById("collectionsBtn").onclick = ()=>openCollections();
+document.getElementById("searchInput").addEventListener("input", e=>{ ui.search=e.target.value; renderBoard(); });
+document.getElementById("filters").addEventListener("click", e=>{
+  const b = e.target.closest("[data-filter]"); if(!b) return;
+  ui.filter=b.dataset.filter; renderFilters(); renderBoard({animate:true});
+});
+document.getElementById("exportJsonBtn").onclick = exportJson;
+document.getElementById("exportCsvBtn").onclick = exportCsv;
+document.getElementById("importBtn").onclick = ()=>document.getElementById("importFile").click();
+document.getElementById("importFile").addEventListener("change", e=>{ if(e.target.files[0]) importJson(e.target.files[0]); e.target.value=""; });
+document.getElementById("autoSaveBtn").onclick = onAutoSaveClick;
+
+/* ---------- Install as app (PWA) ---------- */
+let deferredPrompt = null;
+const installBtn = document.getElementById("installBtn");
+const isStandalone = () =>
+  (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+  window.navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  if(!isStandalone()) installBtn.style.display = "inline-flex";
+});
+window.addEventListener("appinstalled", ()=>{
+  installBtn.style.display = "none";
+  deferredPrompt = null;
+  toast("App installed");
+});
+installBtn.onclick = async ()=>{
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if(outcome==="accepted") toast("Installing…");
+    deferredPrompt = null;
+    installBtn.style.display = "none";
+  }else{
+    openInstallHelp();
+  }
+};
+function openInstallHelp(){
+  const ios = isIOS();
+  const steps = ios ? [
+    `Tap the <b>Share</b> button <span class="kbd">⬆︎</span> at the bottom of Safari.`,
+    `Scroll down and tap <b>Add to Home Screen</b>.`,
+    `Tap <b>Add</b> — the Ledger icon appears on your home screen.`,
+  ] : [
+    `Open the menu <span class="kbd">⋮</span> in the top-right of Chrome.`,
+    `Tap <b>Install app</b> (or <b>Add to Home screen</b>).`,
+    `Confirm — the Ledger icon appears on your home screen and opens full-screen.`,
+  ];
+  openScrim(`
+    <div class="m-head"><h2>Install ${esc(State.settings.org)}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 6px">Add it to your ${ios?"iPhone":"phone"}'s home screen to open it like a normal app — full screen, with its own icon.</p>
+      <ol class="ios-steps">${steps.map(s=>`<li><span>${s}</span></li>`).join("")}</ol>
+      <p style="font-size:12px;color:var(--faint);margin:14px 0 0">Tip: for this to work, open the saved file in ${ios?"Safari":"Chrome or Edge"} (not inside the chat preview).</p>
+    </div>
+    <div class="m-foot"><button class="btn primary" data-close>Got it</button></div>
+  `);
+}
+// Show a manual install affordance on iOS / unsupported prompt, when not already installed
+if(!isStandalone() && isIOS()){ installBtn.style.display = "inline-flex"; }
+
+// rename org inline
+document.getElementById("orgName").addEventListener("click", function(){
+  const cur = State.settings.org;
+  const name = prompt("Organization name", cur);
+  if(name!=null && name.trim()){ State.settings.org=name.trim(); persist(); render(); }
+});
+
+/* ---- init ---- */
+
+/* ---------- auto-connect saving folder on open ---------- */
+function applyLoaded(d){
+  if(!d) return;
+  State.settings=Object.assign(State.settings, d.settings||{});
+  for(const k of Object.keys(State)){ if(k!=="settings" && Array.isArray(State[k]) && Array.isArray(d[k])) State[k]=d[k]; }
+}
+async function loadFromFolderAndSync(){
+  let loaded=false;
+  try{
+    const fh=await dirHandle.getFileHandle(DATA_FILE);
+    const text=await (await fh.getFile()).text();
+    const d=JSON.parse(text);
+    const folderTime=(d.settings&&d.settings.updatedAt)||0;
+    const localTime=(State.settings&&State.settings.updatedAt)||0;
+    if(folderTime>localTime){ applyLoaded(d); render(); loaded=true; }
+  }catch(e){ /* no file in folder yet */ }
+  fsLastSaved=new Date(); setAutoSaveState("on"); hideReconnectBar();
+  writeToFolder(true);
+  if(loaded) toast("Loaded latest from your folder");
+}
+async function autoConnectFolder(){
+  setAutoSaveState("off");
+  if(!FS_SUPPORTED) return;
+  const h=await idb("get");
+  if(!h) return;
+  dirHandle=h;
+  let perm="prompt";
+  try{ perm=await h.queryPermission({mode:"readwrite"}); }catch(e){}
+  if(perm==="granted"){ await loadFromFolderAndSync(); }
+  else{ dirHandle=null; setAutoSaveState("off"); }  // no nagging bar — device auto-save covers it
+}
+async function reconnectFolder(){
+  if(!dirHandle){ pickFolder(); return; }
+  if(await ensurePerm(dirHandle)){ await loadFromFolderAndSync(); toast("Folder reconnected"); }
+  else flash("Couldn't get folder access");
+}
+function showReconnectBar(){ /* disabled in Option B: rely on automatic on-device saving */ }
+function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if(b) b.remove(); }
+
+
+(async function init(){
+  document.body.classList.add("boot");
+  await load();
+  render({animate:true});
+  autoConnectFolder();
+  updateStorageNote();
+  setTimeout(()=>document.body.classList.remove("boot"), 1400);
+})();
+</script>
+<script>
+/* ---------- Cloud sync (Firebase Firestore) ---------- */
+(function(){
+  var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
+  var APP_KEY="ledger", SHOP="main";
+  var db=null, ready=false, pushTimer=null;
+  function note(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
+  if(typeof firebase==="undefined"){ return; }        // SDK blocked/offline -> stay on-device
+  try{
+    firebase.initializeApp(FB);
+    db=firebase.firestore();
+    // suppress the on-device note once cloud is active
+    if(typeof updateStorageNote==="function"){ var _u=updateStorageNote; updateStorageNote=function(){ if(window.__cloudActive) return; _u(); }; }
+    firebase.auth().signInAnonymously().catch(function(){ note('<span style="color:var(--warn)">\u2601 Cloud sign-in off \u2014 enable Anonymous sign-in in Firebase. Saved on this device.</span>'); });
+    firebase.auth().onAuthStateChanged(function(user){ if(user) start(); });
+  }catch(e){ return; }
+  function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
+  function start(){
+    window.__cloudActive=true; note("\u2601 Connecting\u2026");
+    var _op=persist; persist=function(){ _op(); schedulePush(); };
+    ref().onSnapshot(function(snap){
+      window.__cloudActive=true;
+      if(snap.exists){
+        var d=snap.data()&&snap.data().state;
+        if(d){
+          var rt=(d.settings&&d.settings.updatedAt)||0;
+          var lt=(State.settings&&State.settings.updatedAt)||0;
+          if(rt>lt){ if(typeof applyLoaded==="function") applyLoaded(d); if(typeof render==="function") render(); try{lsSave();}catch(_){} }
+        }
+        ready=true; note("\u2601 Synced across your devices.");
+      }else{ ready=true; pushNow(); }
+    }, function(){ note('\u2601 Offline \u2014 saved on this device.'); });
+  }
+  function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
+  function pushNow(){
+    if(!db) return;
+    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      ref().set({state:State, ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); })
+        .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });
+    }catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
