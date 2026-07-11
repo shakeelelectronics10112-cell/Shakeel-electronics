@@ -912,7 +912,7 @@ function renderToBuy(){
     <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Products you added but haven't set a <b>vendor</b> or <b>price</b> for yet. Fill those in and they leave this list automatically.</div></div>`;
   html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="tbsearch" placeholder="Search products to buy" value="${esc(ui.search)}"></div></div>
-    <div class="gridbar"><button class="btn primary sm" id="addRowTB">＋ Add product</button><span class="cnt">${list.length} to buy</span></div>`;
+    <div class="gridbar"><button class="btn primary sm" id="addRowTB">＋ Add product</button><button class="btn sm" id="rfqBtn">📋 Price request</button><span class="cnt">${list.length} to buy</span></div>`;
   if(list.length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">Nothing pending 🎉</div><p>Every product has a vendor and price. Add a new one here anytime — leave vendor/price blank and it'll wait here until you fill them.</p></div></div>`;
   }else{
@@ -921,6 +921,8 @@ function renderToBuy(){
   v.innerHTML=html;
   const ss=document.getElementById("tbsearch"); if(ss) ss.oninput=e=>{ ui.search=e.target.value; const s=e.target.selectionStart; renderToBuy(); const n=document.getElementById("tbsearch"); if(n){n.focus(); try{n.setSelectionRange(s,s);}catch(_){}} };
   const ab=document.getElementById("addRowTB"); if(ab) ab.onclick=()=>{ addBlankRow_(()=>renderToBuy()); };
+  const rfqB=document.getElementById("rfqBtn"); if(rfqB) rfqB.onclick=openRFQ;
+  const rq=document.getElementById("rfqBtn"); if(rq) rq.onclick=openRFQ;
   wireGrid(renderToBuy);
 }
 
@@ -1018,6 +1020,188 @@ function arrivalPreview(no){
   document.getElementById("ar-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(arrivalText(no))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
   document.getElementById("ar-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildArrivalDoc(no).save(`new-arrival-INV${no}.pdf`); toast("Saved to your Downloads folder"); };
   document.getElementById("ar-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(arrivalText(no)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } };
+}
+
+
+/* ---------- QUOTE REQUEST (send to vendor, one list per category) ---------- */
+function rfqGroups(){
+  // products still needing a price, grouped by category
+  const g={};
+  for(const p of State.purchases){
+    if(p.priceRMB>0) continue;              // already priced
+    const it=(p.item||"").trim(); if(!it) continue;
+    const cat=(p.category||"Uncategorised");
+    (g[cat]=g[cat]||[]).push({item:it, qty:p.qty||0});
+  }
+  // de-duplicate items within each category (sum qty)
+  Object.keys(g).forEach(c=>{
+    const m={};
+    g[c].forEach(x=>{ const k=x.item.toUpperCase(); if(m[k]) m[k].qty+=x.qty; else m[k]={item:x.item,qty:x.qty}; });
+    g[c]=Object.values(m).sort((a,b)=>a.item.localeCompare(b.item));
+  });
+  return g;
+}
+function rfqText(cat,items){
+  return `*${State.settings.org}*\n📋 *Price Request — ${cat}*\n\n`
+    + items.map((x,i)=>`${i+1}. ${x.item}${x.qty?`  (qty ${x.qty})`:""}`).join("\n")
+    + `\n\nPlease quote your best price for each item. Thank you.`;
+}
+function buildRFQDoc(cat,items){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:"pt",format:"a4"}); const L=48,R=548,W=R-L;
+  const G=[16,86,74], GOLD=[176,138,62];
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,90,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(255,255,255); doc.text(State.settings.org, L, 40);
+  doc.setFont("helvetica","normal"); doc.setFontSize(12); doc.setTextColor(226,214,180); doc.text("PRICE REQUEST / QUOTATION", L, 64);
+  doc.setFontSize(13); doc.setTextColor(255,255,255); doc.text(cat, R, 42, {align:"right"});
+  doc.setFontSize(9); doc.setTextColor(210,225,220); doc.text(new Date().toLocaleDateString(), R, 62, {align:"right"});
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,90,595,4,"F");
+  let y=126;
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90,90,90);
+  doc.text("Please fill in your price for each item below and return this list.", L, y); y+=24;
+  // table header
+  const cQty=R-190, cPrice=R;
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(L,y-14,W,22,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(255,255,255);
+  doc.text("#", L+6, y); doc.text("ITEM / PART NO.", L+28, y);
+  doc.text("QTY", cQty, y, {align:"right"}); doc.text("YOUR PRICE (¥)", cPrice-4, y, {align:"right"});
+  y+=22;
+  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(26,32,30);
+  items.forEach((x,i)=>{
+    if(y>760){ doc.addPage(); y=60; }
+    if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-13,W,21,"F"); }
+    doc.setTextColor(150,155,152); doc.setFontSize(9); doc.text(String(i+1), L+6, y);
+    doc.setTextColor(26,32,30); doc.setFontSize(11); doc.text(String(x.item).slice(0,44), L+28, y);
+    doc.text(x.qty?String(x.qty):"—", cQty, y, {align:"right"});
+    // empty box for the vendor to write the price
+    doc.setDrawColor(190,196,193); doc.rect(cPrice-96, y-11, 92, 16);
+    y+=21;
+  });
+  doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]); doc.line(L,800,R,800);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(140,145,142);
+  doc.text(`${State.settings.org} · ${items.length} items · ${cat}`, L, 815);
+  return doc;
+}
+function openRFQ(){
+  const groups=rfqGroups();
+  const cats=Object.keys(groups).sort();
+  if(!cats.length){ flash("No items waiting for a price"); return; }
+  if(ui.rfqCat===undefined || !groups[ui.rfqCat]) ui.rfqCat=cats[0];
+  const draw=()=>{
+    const cat=ui.rfqCat, items=groups[cat]||[];
+    const rows=items.map((x,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px">
+      <span class="mono" style="color:var(--faint);min-width:20px">${i+1}</span>
+      <span style="font-weight:600;flex:1">${esc(x.item)}</span>
+      <span class="mono" style="color:var(--muted);font-size:12px">${x.qty?"qty "+x.qty:""}</span></div>`).join("");
+    openScrim(`<div class="m-head"><h2>Price request</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+      <div class="m-body">
+        <div class="hint" style="margin:0 0 8px">Pick a category — each one is a separate list you can send to your vendor for a quote.</div>
+        <div class="seg" id="rfqCats">${cats.map(c=>`<button class="${c===cat?"on":""}" data-rc="${esc(c)}">${esc(c)} <span style="opacity:.7">${groups[c].length}</span></button>`).join("")}</div>
+        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0">
+          <div style="font-weight:700;font-size:15px">📋 ${esc(cat)}</div>
+          <div style="font-size:12px;opacity:.85">${items.length} items · no prices shown</div>
+        </div>
+        <div style="max-height:40vh;overflow:auto">${rows}</div>
+      </div>
+      <div class="m-foot"><button class="btn" id="rfq-copy">Copy</button><button class="btn" id="rfq-pdf">Save PDF</button><button class="btn wa" id="rfq-wa">Send on WhatsApp</button></div>`);
+    scrim.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{ ui.rfqCat=b.dataset.rc; draw(); });
+    document.getElementById("rfq-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(rfqText(cat,items))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
+    document.getElementById("rfq-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(rfqText(cat,items)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } };
+    document.getElementById("rfq-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildRFQDoc(cat,items).save(`price-request-${cat.replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); };
+  };
+  draw();
+}
+
+
+/* ---------- QUOTE REQUEST (RFQ) — send vendors a list per category ---------- */
+function rfqCategories(){
+  const m={};
+  for(const p of State.purchases){
+    if(!isIncomplete(p)) continue;
+    const it=(p.item||"").trim(); if(!it) continue;
+    const c=(p.category||"OTHERS").trim()||"OTHERS";
+    (m[c]=m[c]||[]).push({item:it, qty:p.qty||0});
+  }
+  // dedupe by item within each category
+  Object.keys(m).forEach(c=>{
+    const seen={}; const out=[];
+    for(const r of m[c]){ const k=r.item.toUpperCase();
+      if(seen[k]!=null){ out[seen[k]].qty += r.qty; } else { seen[k]=out.length; out.push({item:r.item, qty:r.qty}); } }
+    m[c]=out.sort((a,b)=>a.item.localeCompare(b.item));
+  });
+  return m;
+}
+function rfqText(cat, rows){
+  return `*${State.settings.org}*\n*PRICE REQUEST — ${cat}*\n\n`
+    + rows.map((r,i)=>`${i+1}. ${r.item}${r.qty?`  (qty ${r.qty})`:""}`).join("\n")
+    + `\n\nPlease quote your best price per piece (¥) for the above. Thank you.`;
+}
+function buildRFQDoc(cat, rows){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:"pt",format:"a4"}); const L=48,R=548,W=R-L;
+  const G=[16,86,74], GOLD=[176,138,62];
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,92,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(255,255,255); doc.text(State.settings.org, L, 42);
+  doc.setFontSize(12); doc.setTextColor(226,214,180); doc.text("PRICE REQUEST / QUOTATION", L, 66);
+  doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(255,255,255); doc.text(cat, R, 45, {align:"right"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(210,225,220); doc.text(new Date().toLocaleDateString(), R, 64, {align:"right"});
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,92,595,4,"F");
+  let y=126;
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(70,70,70);
+  doc.text("Please fill in your best price per piece for each item below.", L, y); y+=24;
+  const cQty=R-190, cPrice=R;
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(L,y-14,W,22,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(255,255,255);
+  doc.text("#", L+6, y); doc.text("ITEM / PART NO.", L+28, y);
+  doc.text("QTY", cQty, y, {align:"right"}); doc.text("YOUR PRICE (¥)", cPrice-4, y, {align:"right"});
+  y+=22;
+  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(26,32,30);
+  rows.forEach((r,i)=>{
+    if(y>760){ doc.addPage(); y=60; }
+    if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-13,W,20,"F"); }
+    doc.setTextColor(150,155,152); doc.setFontSize(9); doc.text(String(i+1), L+6, y);
+    doc.setTextColor(26,32,30); doc.setFontSize(11); doc.text(String(r.item).slice(0,42), L+28, y);
+    doc.text(r.qty?String(r.qty):"—", cQty, y, {align:"right"});
+    // empty price box for the vendor to write in
+    doc.setDrawColor(200,206,203); doc.roundedRect(cPrice-86, y-11, 82, 17, 3, 3);
+    y+=20;
+  });
+  doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]); doc.line(L,800,R,800);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(140,145,142);
+  doc.text(`${State.settings.org} · ${rows.length} items · ${cat}`, L, 815);
+  doc.text("Thank you for your quotation.", R, 815, {align:"right"});
+  return doc;
+}
+function openRFQ(){
+  const m=rfqCategories();
+  const cats=Object.keys(m).sort();
+  if(!cats.length){ flash("Nothing pending — add products without a price first"); return; }
+  if(ui.rfqCat===undefined || !m[ui.rfqCat]) ui.rfqCat=cats[0];
+  const draw=()=>{
+    const cat=ui.rfqCat, rows=m[cat];
+    openScrim(`<div class="m-head"><h2>Price request</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+      <div class="m-body">
+        <div class="hint" style="margin:0 0 8px">Pick a category — each one is a separate list you can send to your vendor for pricing.</div>
+        <div class="seg" id="rfqCats">${cats.map(c=>`<button class="${c===cat?"on":""}" data-rc="${esc(c)}">${esc(c)} <span style="opacity:.6">${m[c].length}</span></button>`).join("")}</div>
+        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0">
+          <div style="font-weight:700;font-size:15px">${esc(cat)}</div>
+          <div style="font-size:12px;opacity:.85">${rows.length} items awaiting a price</div>
+        </div>
+        <div style="max-height:40vh;overflow:auto">
+          ${rows.map((r,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px">
+            <span class="mono" style="color:var(--faint);min-width:22px">${String(i+1).padStart(2,"0")}</span>
+            <span style="font-weight:600;flex:1">${esc(r.item)}</span>
+            ${r.qty?`<span class="mono" style="color:var(--muted);font-size:12px">qty ${r.qty}</span>`:""}
+          </div>`).join("")}
+        </div>
+      </div>
+      <div class="m-foot"><button class="btn" id="rfq-copy">Copy</button><button class="btn" id="rfq-pdf">Save PDF</button><button class="btn wa" id="rfq-wa">Send on WhatsApp</button></div>`);
+    scrim.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{ ui.rfqCat=b.dataset.rc; draw(); });
+    document.getElementById("rfq-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(rfqText(cat,rows))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
+    document.getElementById("rfq-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildRFQDoc(cat,rows).save(`price-request-${cat.replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); };
+    document.getElementById("rfq-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(rfqText(cat,rows)); toast("Copied"); }catch(e){ flash("Couldn't copy"); } };
+  };
+  draw();
 }
 
 /* ---------- settings ---------- */
