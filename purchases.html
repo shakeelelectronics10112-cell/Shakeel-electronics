@@ -195,12 +195,13 @@ const SEED={
 const State={
   settings:{ org:"Shakeel Electronics", rate:42.75, currency:"Rs", countryCode:"92",
     categories:SEED.categories.slice(), vendors:SEED.vendors.slice(), methods:SEED.methods.slice(),
-    types:SEED.types.slice(), statuses:SEED.statuses.slice(), forwarders:SEED.forwarders.slice(), seeded:false, autoSaveFolder:null },
+    types:SEED.types.slice(), statuses:SEED.statuses.slice(), forwarders:SEED.forwarders.slice(), seeded:false, autoSaveFolder:null, currentShipment:26, nextPO:1 },
   purchases:[], // {id,date,category,vendor,forwarder,item,qty,priceRMB,rate,status,createdAt,updatedAt}
   payments:[],  // {id,date,vendor,type,paidRMB,rate,method,ref,notes,createdAt}
   needs:[],     // {id,item,category,qty,targetRMB,note,createdAt}
   pos:[],       // {id,number,vendor,date,rate,lines:[{item,qty,priceRMB}],note,createdAt}
   tracking:[],  // {id,date,fromVendor,forwarder,item,qty,weight,status,createdAt}
+  shipments:[], // {id,no,openedAt,closedAt}
 };
 let ui={ tab:"purchases", search:"", statusFilter:"", vendorFilter:"" };
 
@@ -209,12 +210,19 @@ async function load(){
   let d=null;
   if(hasStore){ try{ const r=await window.storage.get(KEY); if(r&&r.value) d=JSON.parse(r.value); }catch(e){} }
   if(!d) d=lsLoad();
-  if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; }
+  if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; }
   ["categories","vendors","methods","types","statuses"].forEach(k=>{ if(!State.settings[k]||!State.settings[k].length) State.settings[k]=SEED[k].slice(); });
   if(!State.settings.forwarders) State.settings.forwarders=[];
   // make sure the newer statuses (e.g. At Forwarder) are available
   if(!State.settings.statuses.includes("At Forwarder")) State.settings.statuses=SEED.statuses.slice();
   if(!Array.isArray(State.needs)) State.needs=[]; if(!Array.isArray(State.pos)) State.pos=[];
+  if(!Array.isArray(State.shipments)) State.shipments=[];
+  if(!State.settings.currentShipment) State.settings.currentShipment=26;
+  if(!State.shipments.some(s=>s.no===State.settings.currentShipment))
+    State.shipments.push({id:uid(),no:State.settings.currentShipment,openedAt:Date.now(),closedAt:null});
+  // tag any legacy rows with the current shipment
+  State.purchases.forEach(p=>{ if(p.shipment==null) p.shipment=State.settings.currentShipment; });
+  if(ui.shipView===undefined) ui.shipView=State.settings.currentShipment;
 }
 function lsLoad(){ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return true; }catch(e){ return false; } }
@@ -272,21 +280,41 @@ function statTiles(){
 }
 function vendorSet(){ const s=new Set(); State.purchases.forEach(p=>p.vendor&&s.add(p.vendor)); State.payments.forEach(p=>p.vendor&&s.add(p.vendor)); return s; }
 
+function shipNos(){ return State.shipments.map(s=>s.no).sort((a,b)=>b-a); }
+function shipRows(no){ return State.purchases.filter(p=>p.shipment===no); }
+function shipBarHTML(){
+  const nos=shipNos(); const sel=ui.shipView;
+  const isOpen = sel===State.settings.currentShipment;
+  const rows=shipRows(sel); let tot=0; rows.forEach(p=>tot+=pTotals(p).pkr);
+  return `<div class="card" style="padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,#FCFAF4,#fff);border-color:#E4D3A8">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Shipment</span>
+      <select class="inp" id="shipSel" style="width:auto;padding:6px 10px;font-weight:700">${nos.map(n=>`<option value="${n}" ${n===sel?"selected":""}>INVOICE NO ${n}</option>`).join("")}</select>
+      ${isOpen?`<span class="st Ordered" style="background:var(--green-soft);color:var(--green)">OPEN</span>`:`<span class="st">CLOSED</span>`}
+    </div>
+    <span style="font-size:12.5px;color:var(--muted)">${rows.length} items · <b class="mono" style="color:var(--green)">${C()} ${money(tot)}</b></span>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" id="arrivalBtn">📦 New arrival PDF</button>
+      ${isOpen?`<button class="btn primary sm" id="finishShip">Finish → new shipment</button>`:""}
+    </div>
+  </div>`;
+}
 function renderPurchases(){
   const v=document.getElementById("view"); const cur=C();
   const q=ui.search.trim().toLowerCase();
-  let list=State.purchases.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  if(ui.shipView==null) ui.shipView=State.settings.currentShipment;
+  let list=State.purchases.filter(p=>p.shipment===ui.shipView).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
   if(ui.statusFilter) list=list.filter(p=>p.status===ui.statusFilter);
   if(q) list=list.filter(p=>((p.item||"")+" "+(p.vendor||"")+" "+(p.category||"")+" "+(p.status||"")).toLowerCase().includes(q));
   const cats=State.settings.categories, vendors=State.settings.vendors, statuses=State.settings.statuses;
   const catOpts=v=>`<option value=""></option>`+cats.map(c=>`<option ${v===c?"selected":""}>${esc(c)}</option>`).join("");
   const venOpts=v=>`<option value=""></option>`+vendors.map(c=>`<option ${v===c?"selected":""}>${esc(c)}</option>`).join("");
   const stOpts=v=>statuses.map(c=>`<option ${v===c?"selected":""}>${esc(c)}</option>`).join("");
-  let html=statTiles();
+  let html=statTiles()+shipBarHTML();
   html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="psearch" placeholder="Search item, part no., vendor" value="${esc(ui.search)}"></div></div>
     <div class="seg" id="stFilter"><button class="${!ui.statusFilter?"on":""}" data-st="">All</button>${statuses.map(s=>`<button class="${ui.statusFilter===s?"on":""}" data-st="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
-  html+=`<div class="gridbar"><button class="btn primary sm" id="addRow">＋ Add row</button><span class="cnt">${list.length} of ${State.purchases.length} rows</span></div>`;
+  html+=`<div class="gridbar"><button class="btn primary sm" id="addRow">＋ Add row</button><span class="cnt">${list.length} rows in this shipment</span></div>`;
   if(State.purchases.length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">Empty sheet</div><p>Tap <b>Add row</b> and just start typing — like Excel. Fill in the product now; add the vendor, price, qty or status whenever you get them. Totals calculate automatically.</p><button class="btn primary" id="addRow2" style="margin:0 auto">Add first row</button></div></div>`;
   }else{
@@ -315,7 +343,21 @@ function renderPurchases(){
   const ps=document.getElementById("psearch"); if(ps) ps.oninput=e=>{ ui.search=e.target.value; const s=e.target.selectionStart; renderPurchases(); const n=document.getElementById("psearch"); if(n){n.focus(); try{n.setSelectionRange(s,s);}catch(_){}} };
   v.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ ui.statusFilter=b.dataset.st; renderPurchases(); });
   ["addRow","addRow2"].forEach(id=>{ const b=document.getElementById(id); if(b) b.onclick=addBlankRow; });
+  const ss2=document.getElementById("shipSel"); if(ss2) ss2.onchange=e=>{ ui.shipView=parseInt(e.target.value,10); renderPurchases(); };
+  const fb=document.getElementById("finishShip"); if(fb) fb.onclick=finishShipment;
+  const ab2=document.getElementById("arrivalBtn"); if(ab2) ab2.onclick=()=>arrivalPreview(ui.shipView);
   wireGrid();
+}
+function finishShipment(){
+  const cur=State.settings.currentShipment;
+  const rows=shipRows(cur);
+  if(!confirm(`Finish INVOICE NO ${cur} (${rows.length} items) and start INVOICE NO ${cur+1}?\n\nThe old shipment stays saved — you can view it anytime from the dropdown.`)) return;
+  const s=State.shipments.find(x=>x.no===cur); if(s) s.closedAt=Date.now();
+  const next=cur+1;
+  State.settings.currentShipment=next;
+  State.shipments.push({id:uid(),no:next,openedAt:Date.now(),closedAt:null});
+  ui.shipView=next;
+  persist(); renderPurchases(); toast(`Started INVOICE NO ${next}`);
 }
 function wireGrid(rerender){
   rerender = rerender || renderPurchases;
@@ -335,7 +377,7 @@ function wireGrid(rerender){
 }
 function addBlankRow_(rerender){
   rerender = rerender || renderPurchases;
-  const row={ id:uid(), item:"", category:"", vendor:"", qty:0, priceRMB:0, rate:State.settings.rate, status:"Ordered", forwarder:"", date:todayISO(), createdAt:Date.now(), updatedAt:Date.now() };
+  const row={ id:uid(), shipment:(ui.shipView!=null?ui.shipView:State.settings.currentShipment), item:"", category:"", vendor:"", qty:0, priceRMB:0, rate:State.settings.rate, status:"Ordered", forwarder:"", date:todayISO(), createdAt:Date.now(), updatedAt:Date.now() };
   State.purchases.push(row); persist(); rerender();
   // focus the new row's item cell
   setTimeout(()=>{ const tr=document.querySelector(`tr[data-row="${row.id}"]`); if(tr){ tr.scrollIntoView({block:"center"}); const inp=tr.querySelector('[data-f="item"]'); if(inp) inp.focus(); } },40);
@@ -727,11 +769,53 @@ function poFileName(po){ return `${(po.number||"PO")}-${(po.vendor||"vendor").re
 function poPDF(po){ buildPODoc(po).save(poFileName(po)); toast("PO PDF saved"); }
 function poWhatsAppText(po){ const t=poTotal(po); return `${State.settings.org} — ${po.number||"Purchase Order"}\nVendor: ${po.vendor}\n`+po.lines.map(l=>`• ${l.qty}× ${l.item} @¥${money2(l.priceRMB)}`).join("\n")+`\nTotal: ¥${money2(t)} (~Rs ${money(t*(po.rate||State.settings.rate))})`; }
 function poPreview(po){
-  const doc=buildPODoc(po); const url=doc.output("bloburl");
-  openScrim(`<div class="m-head"><h2>${esc(po.number||"Purchase order")} — preview</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
-    <div class="m-body" style="padding:10px"><iframe src="${url}" style="width:100%;height:60vh;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe><div class="hint" style="margin-top:8px">If the preview looks blank, tap <b>Open</b> to view the PDF full-screen.</div></div>
-    <div class="m-foot"><a class="btn" href="${url}" target="_blank" rel="noopener">Open</a><button class="btn wa" id="pv-wa">WhatsApp</button><button class="btn primary" id="pv-save">Save PDF</button></div>`);
-  document.getElementById("pv-save").onclick=()=>{ doc.save(poFileName(po)); toast("PDF saved"); };
+  const t=poTotal(po), rate=po.rate||State.settings.rate, cur=C();
+  const rows=po.lines.map((l,i)=>`<tr>
+    <td style="padding:7px 4px;color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:11px">${i+1}</td>
+    <td style="padding:7px 4px;font-weight:600">${esc(l.item||"")}</td>
+    <td style="padding:7px 4px;text-align:right;font-family:'JetBrains Mono',monospace">${l.qty||0}</td>
+    <td style="padding:7px 4px;text-align:right;font-family:'JetBrains Mono',monospace">${money2(l.priceRMB||0)}</td>
+    <td style="padding:7px 4px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700">${money2((l.qty||0)*(l.priceRMB||0))}</td>
+  </tr>`).join("");
+  openScrim(`<div class="m-head"><h2>Preview — ${esc(po.number||"PO")}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div><div style="font-family:'Space Grotesk';font-weight:700;font-size:17px">${esc(State.settings.org)}</div>
+              <div style="font-size:11px;opacity:.8">Electronics parts &amp; spares</div></div>
+            <div style="text-align:right"><div style="font-weight:700;font-size:13px">PURCHASE ORDER</div>
+              <div style="font-size:12px;color:#E2D6B4">${esc(po.number||"")}</div></div>
+          </div>
+        </div>
+        <div style="height:3px;background:var(--gold)"></div>
+        <div style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+            <div><div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.05em">SUPPLIER</div>
+              <div style="font-weight:700;font-size:14px">${esc(po.vendor||"—")}</div></div>
+            <div style="text-align:right;color:var(--muted)"><div>Date: ${esc(po.date||todayISO())}</div><div>Rate: ¥1 = Rs ${rate}</div></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+            <thead><tr style="background:var(--green);color:#fff">
+              <th style="padding:6px 4px;text-align:left;font-size:10px">#</th>
+              <th style="padding:6px 4px;text-align:left;font-size:10px">ITEM / PART NO.</th>
+              <th style="padding:6px 4px;text-align:right;font-size:10px">QTY</th>
+              <th style="padding:6px 4px;text-align:right;font-size:10px">¥ UNIT</th>
+              <th style="padding:6px 4px;text-align:right;font-size:10px">¥ AMOUNT</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+            <div style="text-align:right">
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:var(--green)">¥ ${money2(t)}</div>
+              <div style="font-size:12px;color:var(--muted)">≈ ${cur} ${money(t*rate)}</div>
+            </div>
+          </div>
+          ${po.note?`<div style="margin-top:10px;font-size:12px;color:var(--muted)">📝 ${esc(po.note)}</div>`:""}
+        </div>
+      </div>
+    </div>
+    <div class="m-foot"><button class="btn" id="pv-save">Save PDF</button><button class="btn wa" id="pv-wa">Send on WhatsApp</button></div>`);
+  document.getElementById("pv-save").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildPODoc(po).save(poFileName(po)); toast("Saved to your Downloads folder"); };
   document.getElementById("pv-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(poWhatsAppText(po))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
 }
 
@@ -867,6 +951,75 @@ function renderCategory(){
   v.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ ui.catSel=b.dataset.cat; renderCategory(); });
 }
 
+
+/* ---------- NEW ARRIVAL (item numbers only, for the WhatsApp group) ---------- */
+function arrivalItems(no){
+  const seen=new Set(); const out=[];
+  for(const p of shipRows(no)){
+    const it=(p.item||"").trim(); if(!it) continue;
+    const k=it.toUpperCase(); if(seen.has(k)) continue; seen.add(k); out.push(it);
+  }
+  return out.sort((a,b)=>a.localeCompare(b));
+}
+function arrivalText(no){
+  const items=arrivalItems(no);
+  return `🆕 *NEW ARRIVAL* — ${State.settings.org}\n\n`+items.map((it,i)=>`${i+1}. ${it}`).join("\n")+`\n\n_${items.length} items now in stock._`;
+}
+function buildArrivalDoc(no){
+  const { jsPDF }=window.jspdf;
+  const items=arrivalItems(no);
+  const doc=new jsPDF({unit:"pt",format:"a4"}); const L=48,R=548,W=R-L;
+  const G=[16,86,74], GOLD=[176,138,62];
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,92,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(21); doc.setTextColor(255,255,255);
+  doc.text(State.settings.org, L, 42);
+  doc.setFontSize(13); doc.setTextColor(226,214,180); doc.text("NEW ARRIVAL", L, 66);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(210,225,220);
+  doc.text(`Shipment INVOICE NO ${no}`, R, 42, {align:"right"});
+  doc.text(new Date().toLocaleDateString(), R, 60, {align:"right"});
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,92,595,4,"F");
+  let y=128;
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(16,86,74);
+  doc.text(`${items.length} items now available`, L, y); y+=22;
+  doc.setFont("helvetica","normal"); doc.setFontSize(12); doc.setTextColor(26,32,30);
+  // two columns of item numbers
+  const colW=W/2, perCol=Math.ceil(items.length/2)||1; let i=0;
+  const startY=y;
+  for(const col of [0,1]){
+    y=startY;
+    for(let k=0;k<perCol && i<items.length;k++,i++){
+      if(y>770){ doc.addPage(); y=60; }
+      const x=L+col*colW;
+      doc.setTextColor(150,155,152); doc.setFontSize(9); doc.text(String(i+1).padStart(2,"0"), x, y);
+      doc.setTextColor(26,32,30); doc.setFontSize(12); doc.text(String(items[i]).slice(0,30), x+22, y);
+      doc.setDrawColor(238,240,238); doc.line(x, y+6, x+colW-20, y+6);
+      y+=22;
+    }
+  }
+  doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]); doc.line(L,800,R,800);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(140,145,142);
+  doc.text(`${State.settings.org} · Contact us for prices & availability`, L, 815);
+  return doc;
+}
+function arrivalPreview(no){
+  const items=arrivalItems(no);
+  if(!items.length){ flash("No item numbers in this shipment yet"); return; }
+  const listHTML=items.map((it,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px"><span class="mono" style="color:var(--faint);min-width:22px">${String(i+1).padStart(2,"0")}</span><span style="font-weight:600">${esc(it)}</span></div>`).join("");
+  openScrim(`<div class="m-head"><h2>New arrival — INVOICE NO ${no}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px">🆕 NEW ARRIVAL</div>
+        <div style="font-size:12.5px;opacity:.85;margin-top:2px">${esc(State.settings.org)} · ${items.length} items</div>
+      </div>
+      <div class="hint" style="margin:0 0 8px">Only item numbers are shown — no prices or vendors. Safe to share in your customer group.</div>
+      <div style="max-height:44vh;overflow:auto">${listHTML}</div>
+    </div>
+    <div class="m-foot"><button class="btn" id="ar-copy">Copy list</button><button class="btn" id="ar-pdf">Save PDF</button><button class="btn wa" id="ar-wa">Send to WhatsApp</button></div>`);
+  document.getElementById("ar-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(arrivalText(no))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
+  document.getElementById("ar-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildArrivalDoc(no).save(`new-arrival-INV${no}.pdf`); toast("Saved to your Downloads folder"); };
+  document.getElementById("ar-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(arrivalText(no)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } };
+}
+
 /* ---------- settings ---------- */
 function openSettings(){
   const s=State.settings;
@@ -904,7 +1057,7 @@ function buildCsv(){
 function downloadBlob(b,n){ const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=n; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
 function exportCsv(){ downloadBlob(new Blob([buildCsv()],{type:"text/csv"}),`purchases-${todayISO()}.csv`); toast("CSV exported"); }
 function exportJson(){ downloadBlob(new Blob([JSON.stringify(State,null,2)],{type:"application/json"}),`purchases-backup-${todayISO()}.json`); toast("Backup downloaded"); }
-function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!Array.isArray(d.purchases)) throw 0; if(!confirm("Replace all purchases data with this backup?")) return; State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Purchases backup"); } }; r.readAsText(file); }
+function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!Array.isArray(d.purchases)) throw 0; if(!confirm("Replace all purchases data with this backup?")) return; State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Purchases backup"); } }; r.readAsText(file); }
 
 /* ---------- folder auto-save ---------- */
 const FS_SUPPORTED=(typeof window!=="undefined" && "showDirectoryPicker" in window);
@@ -989,6 +1142,10 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
   function pushNow(){ if(!db) return; try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now(); ref().set({state:State,ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); }).catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }catch(e){} }
 })();
+</script>
+<script>
+/* offline support */
+if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 </script>
 </body>
 </html>
