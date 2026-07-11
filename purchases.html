@@ -1042,13 +1042,13 @@ function arrivalItems(no){
   }
   return out.sort((a,b)=>a.localeCompare(b));
 }
-function arrivalText(no){
-  const items=arrivalItems(no);
+function arrivalText(no, items){
+  items = items || arrivalItems(no);
   return `🆕 *NEW ARRIVAL* — ${State.settings.org}\n\n`+items.map((it,i)=>`${i+1}. ${it}`).join("\n")+`\n\n_${items.length} items now in stock._`;
 }
-function buildArrivalDoc(no){
+function buildArrivalDoc(no, items){
   const { jsPDF }=window.jspdf;
-  const items=arrivalItems(no);
+  items = items || arrivalItems(no);
   const doc=new jsPDF({unit:"pt",format:"a4"}); const L=48,R=548,W=R-L;
   const G=[16,86,74], GOLD=[176,138,62];
   doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,92,"F");
@@ -1056,7 +1056,7 @@ function buildArrivalDoc(no){
   doc.text(State.settings.org, L, 42);
   doc.setFontSize(13); doc.setTextColor(226,214,180); doc.text("NEW ARRIVAL", L, 66);
   doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(210,225,220);
-  doc.text(`Shipment INVOICE NO ${no}`, R, 42, {align:"right"});
+  doc.text(shipLabel(no), R, 42, {align:"right"});
   doc.text(new Date().toLocaleDateString(), R, 60, {align:"right"});
   doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,92,595,4,"F");
   let y=128;
@@ -1083,83 +1083,46 @@ function buildArrivalDoc(no){
   return doc;
 }
 function arrivalPreview(no){
-  const items=arrivalItems(no);
-  if(!items.length){ flash("No item numbers in this shipment yet"); return; }
-  const listHTML=items.map((it,i)=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px"><span class="mono" style="color:var(--faint);min-width:22px">${String(i+1).padStart(2,"0")}</span><span style="font-weight:600">${esc(it)}</span></div>`).join("");
-  openScrim(`<div class="m-head"><h2>New arrival — INVOICE NO ${no}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
-    <div class="m-body">
-      <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px">
-        <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px">🆕 NEW ARRIVAL</div>
-        <div style="font-size:12.5px;opacity:.85;margin-top:2px">${esc(State.settings.org)} · ${items.length} items</div>
+  if(!ui.arrOff) ui.arrOff={};   // items unticked, keyed by INVOICE|ITEM
+  const draw=()=>{
+    const items=arrivalItems(no);
+    if(!items.length){ closeScrim(); flash("No item numbers in this shipment yet"); return; }
+    const key=it=>no+"|"+it.toUpperCase();
+    const on=it=>!ui.arrOff[key(it)];
+    const chosen=items.filter(on);
+    openScrim(`<div class="m-head"><h2>New arrival — ${esc(shipLabel(no))}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+      <div class="m-body">
+        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+          <div><div style="font-family:'Space Grotesk';font-weight:700;font-size:16px">🆕 NEW ARRIVAL</div>
+          <div style="font-size:12px;opacity:.85;margin-top:2px">${esc(State.settings.org)} · ${chosen.length} of ${items.length} selected</div></div>
+          <button id="arr-all" style="margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">${chosen.length===items.length?"Untick all":"Tick all"}</button>
+        </div>
+        <div class="hint" style="margin:0 0 8px">Untick anything you don't want to announce. Only item numbers are shared — no prices or vendors.</div>
+        <div style="max-height:42vh;overflow:auto">
+          ${items.map((it,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;opacity:${on(it)?1:.4}">
+            <input type="checkbox" data-atick="${esc(it)}" ${on(it)?"checked":""} style="width:17px;height:17px;accent-color:var(--green);flex:none">
+            <span class="mono" style="color:var(--faint);min-width:22px;font-size:11px">${String(i+1).padStart(2,"0")}</span>
+            <span style="font-weight:600;flex:1">${esc(it)}</span>
+          </div>`).join("")}
+        </div>
       </div>
-      <div class="hint" style="margin:0 0 8px">Only item numbers are shown — no prices or vendors. Safe to share in your customer group.</div>
-      <div style="max-height:44vh;overflow:auto">${listHTML}</div>
-    </div>
-    <div class="m-foot"><button class="btn" id="ar-copy">Copy list</button><button class="btn" id="ar-pdf">Save PDF</button><button class="btn wa" id="ar-wa">Send to WhatsApp</button></div>`);
-  document.getElementById("ar-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(arrivalText(no))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
-  document.getElementById("ar-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildArrivalDoc(no).save(`new-arrival-INV${no}.pdf`); toast("Saved to your Downloads folder"); };
-  document.getElementById("ar-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(arrivalText(no)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } };
-}
-
-
-/* ---------- QUOTE REQUEST (send to vendor, one list per category) ---------- */
-function rfqGroups(){
-  // products still needing a price, grouped by category
-  const g={};
-  for(const p of State.purchases){
-    if(p.priceRMB>0) continue;              // already priced
-    const it=(p.item||"").trim(); if(!it) continue;
-    const cat=(p.category||"Uncategorised");
-    (g[cat]=g[cat]||[]).push({item:it, qty:p.qty||0});
-  }
-  // de-duplicate items within each category (sum qty)
-  Object.keys(g).forEach(c=>{
-    const m={};
-    g[c].forEach(x=>{ const k=x.item.toUpperCase(); if(m[k]) m[k].qty+=x.qty; else m[k]={item:x.item,qty:x.qty}; });
-    g[c]=Object.values(m).sort((a,b)=>a.item.localeCompare(b.item));
-  });
-  return g;
-}
-function rfqText(cat,items){
-  return `*${State.settings.org}*\n📋 *Price Request — ${cat}*\n\n`
-    + items.map((x,i)=>`${i+1}. ${x.item}${x.qty?`  (qty ${x.qty})`:""}`).join("\n")
-    + `\n\nPlease quote your best price for each item. Thank you.`;
-}
-function buildRFQDoc(cat,items){
-  const { jsPDF }=window.jspdf;
-  const doc=new jsPDF({unit:"pt",format:"a4"}); const L=48,R=548,W=R-L;
-  const G=[16,86,74], GOLD=[176,138,62];
-  doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,90,"F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.setTextColor(255,255,255); doc.text(State.settings.org, L, 40);
-  doc.setFont("helvetica","normal"); doc.setFontSize(12); doc.setTextColor(226,214,180); doc.text("PRICE REQUEST / QUOTATION", L, 64);
-  doc.setFontSize(13); doc.setTextColor(255,255,255); doc.text(cat, R, 42, {align:"right"});
-  doc.setFontSize(9); doc.setTextColor(210,225,220); doc.text(new Date().toLocaleDateString(), R, 62, {align:"right"});
-  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,90,595,4,"F");
-  let y=126;
-  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90,90,90);
-  doc.text("Please fill in your price for each item below and return this list.", L, y); y+=24;
-  // table header
-  const cQty=R-190, cPrice=R;
-  doc.setFillColor(G[0],G[1],G[2]); doc.rect(L,y-14,W,22,"F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(255,255,255);
-  doc.text("#", L+6, y); doc.text("ITEM / PART NO.", L+28, y);
-  doc.text("QTY", cQty, y, {align:"right"}); doc.text("YOUR PRICE (¥)", cPrice-4, y, {align:"right"});
-  y+=22;
-  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(26,32,30);
-  items.forEach((x,i)=>{
-    if(y>760){ doc.addPage(); y=60; }
-    if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-13,W,21,"F"); }
-    doc.setTextColor(150,155,152); doc.setFontSize(9); doc.text(String(i+1), L+6, y);
-    doc.setTextColor(26,32,30); doc.setFontSize(11); doc.text(String(x.item).slice(0,44), L+28, y);
-    doc.text(x.qty?String(x.qty):"—", cQty, y, {align:"right"});
-    // empty box for the vendor to write the price
-    doc.setDrawColor(190,196,193); doc.rect(cPrice-96, y-11, 92, 16);
-    y+=21;
-  });
-  doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]); doc.line(L,800,R,800);
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(140,145,142);
-  doc.text(`${State.settings.org} · ${items.length} items · ${cat}`, L, 815);
-  return doc;
+      <div class="m-foot"><button class="btn" id="ar-copy">Copy list</button><button class="btn" id="ar-pdf">Save PDF</button><button class="btn wa" id="ar-wa">Send to WhatsApp</button></div>`);
+    scrim.querySelectorAll("[data-atick]").forEach(cb=>cb.onchange=()=>{
+      const k=key(cb.dataset.atick);
+      if(cb.checked) delete ui.arrOff[k]; else ui.arrOff[k]=1;
+      draw();
+    });
+    document.getElementById("arr-all").onclick=()=>{
+      if(chosen.length===items.length){ items.forEach(it=>ui.arrOff[key(it)]=1); }
+      else { items.forEach(it=>delete ui.arrOff[key(it)]); }
+      draw();
+    };
+    const go=fn=>{ if(!chosen.length){ flash("Tick at least one item"); return; } fn(); };
+    document.getElementById("ar-wa").onclick=()=>go(()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(arrivalText(no,chosen))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); });
+    document.getElementById("ar-pdf").onclick=()=>go(()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildArrivalDoc(no,chosen).save(`new-arrival-${shipLabel(no).replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); });
+    document.getElementById("ar-copy").onclick=()=>go(async()=>{ try{ await navigator.clipboard.writeText(arrivalText(no,chosen)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } });
+  };
+  draw();
 }
 
 /* ---------- QUOTE REQUEST (RFQ) helpers ---------- */
