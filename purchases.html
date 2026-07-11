@@ -539,13 +539,33 @@ function openPurchase(existing, prefill){
 }
 
 /* ---------- payment form ---------- */
+function balBox(vendor, paying){
+  const b=vendorBalance(vendor); const rate=State.settings.rate;
+  const owe=b.balance;
+  const after = owe - (paying||0);
+  const col = owe>0.001?"var(--warn)":(owe<-0.001?"var(--blue)":"var(--paid)");
+  const lab = owe>0.001?"You owe":(owe<-0.001?"Advance with vendor":"All settled");
+  return `<div style="background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:13px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div><div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">${lab}</div>
+        <div class="mono" style="font-size:22px;font-weight:700;color:${col};line-height:1.2">¥ ${money(Math.abs(owe))}</div>
+        <div style="font-size:11.5px;color:var(--muted)">≈ ${C()} ${money(Math.abs(owe)*rate)}</div></div>
+      ${owe>0.001?`<button type="button" id="p-payfull" style="margin-left:auto;background:var(--green);color:#fff;border:none;border-radius:9px;padding:8px 12px;font-weight:600;font-size:12.5px;font-family:inherit;cursor:pointer">Pay full</button>`:""}
+    </div>
+    <div style="display:flex;gap:14px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)">
+      <span>Bought <b class="mono" style="color:var(--ink)">¥${money(b.bought)}</b></span>
+      <span>Paid <b class="mono" style="color:var(--paid)">¥${money(b.paid)}</b></span>
+      ${paying>0?`<span style="margin-left:auto">After this: <b class="mono" style="color:${after>0.001?"var(--warn)":"var(--paid)"}">¥${money(after)}</b></span>`:""}
+    </div>
+  </div>`;
+}
 function openPayment(existing, presetVendor){
   const x=existing||{ date:todayISO(), rate:State.settings.rate, type:"Full Payment", vendor:presetVendor||"" };
   const bal=x.vendor?vendorBalance(x.vendor).balance:0;
   openScrim(`<div class="m-head"><h2>${existing?"Edit payment":"Record payment"}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
     <div class="m-body">
       <label class="fld"><span class="lt">Vendor</span><select class="inp" id="p-vendor">${sel(State.settings.vendors,x.vendor)}</select></label>
-      <div id="p-bal" class="hint">${x.vendor?`Current balance: ¥ ${money(bal)} ${bal>0?"(you owe)":bal<0?"(advance)":""}`:""}</div>
+      <div id="p-bal">${x.vendor?balBox(x.vendor):`<div class="hint">Choose a vendor to see what you owe.</div>`}</div>
       <div class="three">
         <label class="fld"><span class="lt">Paid ¥</span><input class="inp mono" id="p-rmb" inputmode="decimal" value="${existing?x.paidRMB:""}" placeholder="0"></label>
         <label class="fld"><span class="lt">Rate ¥→Rs</span><input class="inp mono" id="p-rate" inputmode="decimal" value="${x.rate||State.settings.rate}"></label>
@@ -562,7 +582,14 @@ function openPayment(existing, presetVendor){
     <div class="m-foot">${existing?`<button class="btn danger" id="p-del" style="margin-right:auto">Delete</button>`:""}<button class="btn" data-close>Cancel</button><button class="btn primary" id="p-save">${existing?"Save":"Record"}</button></div>`);
   const pcalc=()=>{ const rmb=parseFloat(document.getElementById("p-rmb").value)||0; const rate=parseFloat(document.getElementById("p-rate").value)||0; document.getElementById("p-calc").innerHTML=`<div class="r big"><span>Paid in Rs</span><span class="v">Rs ${money(rmb*rate)}</span></div>`; };
   ["p-rmb","p-rate"].forEach(id=>document.getElementById(id).oninput=pcalc); pcalc();
-  document.getElementById("p-vendor").onchange=e=>{ const b=vendorBalance(e.target.value).balance; document.getElementById("p-bal").textContent=e.target.value?`Current balance: ¥ ${money(b)} ${b>0?"(you owe)":b<0?"(advance)":""}`:""; };
+  const refreshBal=()=>{ const v=document.getElementById("p-vendor").value;
+    document.getElementById("p-bal").innerHTML = v?balBox(v, parseFloat(document.getElementById("p-rmb").value)||0):`<div class="hint">Choose a vendor to see what you owe.</div>`;
+    const pf=document.getElementById("p-payfull");
+    if(pf) pf.onclick=()=>{ const b=vendorBalance(v).balance; document.getElementById("p-rmb").value=(Math.round(b*100)/100); pcalc(); refreshBal(); };
+  };
+  document.getElementById("p-vendor").onchange=refreshBal;
+  document.getElementById("p-rmb").addEventListener("input",refreshBal);
+  document.getElementById("p-fill")&&0;
   document.getElementById("p-save").onclick=()=>{
     const vendor=document.getElementById("p-vendor").value; if(!vendor){ flash("Choose a vendor"); return; }
     const paidRMB=parseFloat(document.getElementById("p-rmb").value)||0; if(!(paidRMB>0)){ flash("Enter amount in ¥"); return; }
