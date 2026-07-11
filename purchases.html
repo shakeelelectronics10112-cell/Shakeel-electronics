@@ -1082,51 +1082,21 @@ function buildRFQDoc(cat,items){
   doc.text(`${State.settings.org} · ${items.length} items · ${cat}`, L, 815);
   return doc;
 }
-function openRFQ(){
-  const groups=rfqGroups();
-  const cats=Object.keys(groups).sort();
-  if(!cats.length){ flash("No items waiting for a price"); return; }
-  if(ui.rfqCat===undefined || !groups[ui.rfqCat]) ui.rfqCat=cats[0];
-  const draw=()=>{
-    const cat=ui.rfqCat, items=groups[cat]||[];
-    const rows=items.map((x,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px">
-      <span class="mono" style="color:var(--faint);min-width:20px">${i+1}</span>
-      <span style="font-weight:600;flex:1">${esc(x.item)}</span>
-      <span class="mono" style="color:var(--muted);font-size:12px">${x.qty?"qty "+x.qty:""}</span></div>`).join("");
-    openScrim(`<div class="m-head"><h2>Price request</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
-      <div class="m-body">
-        <div class="hint" style="margin:0 0 8px">Pick a category — each one is a separate list you can send to your vendor for a quote.</div>
-        <div class="seg" id="rfqCats">${cats.map(c=>`<button class="${c===cat?"on":""}" data-rc="${esc(c)}">${esc(c)} <span style="opacity:.7">${groups[c].length}</span></button>`).join("")}</div>
-        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0">
-          <div style="font-weight:700;font-size:15px">📋 ${esc(cat)}</div>
-          <div style="font-size:12px;opacity:.85">${items.length} items · no prices shown</div>
-        </div>
-        <div style="max-height:40vh;overflow:auto">${rows}</div>
-      </div>
-      <div class="m-foot"><button class="btn" id="rfq-copy">Copy</button><button class="btn" id="rfq-pdf">Save PDF</button><button class="btn wa" id="rfq-wa">Send on WhatsApp</button></div>`);
-    scrim.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{ ui.rfqCat=b.dataset.rc; draw(); });
-    document.getElementById("rfq-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(rfqText(cat,items))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
-    document.getElementById("rfq-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(rfqText(cat,items)); toast("List copied"); }catch(e){ flash("Couldn't copy"); } };
-    document.getElementById("rfq-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildRFQDoc(cat,items).save(`price-request-${cat.replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); };
-  };
-  draw();
-}
 
-
-/* ---------- QUOTE REQUEST (RFQ) — send vendors a list per category ---------- */
+/* ---------- QUOTE REQUEST (RFQ) helpers ---------- */
 function rfqCategories(){
   const m={};
   for(const p of State.purchases){
     if(!isIncomplete(p)) continue;
     const it=(p.item||"").trim(); if(!it) continue;
     const c=(p.category||"OTHERS").trim()||"OTHERS";
-    (m[c]=m[c]||[]).push({item:it, qty:p.qty||0});
+    (m[c]=m[c]||[]).push({item:it, qty:p.qty||0, ids:[p.id]});
   }
-  // dedupe by item within each category
   Object.keys(m).forEach(c=>{
     const seen={}; const out=[];
     for(const r of m[c]){ const k=r.item.toUpperCase();
-      if(seen[k]!=null){ out[seen[k]].qty += r.qty; } else { seen[k]=out.length; out.push({item:r.item, qty:r.qty}); } }
+      if(seen[k]!=null){ out[seen[k]].qty += r.qty; out[seen[k]].ids.push(...r.ids); }
+      else { seen[k]=out.length; out.push({item:r.item, qty:r.qty, ids:r.ids.slice()}); } }
     m[c]=out.sort((a,b)=>a.item.localeCompare(b.item));
   });
   return m;
@@ -1162,7 +1132,6 @@ function buildRFQDoc(cat, rows){
     doc.setTextColor(150,155,152); doc.setFontSize(9); doc.text(String(i+1), L+6, y);
     doc.setTextColor(26,32,30); doc.setFontSize(11); doc.text(String(r.item).slice(0,42), L+28, y);
     doc.text(r.qty?String(r.qty):"—", cQty, y, {align:"right"});
-    // empty price box for the vendor to write in
     doc.setDrawColor(200,206,203); doc.roundedRect(cPrice-86, y-11, 82, 17, 3, 3);
     y+=20;
   });
@@ -1173,33 +1142,57 @@ function buildRFQDoc(cat, rows){
   return doc;
 }
 function openRFQ(){
-  const m=rfqCategories();
-  const cats=Object.keys(m).sort();
-  if(!cats.length){ flash("Nothing pending — add products without a price first"); return; }
-  if(ui.rfqCat===undefined || !m[ui.rfqCat]) ui.rfqCat=cats[0];
+  if(!ui.rfqOff) ui.rfqOff={};   // items unticked (excluded), keyed by CATEGORY|ITEM
   const draw=()=>{
+    const m=rfqCategories();
+    const cats=Object.keys(m).sort();
+    if(!cats.length){ closeScrim(); flash("Nothing pending — add products without a price first"); return; }
+    if(ui.rfqCat===undefined || !m[ui.rfqCat]) ui.rfqCat=cats[0];
     const cat=ui.rfqCat, rows=m[cat];
+    const key=r=>cat+"|"+r.item.toUpperCase();
+    const on=r=>!ui.rfqOff[key(r)];
+    const chosen=rows.filter(on);
     openScrim(`<div class="m-head"><h2>Price request</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
       <div class="m-body">
-        <div class="hint" style="margin:0 0 8px">Pick a category — each one is a separate list you can send to your vendor for pricing.</div>
+        <div class="hint" style="margin:0 0 8px">Pick a category, then untick anything you don't want to ask about.</div>
         <div class="seg" id="rfqCats">${cats.map(c=>`<button class="${c===cat?"on":""}" data-rc="${esc(c)}">${esc(c)} <span style="opacity:.6">${m[c].length}</span></button>`).join("")}</div>
-        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0">
-          <div style="font-weight:700;font-size:15px">${esc(cat)}</div>
-          <div style="font-size:12px;opacity:.85">${rows.length} items awaiting a price</div>
+        <div style="background:linear-gradient(135deg,#10564A,#0C453B);color:#fff;border-radius:12px;padding:12px 14px;margin:12px 0;display:flex;align-items:center;gap:10px">
+          <div><div style="font-weight:700;font-size:15px">${esc(cat)}</div>
+          <div style="font-size:12px;opacity:.85">${chosen.length} of ${rows.length} selected</div></div>
+          <button id="rfq-all" style="margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">${chosen.length===rows.length?"Untick all":"Tick all"}</button>
         </div>
-        <div style="max-height:40vh;overflow:auto">
-          ${rows.map((r,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px">
-            <span class="mono" style="color:var(--faint);min-width:22px">${String(i+1).padStart(2,"0")}</span>
+        <div style="max-height:38vh;overflow:auto">
+          ${rows.map((r,i)=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;opacity:${on(r)?1:.4}">
+            <input type="checkbox" data-tick="${esc(r.item)}" ${on(r)?"checked":""} style="width:17px;height:17px;accent-color:var(--green);flex:none">
             <span style="font-weight:600;flex:1">${esc(r.item)}</span>
             ${r.qty?`<span class="mono" style="color:var(--muted);font-size:12px">qty ${r.qty}</span>`:""}
+            <button data-drop="${esc(r.item)}" title="Delete this product" style="color:var(--warn);width:26px;flex:none;font-weight:700">✕</button>
           </div>`).join("")}
         </div>
       </div>
       <div class="m-foot"><button class="btn" id="rfq-copy">Copy</button><button class="btn" id="rfq-pdf">Save PDF</button><button class="btn wa" id="rfq-wa">Send on WhatsApp</button></div>`);
     scrim.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{ ui.rfqCat=b.dataset.rc; draw(); });
-    document.getElementById("rfq-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(rfqText(cat,rows))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
-    document.getElementById("rfq-pdf").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildRFQDoc(cat,rows).save(`price-request-${cat.replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); };
-    document.getElementById("rfq-copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(rfqText(cat,rows)); toast("Copied"); }catch(e){ flash("Couldn't copy"); } };
+    scrim.querySelectorAll("[data-tick]").forEach(cb=>cb.onchange=()=>{
+      const k=cat+"|"+cb.dataset.tick.toUpperCase();
+      if(cb.checked) delete ui.rfqOff[k]; else ui.rfqOff[k]=1;
+      draw();
+    });
+    scrim.querySelectorAll("[data-drop]").forEach(b=>b.onclick=()=>{
+      const name=b.dataset.drop;
+      const row=rows.find(r=>r.item===name); if(!row) return;
+      if(!confirm(`Delete "${name}" from your products?\n\nThis removes it from the sheet completely.`)) return;
+      State.purchases=State.purchases.filter(p=>!row.ids.includes(p.id));
+      persist(); draw(); toast("Product deleted");
+    });
+    const go=(fn)=>{ if(!chosen.length){ flash("Tick at least one item"); return; } fn(); };
+    document.getElementById("rfq-wa").onclick=()=>go(()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(rfqText(cat,chosen))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); });
+    document.getElementById("rfq-pdf").onclick=()=>go(()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildRFQDoc(cat,chosen).save(`price-request-${cat.replace(/[^\w]+/g,"-")}.pdf`); toast("Saved to your Downloads folder"); });
+    document.getElementById("rfq-copy").onclick=()=>go(async()=>{ try{ await navigator.clipboard.writeText(rfqText(cat,chosen)); toast("Copied"); }catch(e){ flash("Couldn't copy"); } });
+    document.getElementById("rfq-all").onclick=()=>{
+      if(chosen.length===rows.length){ rows.forEach(r=>ui.rfqOff[key(r)]=1); }
+      else { rows.forEach(r=>delete ui.rfqOff[key(r)]); }
+      draw();
+    };
   };
   draw();
 }
