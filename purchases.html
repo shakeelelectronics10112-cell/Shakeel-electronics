@@ -221,7 +221,11 @@ async function load(){
   if(!State.shipments.some(s=>s.no===State.settings.currentShipment))
     State.shipments.push({id:uid(),no:State.settings.currentShipment,openedAt:Date.now(),closedAt:null});
   // tag any legacy rows with the current shipment
-  State.purchases.forEach(p=>{ if(p.shipment==null) p.shipment=State.settings.currentShipment; });
+  const cs=State.settings.currentShipment;
+  State.purchases.forEach(p=>{ if(p.shipment==null) p.shipment=cs; });
+  State.payments.forEach(p=>{ if(p.shipment==null) p.shipment=cs; });
+  State.pos.forEach(p=>{ if(p.shipment==null) p.shipment=cs; });
+  State.tracking.forEach(p=>{ if(p.shipment==null) p.shipment=cs; });
   if(ui.shipView===undefined) ui.shipView=State.settings.currentShipment;
 }
 function lsLoad(){ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
@@ -245,8 +249,8 @@ function localISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padSta
 const todayISO=()=>localISO(new Date());
 function pTotals(p){ const rmb=(p.qty||0)*(p.priceRMB||0); const rate=p.rate||State.settings.rate; return { rmb, pkr:rmb*rate, unit:(p.priceRMB||0)*rate }; }
 function vendorBalance(v){ // in RMB: purchased - paid  (positive = we still owe)
-  const bought=State.purchases.filter(p=>p.vendor===v).reduce((s,p)=>s+(p.qty||0)*(p.priceRMB||0),0);
-  const paid=State.payments.filter(x=>x.vendor===v).reduce((s,x)=>s+(x.paidRMB||0),0);
+  const bought=sPurchases().filter(p=>p.vendor===v).reduce((s,p)=>s+(p.qty||0)*(p.priceRMB||0),0);
+  const paid=sPayments().filter(x=>x.vendor===v).reduce((s,x)=>s+(x.paidRMB||0),0);
   return { bought, paid, balance: bought-paid };
 }
 function waNumber(phone){ if(!phone) return ""; let d=String(phone).replace(/[^\d+]/g,""); const cc=(State.settings.countryCode||"92").replace(/\D/g,""); if(d.startsWith("+"))d=d.slice(1); else if(d.startsWith("00"))d=d.slice(2); else if(d.startsWith("0"))d=cc+d.slice(1); else if(!d.startsWith(cc)&&d.length<=10)d=cc+d; return d; }
@@ -268,18 +272,23 @@ function render(){
 function statTiles(){
   const cur=C();
   let totPKR=0, paidPKR=0;
-  for(const p of State.purchases){ totPKR+=pTotals(p).pkr; }
-  for(const x of State.payments){ paidPKR+=(x.paidRMB||0)*(x.rate||State.settings.rate); }
+  for(const p of sPurchases()){ totPKR+=pTotals(p).pkr; }
+  for(const x of sPayments()){ paidPKR+=(x.paidRMB||0)*(x.rate||State.settings.rate); }
   let oweRMB=0; for(const v of vendorSet()){ const b=vendorBalance(v).balance; if(b>0) oweRMB+=b; }
   return `<div class="summary">
-    <div class="stat accent"><div class="lab">Total purchased</div><div class="val">${cur} ${money(totPKR)}</div><div class="sub">${State.purchases.length} line${State.purchases.length===1?"":"s"}</div></div>
-    <div class="stat"><div class="lab">Paid to vendors</div><div class="val" style="color:var(--paid)">${cur} ${money(paidPKR)}</div><div class="sub">${State.payments.length} payment${State.payments.length===1?"":"s"}</div></div>
+    <div class="stat accent"><div class="lab">Total purchased</div><div class="val">${cur} ${money(totPKR)}</div><div class="sub">${sPurchases().length} line${sPurchases().length===1?"":"s"}</div></div>
+    <div class="stat"><div class="lab">Paid to vendors</div><div class="val" style="color:var(--paid)">${cur} ${money(paidPKR)}</div><div class="sub">${sPayments().length} payment${sPayments().length===1?"":"s"}</div></div>
     <div class="stat warn"><div class="lab">You still owe</div><div class="val">¥ ${money(oweRMB)}</div><div class="sub">${cur} ${money(oweRMB*State.settings.rate)}</div></div>
     <div class="stat"><div class="lab">Vendors</div><div class="val">${vendorSet().size}</div><div class="sub">active</div></div>
   </div>`;
 }
-function vendorSet(){ const s=new Set(); State.purchases.forEach(p=>p.vendor&&s.add(p.vendor)); State.payments.forEach(p=>p.vendor&&s.add(p.vendor)); return s; }
+function vendorSet(){ const s=new Set(); sPurchases().forEach(p=>p.vendor&&s.add(p.vendor)); sPayments().forEach(p=>p.vendor&&s.add(p.vendor)); return s; }
 
+function curShip(){ return (ui.shipView!=null?ui.shipView:State.settings.currentShipment); }
+function sPurchases(){ return State.purchases.filter(p=>p.shipment===curShip()); }
+function sPayments(){ return State.payments.filter(p=>p.shipment===curShip()); }
+function sPos(){ return State.pos.filter(p=>p.shipment===curShip()); }
+function sTracking(){ return State.tracking.filter(p=>p.shipment===curShip()); }
 function shipObj(no){ return State.shipments.find(s=>s.no===no); }
 function shipLabel(no){ const s=shipObj(no); return (s&&s.name&&s.name.trim()) ? s.name.trim() : ("INVOICE NO "+no); }
 function shipNos(){ return State.shipments.map(s=>s.no).sort((a,b)=>b-a); }
@@ -379,6 +388,9 @@ function manageShipment(no){
     if(State.shipments.length<=1){ flash("You need at least one invoice"); return; }
     if(!confirm(`Delete "${shipLabel(no)}"?\n\nThis permanently removes its ${rows.length} item${rows.length===1?"":"s"}. This cannot be undone.`)) return;
     State.purchases=State.purchases.filter(p=>p.shipment!==no);
+    State.payments=State.payments.filter(p=>p.shipment!==no);
+    State.pos=State.pos.filter(p=>p.shipment!==no);
+    State.tracking=State.tracking.filter(p=>p.shipment!==no);
     State.shipments=State.shipments.filter(x=>x.no!==no);
     if(State.settings.currentShipment===no){
       const remaining=State.shipments.map(x=>x.no).sort((a,b)=>b-a);
@@ -449,7 +461,7 @@ function renderVendors(){
 
 function renderPayments(){
   const v=document.getElementById("view"); const cur=C();
-  const list=State.payments.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const list=sPayments().slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   let html=statTiles();
   html+=`<div class="toolbar"><button class="btn primary" id="addPay" style="margin-left:auto">＋ Record payment</button></div>`;
   if(list.length===0){ html+=`<div class="card"><div class="empty"><div class="big grot">No payments yet</div><p>Record what you pay each vendor (in RMB). It reduces their balance automatically.</p><button class="btn primary" id="addPay2" style="margin:0 auto">Record a payment</button></div></div>`; }
@@ -469,7 +481,7 @@ function renderPayments(){
 function renderSummary(){
   const v=document.getElementById("view"); const cur=C();
   // by category
-  const cat={}; for(const p of State.purchases){ const t=pTotals(p); cat[p.category]=(cat[p.category]||0)+t.pkr; }
+  const cat={}; for(const p of sPurchases()){ const t=pTotals(p); cat[p.category]=(cat[p.category]||0)+t.pkr; }
   const catRows=Object.entries(cat).sort((a,b)=>b[1]-a[1]);
   const maxCat=Math.max(1,...catRows.map(r=>r[1]));
   // vendors we owe
@@ -555,7 +567,7 @@ function openPayment(existing, presetVendor){
     const vendor=document.getElementById("p-vendor").value; if(!vendor){ flash("Choose a vendor"); return; }
     const paidRMB=parseFloat(document.getElementById("p-rmb").value)||0; if(!(paidRMB>0)){ flash("Enter amount in ¥"); return; }
     const data={ vendor, paidRMB, rate:parseFloat(document.getElementById("p-rate").value)||State.settings.rate, type:document.getElementById("p-type").value, method:document.getElementById("p-method").value, ref:document.getElementById("p-ref").value.trim(), date:document.getElementById("p-date").value, notes:document.getElementById("p-notes").value.trim() };
-    if(existing) Object.assign(existing,data); else State.payments.push(Object.assign({id:uid(),createdAt:Date.now()},data));
+    if(existing) Object.assign(existing,data); else State.payments.push(Object.assign({id:uid(),shipment:curShip(),createdAt:Date.now()},data));
     persist(); render(); closeScrim(); toast(existing?"Payment updated":"Payment recorded");
   };
   if(existing) document.getElementById("p-del").onclick=()=>{ if(confirm("Delete this payment?")){ State.payments=State.payments.filter(y=>y.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
@@ -564,8 +576,8 @@ function openPayment(existing, presetVendor){
 /* ---------- vendor detail ---------- */
 function openVendor(name){
   const b=vendorBalance(name); const cur=C();
-  const buys=State.purchases.filter(p=>p.vendor===name).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  const pays=State.payments.filter(p=>p.vendor===name).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const buys=sPurchases().filter(p=>p.vendor===name).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const pays=sPayments().filter(p=>p.vendor===name).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const cls=b.balance>0.001?"owe":(b.balance<-0.001?"adv":"clear");
   const txns=[...buys.map(x=>({t:"buy",d:x.date,label:`${x.qty}× ${x.item||x.category}`,rmb:(x.qty*x.priceRMB)})),
               ...pays.map(x=>({t:"pay",d:x.date,label:`${x.type||"Payment"}${x.method?" · "+x.method:""}`,rmb:-(x.paidRMB)}))]
@@ -585,12 +597,12 @@ function openVendor(name){
       ${txns.length? txns.map(t=>`<div class="txn ${t.t}"><div class="ic">${t.t==="buy"?'▲':'✓'}</div><div><div style="font-weight:500">${esc(t.label)}</div><div style="font-size:11.5px;color:var(--muted)">${esc(t.d||"")}</div></div><div class="a" style="color:${t.t==="buy"?"var(--warn)":"var(--paid)"}">${t.rmb>0?"+":"−"}¥${money(Math.abs(t.rmb))}</div></div>`).join("") : `<div style="color:var(--muted);font-size:13px">No history.</div>`}
     </div>`);
   document.getElementById("v-pay").onclick=()=>openPayment(null,name);
-  document.getElementById("v-po").onclick=()=>{ const lines=State.purchases.filter(p=>p.vendor===name).map(p=>({item:p.item,qty:p.qty,priceRMB:p.priceRMB})); openPO(null,name,lines.length?lines:[{}]); };
+  document.getElementById("v-po").onclick=()=>{ const lines=sPurchases().filter(p=>p.vendor===name).map(p=>({item:p.item,qty:p.qty,priceRMB:p.priceRMB})); openPO(null,name,lines.length?lines:[{}]); };
 }
 function vendorPO(name){
   if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
   const { jsPDF }=window.jspdf; const cur=C(); const rate=State.settings.rate;
-  const items=State.purchases.filter(p=>p.vendor===name);
+  const items=sPurchases().filter(p=>p.vendor===name);
   if(!items.length){ flash("No items for this vendor"); return; }
   const doc=new jsPDF({unit:"pt",format:"a4"}); let y=54; const L=48,R=548;
   doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(16,86,74); doc.text(State.settings.org,L,y);
@@ -664,7 +676,7 @@ function openNeed(existing){
 function poTotal(po){ return (po.lines||[]).reduce((s,l)=>s+(l.qty||0)*(l.priceRMB||0),0); }
 function renderPOs(){
   const v=document.getElementById("view"); const cur=C();
-  const list=State.pos.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const list=sPos().slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   let html=`<div class="toolbar"><button class="btn primary" id="newPO" style="margin-left:auto">＋ New purchase order</button></div>`;
   if(list.length===0){ html+=`<div class="card"><div class="empty"><div class="big grot">No purchase orders yet</div><p>Create a PO for a vendor with the items and prices you want to order. You can save it, then print or WhatsApp it as a PDF.</p><button class="btn primary" id="newPO2" style="margin:0 auto">Create a PO</button></div></div>`; }
   else{
@@ -709,7 +721,7 @@ function openPO(existing, prefillVendor, prefillLines){
   document.getElementById("po-rate").oninput=recalc;
   // Auto-fill ALL of the chosen vendor's items (like the Excel PO sheet)
   document.getElementById("po-vendor").addEventListener("change",function(){
-    const auto=State.purchases.filter(p=>p.vendor===this.value).map(p=>({item:p.item,qty:p.qty,priceRMB:p.priceRMB})).filter(l=>l.item);
+    const auto=sPurchases().filter(p=>p.vendor===this.value).map(p=>({item:p.item,qty:p.qty,priceRMB:p.priceRMB})).filter(l=>l.item);
     const lines=auto.length?auto:[{}];
     linesEl.innerHTML=lines.map(poLineRow).join("");
     wireRm(); wireCalc(); recalc();
@@ -721,7 +733,7 @@ function openPO(existing, prefillVendor, prefillLines){
     if(!lines.length){ flash("Add at least one item"); return; }
     const data={ vendor, date:document.getElementById("po-date").value, rate:parseFloat(document.getElementById("po-rate").value)||State.settings.rate, lines, note:document.getElementById("po-note").value.trim() };
     if(existing){ Object.assign(existing,data); toast("PO updated"); }
-    else{ const num="PO-"+String(State.settings.nextPO||1).padStart(3,"0"); State.settings.nextPO=(State.settings.nextPO||1)+1; State.pos.push(Object.assign({id:uid(),number:num,createdAt:Date.now()},data)); toast("PO "+num+" created"); }
+    else{ const num="PO-"+String(State.settings.nextPO||1).padStart(3,"0"); State.settings.nextPO=(State.settings.nextPO||1)+1; State.pos.push(Object.assign({id:uid(),number:num,shipment:curShip(),createdAt:Date.now()},data)); toast("PO "+num+" created"); }
     persist(); render(); closeScrim();
   };
   if(existing) document.getElementById("po-del").onclick=()=>{ if(confirm("Delete this purchase order?")){ State.pos=State.pos.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
@@ -863,7 +875,7 @@ function poPreview(po){
 function renderTracking(){
   const v=document.getElementById("view");
   const q=ui.search.trim().toLowerCase();
-  let list=State.tracking.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  let list=sTracking().slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   if(ui.statusFilter) list=list.filter(t=>t.status===ui.statusFilter);
   if(q) list=list.filter(t=>((t.item||"")+" "+(t.fromVendor||"")+" "+(t.forwarder||"")+" "+(t.status||"")).toLowerCase().includes(q));
   const vendors=State.settings.vendors, statuses=State.settings.statuses;
@@ -872,8 +884,8 @@ function renderTracking(){
   let html=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="tsearch" placeholder="Search tracking no., vendor, forwarder" value="${esc(ui.search)}"></div></div>
     <div class="seg" id="stFilterT"><button class="${!ui.statusFilter?"on":""}" data-st="">All</button>${statuses.map(s=>`<button class="${ui.statusFilter===s?"on":""}" data-st="${esc(s)}">${esc(s)}</button>`).join("")}</div>
-    <div class="gridbar"><button class="btn primary sm" id="addTrack">＋ Add shipment</button><span class="cnt">${list.length} of ${State.tracking.length}</span></div>`;
-  if(State.tracking.length===0){
+    <div class="gridbar"><button class="btn primary sm" id="addTrack">＋ Add shipment</button><span class="cnt">${list.length} in this invoice</span></div>`;
+  if(sTracking().length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">No shipments tracked</div><p>Track parcels moving <b>From a vendor → to your forwarder</b>. Add the tracking number and update the status as it travels (Ordered → Shipped → At Forwarder → In Transit → Customs → Received).</p><button class="btn primary" id="addTrack2" style="margin:0 auto">Add first shipment</button></div></div>`;
   }else{
     html+=`<div class="gridwrap"><table class="grid"><thead><tr>
@@ -907,7 +919,7 @@ function renderTracking(){
   });
 }
 function addTrackRow(){
-  const row={ id:uid(), date:todayISO(), fromVendor:"", forwarder:"", item:"", qty:0, weight:"", status:"Ordered", createdAt:Date.now(), updatedAt:Date.now() };
+  const row={ id:uid(), shipment:curShip(), date:todayISO(), fromVendor:"", forwarder:"", item:"", qty:0, weight:"", status:"Ordered", createdAt:Date.now(), updatedAt:Date.now() };
   State.tracking.push(row); persist(); renderTracking();
   setTimeout(()=>{ const tr=document.querySelector(`tr[data-trow="${row.id}"]`); if(tr){ tr.scrollIntoView({block:"center"}); const inp=tr.querySelector('[data-f="item"]'); if(inp) inp.focus(); } },40);
 }
@@ -945,7 +957,7 @@ function isIncomplete(p){ return !p.vendor || !(p.priceRMB>0); }
 function renderToBuy(){
   const v=document.getElementById("view"); const cur=C();
   const q=ui.search.trim().toLowerCase();
-  let list=State.purchases.filter(isIncomplete).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  let list=sPurchases().filter(isIncomplete).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   if(q) list=list.filter(p=>((p.item||"")+" "+(p.category||"")).toLowerCase().includes(q));
   let html=`<div class="card" style="padding:14px 16px;margin-bottom:14px;background:linear-gradient(180deg,#FBF0D9,#fff);border-color:#E4D3A8">
     <div style="font-weight:600;font-size:14px">🛒 Still to buy</div>
@@ -969,10 +981,10 @@ function renderToBuy(){
 /* ---------- CATEGORY browser ---------- */
 function renderCategory(){
   const v=document.getElementById("view"); const cur=C();
-  const cats=[...new Set(State.purchases.map(p=>p.category).filter(Boolean))].sort();
+  const cats=[...new Set(sPurchases().map(p=>p.category).filter(Boolean))].sort();
   if(ui.catSel===undefined) ui.catSel = cats[0]||"";
   const sel=ui.catSel;
-  const items=State.purchases.filter(p=>p.category===sel).sort((a,b)=>(a.item||"").localeCompare(b.item||""));
+  const items=sPurchases().filter(p=>p.category===sel).sort((a,b)=>(a.item||"").localeCompare(b.item||""));
   let totPKR=0, totRMB=0, totQty=0; items.forEach(p=>{ const t=pTotals(p); totPKR+=t.pkr; totRMB+=t.rmb; totQty+=(p.qty||0); });
   let html=`<div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px">Choose a category</div>
     <div class="seg" id="catChips">${cats.length?cats.map(c=>`<button class="${sel===c?"on":""}" data-cat="${esc(c)}">${esc(c)}</button>`).join(""):`<span style="color:var(--muted);font-size:13px">No categories yet — add products in the Sheet.</span>`}</div>`;
@@ -1126,7 +1138,7 @@ function buildRFQDoc(cat,items){
 /* ---------- QUOTE REQUEST (RFQ) helpers ---------- */
 function rfqCategories(){
   const m={};
-  for(const p of State.purchases){
+  for(const p of sPurchases()){
     if(!isIncomplete(p)) continue;
     const it=(p.item||"").trim(); if(!it) continue;
     const c=(p.category||"OTHERS").trim()||"OTHERS";
