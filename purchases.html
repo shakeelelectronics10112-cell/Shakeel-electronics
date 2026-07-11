@@ -280,6 +280,8 @@ function statTiles(){
 }
 function vendorSet(){ const s=new Set(); State.purchases.forEach(p=>p.vendor&&s.add(p.vendor)); State.payments.forEach(p=>p.vendor&&s.add(p.vendor)); return s; }
 
+function shipObj(no){ return State.shipments.find(s=>s.no===no); }
+function shipLabel(no){ const s=shipObj(no); return (s&&s.name&&s.name.trim()) ? s.name.trim() : ("INVOICE NO "+no); }
 function shipNos(){ return State.shipments.map(s=>s.no).sort((a,b)=>b-a); }
 function shipRows(no){ return State.purchases.filter(p=>p.shipment===no); }
 function shipBarHTML(){
@@ -289,11 +291,12 @@ function shipBarHTML(){
   return `<div class="card" style="padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:linear-gradient(180deg,#FCFAF4,#fff);border-color:#E4D3A8">
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Shipment</span>
-      <select class="inp" id="shipSel" style="width:auto;padding:6px 10px;font-weight:700">${nos.map(n=>`<option value="${n}" ${n===sel?"selected":""}>INVOICE NO ${n}</option>`).join("")}</select>
+      <select class="inp" id="shipSel" style="width:auto;padding:6px 10px;font-weight:700">${nos.map(n=>`<option value="${n}" ${n===sel?"selected":""}>${esc(shipLabel(n))}</option>`).join("")}</select>
       ${isOpen?`<span class="st Ordered" style="background:var(--green-soft);color:var(--green)">OPEN</span>`:`<span class="st">CLOSED</span>`}
     </div>
     <span style="font-size:12.5px;color:var(--muted)">${rows.length} items · <b class="mono" style="color:var(--green)">${C()} ${money(tot)}</b></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost sm" id="shipManage" title="Rename or delete this invoice">⚙</button>
       <button class="btn sm" id="arrivalBtn">📦 New arrival PDF</button>
       ${isOpen?`<button class="btn primary sm" id="finishShip">Finish → new shipment</button>`:""}
     </div>
@@ -346,18 +349,55 @@ function renderPurchases(){
   const ss2=document.getElementById("shipSel"); if(ss2) ss2.onchange=e=>{ ui.shipView=parseInt(e.target.value,10); renderPurchases(); };
   const fb=document.getElementById("finishShip"); if(fb) fb.onclick=finishShipment;
   const ab2=document.getElementById("arrivalBtn"); if(ab2) ab2.onclick=()=>arrivalPreview(ui.shipView);
+  const smg=document.getElementById("shipManage"); if(smg) smg.onclick=()=>manageShipment(ui.shipView);
   wireGrid();
+}
+function manageShipment(no){
+  const s=shipObj(no); if(!s) return;
+  const rows=shipRows(no); let tot=0; rows.forEach(p=>tot+=pTotals(p).pkr);
+  const isCur = no===State.settings.currentShipment;
+  openScrim(`<div class="m-head"><h2>Manage invoice</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="detail-sum" style="margin-bottom:14px">
+        <div class="cell"><div class="l">Items</div><div class="v">${rows.length}</div></div>
+        <div class="cell"><div class="l">Value</div><div class="v" style="font-size:14px">${C()} ${money(tot)}</div></div>
+        <div class="cell"><div class="l">Status</div><div class="v" style="font-size:13px;color:${isCur?"var(--green)":"var(--muted)"}">${isCur?"OPEN":"CLOSED"}</div></div>
+      </div>
+      <label class="fld"><span class="lt">Invoice name</span><input class="inp" id="sh-name" value="${esc(s.name||"")}" placeholder="INVOICE NO ${no}"></label>
+      <div class="hint">Leave blank to use the default name “INVOICE NO ${no}”. Each invoice keeps its own separate items.</div>
+    </div>
+    <div class="m-foot">
+      <button class="btn danger" id="sh-del" style="margin-right:auto">Delete invoice</button>
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="sh-save">Save</button>
+    </div>`);
+  document.getElementById("sh-save").onclick=()=>{
+    s.name=document.getElementById("sh-name").value.trim();
+    persist(); renderPurchases(); closeScrim(); toast("Invoice renamed");
+  };
+  document.getElementById("sh-del").onclick=()=>{
+    if(State.shipments.length<=1){ flash("You need at least one invoice"); return; }
+    if(!confirm(`Delete "${shipLabel(no)}"?\n\nThis permanently removes its ${rows.length} item${rows.length===1?"":"s"}. This cannot be undone.`)) return;
+    State.purchases=State.purchases.filter(p=>p.shipment!==no);
+    State.shipments=State.shipments.filter(x=>x.no!==no);
+    if(State.settings.currentShipment===no){
+      const remaining=State.shipments.map(x=>x.no).sort((a,b)=>b-a);
+      State.settings.currentShipment=remaining[0];
+    }
+    ui.shipView=State.settings.currentShipment;
+    persist(); renderPurchases(); closeScrim(); toast("Invoice deleted");
+  };
 }
 function finishShipment(){
   const cur=State.settings.currentShipment;
   const rows=shipRows(cur);
-  if(!confirm(`Finish INVOICE NO ${cur} (${rows.length} items) and start INVOICE NO ${cur+1}?\n\nThe old shipment stays saved — you can view it anytime from the dropdown.`)) return;
+  if(!confirm(`Finish "${shipLabel(cur)}" (${rows.length} items) and start a new empty invoice?\n\nThe old one stays saved — open it anytime from the dropdown.`)) return;
   const s=State.shipments.find(x=>x.no===cur); if(s) s.closedAt=Date.now();
   const next=cur+1;
   State.settings.currentShipment=next;
   State.shipments.push({id:uid(),no:next,openedAt:Date.now(),closedAt:null});
   ui.shipView=next;
-  persist(); renderPurchases(); toast(`Started INVOICE NO ${next}`);
+  persist(); renderPurchases(); toast(`Started ${shipLabel(next)} — empty and ready`);
 }
 function wireGrid(rerender){
   rerender = rerender || renderPurchases;
