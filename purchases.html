@@ -938,7 +938,7 @@ function buildPODoc(po){
   const { jsPDF }=window.jspdf;
   const doc=new jsPDF({unit:"pt",format:"a4"});
   const rate=State.settings.rate;
-  const rows=(po.items||[]);
+  const rows=(po.lines||po.items||[]);
   const no = po.docNo || (po.docNo = docNo("PO"), persist(), po.docNo);
 
   let y=letterhead(doc,"Purchase Order",[
@@ -952,31 +952,37 @@ function buildPODoc(po){
   const C1=45,C2=78,C3=330,C4=395,C5=470,C6=550;
   y=tableHead(doc,y,[
     {t:"#",x:C1},{t:"ITEM / PART NO.",x:C2},{t:"QTY",x:C3,a:"right"},
-    {t:"PRICE",x:C4,a:"right"},{t:"AMOUNT",x:C6,a:"right"}
+    {t:"RMB / PC",x:C4,a:"right"},{t:"AMOUNT RMB",x:C6,a:"right"}
   ]);
 
   doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
   let tot=0,i=0;
+  if(!rows.length){
+    doc.setTextColor(...BRAND.muted); doc.setFontSize(10);
+    doc.text("No items on this purchase order.", 45, y+4);
+    y+=26;
+  }
   for(const it of rows){
     if(y>690){ doc.addPage();
       y=letterhead(doc,"Purchase Order",[`No. ${no}`, po.vendor||""]);
       y=tableHead(doc,y,[{t:"#",x:C1},{t:"ITEM / PART NO.",x:C2},{t:"QTY",x:C3,a:"right"},
-        {t:"PRICE",x:C4,a:"right"},{t:"AMOUNT",x:C6,a:"right"}]);
+        {t:"RMB / PC",x:C4,a:"right"},{t:"AMOUNT RMB",x:C6,a:"right"}]);
       doc.setFont("helvetica","normal"); doc.setFontSize(9.5); }
     const amt=(it.qty||0)*(it.priceRMB||0); tot+=amt;
     if(i%2===1){ doc.setFillColor(...BRAND.zebra); doc.rect(40,y-11,515,17,"F"); }
     doc.setTextColor(...BRAND.faint); doc.text(String(i+1), C1, y);
     doc.setTextColor(...BRAND.ink); doc.text(String(it.item||"").slice(0,40), C2, y);
     doc.text(String(it.qty||0), C3, y, {align:"right"});
-    doc.text(it.priceRMB? "\u00A5"+money2(it.priceRMB) : "—", C4, y, {align:"right"});
+    doc.text(it.priceRMB? money2(it.priceRMB) : "-", C4, y, {align:"right"});
     doc.setFont("helvetica","bold");
-    doc.text(amt? "\u00A5"+money2(amt) : "—", C6, y, {align:"right"});
+    doc.text(amt? money2(amt) : "-", C6, y, {align:"right"});
     doc.setFont("helvetica","normal");
     y+=17; i++;
   }
 
   y+=12;
-  y=totalBox(doc,y,"Order total", "\u00A5 "+money2(tot), "\u2248 Rs "+money(tot*rate)+"   (\u00A51 = Rs "+rate+")");
+  const R = po.rate || rate;
+  y=totalBox(doc,y,"Order total", "RMB "+money2(tot), "= Rs "+money(tot*R)+"   (RMB 1 = Rs "+R+")");
 
   if(po.note){
     doc.setFont("helvetica","bold"); doc.setFontSize(7.6); doc.setTextColor(...BRAND.muted);
@@ -989,7 +995,7 @@ function buildPODoc(po){
 }
 
 function poFileName(po){
-  const no = po.docNo || "PO";
+  const no = po.number || po.docNo || "PO";
   const v = (po.vendor||"vendor").replace(/[^\w]+/g,"-");
   return `${no}-${v}.pdf`;
 }
@@ -1404,11 +1410,11 @@ function buildPurchaseSummaryDoc(shipNo){
 
   const head=()=>{
     let yy=letterhead(doc,"Purchase Summary",[
-      `No. ${no}`, shipLabel(shipNo), `Rate: \u00A51 = Rs ${rate}`
+      `No. ${no}`, shipLabel(shipNo), `Rate: RMB 1 = Rs ${rate}`
     ]);
     return tableHead(doc,yy,[
       {t:"#",x:45},{t:"ITEM / PART NO.",x:76},{t:"VENDOR",x:250},
-      {t:"QTY",x:340,a:"right"},{t:"\u00A5/PC",x:395,a:"right"},
+      {t:"QTY",x:340,a:"right"},{t:"RMB/PC",x:395,a:"right"},
       {t:"UNIT Rs",x:470,a:"right"},{t:"TOTAL Rs",x:550,a:"right"}
     ]);
   };
@@ -1432,7 +1438,7 @@ function buildPurchaseSummaryDoc(shipNo){
     y+=17; i++;
   }
   y+=12;
-  y=totalBox(doc,y,`Total \u00b7 ${rows.length} items`, `Rs ${money(gTot)}`, `\u00A5 ${money2(gRmb)}  at Rs ${rate}`);
+  y=totalBox(doc,y,`Total - ${rows.length} items`, `Rs ${money(gTot)}`, `RMB ${money2(gRmb)}  at Rs ${rate}`);
   docFooter(doc,{sign:false, terms:false});
   return doc;
 }
