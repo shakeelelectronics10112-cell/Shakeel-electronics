@@ -369,7 +369,30 @@ function renderPurchases(){
     if(list.length===0) html+=`<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px">No rows match this filter.</div>`;
   }
   v.innerHTML=html;
-  const ps=document.getElementById("psearch"); if(ps) ps.oninput=e=>{ ui.search=e.target.value; const s=e.target.selectionStart; renderPurchases(); const n=document.getElementById("psearch"); if(n){n.focus(); try{n.setSelectionRange(s,s);}catch(_){}} };
+  const ps=document.getElementById("psearch");
+  if(ps) ps.oninput=()=>{
+    ui.search=ps.value;
+    const q=ui.search.trim().toLowerCase();
+    const body=document.getElementById("gridBody");
+    if(!body){ renderPurchases(); return; }   // card view — fall back
+    let shown=0;
+    body.querySelectorAll("tr[data-row]").forEach(tr=>{
+      const p=State.purchases.find(x=>x.id===tr.dataset.row);
+      const hay=((p&&p.item)||"")+" "+((p&&p.vendor)||"")+" "+((p&&p.category)||"")+" "+((p&&p.forwarder)||"");
+      const hit=!q||hay.toLowerCase().includes(q);
+      tr.style.display=hit?"":"none";
+      if(hit) shown++;
+    });
+    let none=document.getElementById("noHit");
+    if(!shown){
+      if(!none){
+        none=document.createElement("div"); none.id="noHit";
+        none.style.cssText="text-align:center;color:var(--muted);font-size:13px;padding:16px";
+        none.textContent="No rows match this search.";
+        body.closest(".gridwrap").after(none);
+      }
+    } else if(none) none.remove();
+  };
   v.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ ui.statusFilter=b.dataset.st; renderPurchases(); });
   ["addRow","addRow2"].forEach(id=>{ const b=document.getElementById(id); if(b) b.onclick=addBlankRow; });
   const ss2=document.getElementById("shipSel"); if(ss2) ss2.onchange=e=>{ ui.shipView=parseInt(e.target.value,10); renderPurchases(); };
@@ -432,8 +455,8 @@ function finishShipment(){
 function wireGrid(rerender){
   rerender = rerender || renderPurchases;
   const body=document.getElementById("gridBody"); if(!body) return;
-  v.querySelectorAll("[data-rowmenu]").forEach(b=>b.onclick=e=>{
-    e.stopPropagation(); rowMenu(b.dataset.rowmenu);
+  body.querySelectorAll("[data-rowmenu]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); e.preventDefault(); rowMenu(b.dataset.rowmenu);
   });
   body.querySelectorAll("tr[data-row]").forEach(tr=>{
     const p=State.purchases.find(x=>x.id===tr.dataset.row); if(!p) return;
@@ -445,7 +468,14 @@ function wireGrid(rerender){
       inp.addEventListener("change",commit);
       inp.addEventListener("blur",commit);
     });
-    tr.querySelector("[data-del]").onclick=()=>{ if(confirm("Delete this row?")){ State.purchases=State.purchases.filter(x=>x.id!==p.id); persist(); rerender(); } };
+    const delBtn=tr.querySelector("[data-del]");
+    if(delBtn) delBtn.onclick=(e)=>{
+      e.stopPropagation();
+      if(confirm(`Delete "${p.item||"this row"}"?`)){
+        State.purchases=State.purchases.filter(x=>x.id!==p.id);
+        persist(); rerender(); toast("Row deleted");
+      }
+    };
   });
 }
 function addBlankRow_(rerender){
