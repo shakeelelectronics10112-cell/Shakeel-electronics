@@ -202,7 +202,7 @@ const State={
   members:[],       // {id,name,phone,note,limit,createdAt}
   transactions:[]   // {id,memberId,type:charge|payment,amount,description,date,dueDate,accountId,createdAt}
 };
-let ui={ tab:"chase", q:"" };
+let ui={ tab:"chase", q:"", mRange:"30" };
 
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -467,27 +467,196 @@ function viewRisk(){
   v.innerHTML=h; wire(v);
 }
 
-/* ---- MONEY IN ---- */
+/* ---- MONEY IN / COLLECTIONS ---- */
+function moneyRange(){
+  const r=ui.mRange||"all"; const now=new Date();
+  const startOf=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  if(r==="custom" && ui.mFrom && ui.mTo){
+    return { from:new Date(ui.mFrom+"T00:00:00").getTime(),
+             to:new Date(ui.mTo+"T00:00:00").getTime()+DAY-1,
+             label:`${ui.mFrom} → ${ui.mTo}` };
+  }
+  if(r==="today") return { from:startOf(now), to:Date.now(), label:"Today" };
+  if(r==="7")     return { from:startOf(now)-6*DAY, to:Date.now(), label:"Last 7 days" };
+  if(r==="30")    return { from:startOf(now)-29*DAY, to:Date.now(), label:"Last 30 days" };
+  if(r==="month"){ const m=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+                   return { from:m, to:Date.now(), label:"This month" }; }
+  return { from:0, to:Date.now(), label:"All time" };
+}
+function moneyRange(){
+  const r=ui.mRange||"30";
+  const now=new Date();
+  const startOf=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();
+  if(r==="custom" && ui.mFrom && ui.mTo){
+    return { from:new Date(ui.mFrom+"T00:00:00").getTime(),
+             to:new Date(ui.mTo+"T00:00:00").getTime()+DAY-1,
+             label:`${ui.mFrom} → ${ui.mTo}` };
+  }
+  if(r==="today")  return { from:startOf(now), to:Date.now(), label:"Today" };
+  if(r==="7")      return { from:startOf(now)-6*DAY, to:Date.now(), label:"Last 7 days" };
+  if(r==="30")     return { from:startOf(now)-29*DAY, to:Date.now(), label:"Last 30 days" };
+  if(r==="month"){ const s=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+                   return { from:s, to:Date.now(), label:"This month" }; }
+  return { from:0, to:Date.now(), label:"All time" };
+}
+function payTime(t){
+  if(t.date){ const d=new Date(t.date+"T00:00:00").getTime(); if(!isNaN(d)) return d; }
+  return t.createdAt||0;
+}
 function viewMoney(){
   const v=document.getElementById("view"); const cur=C();
-  const pays=State.transactions.filter(t=>t.type==="payment")
-    .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const B=moneyRange();
+  const accs=State.settings.accounts||[];
   const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:"—"; };
-  const accOf=id=>{ const a=(State.settings.accounts||[]).find(x=>x.id===id); return a?a.provider:"Cash"; };
-  let h=kpiHTML();
-  h+= pays.length
-    ? `<div class="sect">All payments received (${pays.length})</div>
-       <div class="card" style="max-height:62vh;overflow:auto">${pays.map(t=>`
+  const accOf=id=>{ const a=accs.find(x=>x.id===id); return a?a.provider:"Cash"; };
+
+  const pays=State.transactions
+    .filter(t=>t.type==="payment")
+    .filter(t=>{ const w=payTime(t); return w>=B.from && w<=B.to; })
+    .sort((a,b)=>payTime(b)-payTime(a));
+  const total=pays.reduce((s,t)=>s+(t.amount||0),0);
+
+  // group by account
+  const byAcc={};
+  for(const t of pays){
+    const k=t.accountId||"cash";
+    byAcc[k]=byAcc[k]||{ id:k, name:accOf(t.accountId), total:0, n:0 };
+    byAcc[k].total+=(t.amount||0); byAcc[k].n++;
+  }
+  const groups=Object.values(byAcc).sort((a,b)=>b.total-a.total);
+  const maxA=Math.max(1,...groups.map(g=>g.total));
+
+  const opts=[["today","Today"],["7","7 days"],["30","30 days"],["month","This month"],["all","All time"],["custom","Custom…"]];
+  let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+    ${opts.map(([k,t])=>`<button data-mr="${k}" style="font-size:12px;font-weight:600;padding:7px 12px;border-radius:9px;
+      border:1px solid ${ui.mRange===k||(!ui.mRange&&k==="30")?"var(--brand)":"var(--line-2)"};
+      background:${ui.mRange===k||(!ui.mRange&&k==="30")?"var(--brand)":"#fff"};
+      color:${ui.mRange===k||(!ui.mRange&&k==="30")?"#fff":"var(--muted)"}">${t}</button>`).join("")}
+  </div>`;
+  if(ui.mRange==="custom"){
+    h+=`<div class="card" style="padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <label class="f" style="margin:0;flex:1"><span class="lt">From</span><input class="inp" type="date" id="mF" value="${ui.mFrom||""}"></label>
+      <label class="f" style="margin:0;flex:1"><span class="lt">To</span><input class="inp" type="date" id="mT" value="${ui.mTo||""}"></label>
+      <button class="btn pri" id="mGo">Show</button></div>`;
+  }
+
+  h+=`<div class="card" style="padding:16px;margin-bottom:14px;background:linear-gradient(180deg,var(--good-soft),#fff);border-color:#CFE6DA">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--good)">Collected · ${esc(B.label)}</div>
+    <div class="mono" style="font-size:27px;font-weight:700;color:var(--good);margin-top:4px;letter-spacing:-.02em">${cur} ${money(total)}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${pays.length} payment${pays.length===1?"":"s"} received</div>
+  </div>`;
+
+  h+=`<div class="sect">Money received into each account</div>`;
+  h+= groups.length ? `<div class="card" style="padding:14px 15px">${groups.map(g=>`
+      <div style="margin-bottom:13px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:5px">
+          <span style="font-weight:600">${esc(g.name)}</span>
+          <span class="mono" style="font-weight:700">${cur} ${money(g.total)}
+            <span style="font-size:11px;color:var(--muted);font-weight:600">· ${g.n}</span></span>
+        </div>
+        <div style="height:7px;background:var(--line);border-radius:4px;overflow:hidden">
+          <i style="display:block;height:100%;width:${g.total/maxA*100}%;background:var(--good)"></i></div>
+      </div>`).join("")}</div>`
+    : `<div class="card"><div class="empty"><div class="b grot">No payments in this period</div><p>Try a wider date range.</p></div></div>`;
+
+  if(pays.length){
+    h+=`<div class="sect" style="display:flex;align-items:center;gap:8px">
+      <span>All payments (${pays.length})</span>
+      <button class="btn gh sm" id="mCsv" style="margin-left:auto">Export CSV</button>
+      <button class="btn gh sm" id="mPdf">PDF report</button></div>
+      <div class="card" style="max-height:52vh;overflow:auto">${pays.map(t=>`
         <div class="row">
           <div class="av ok">✓</div>
           <div class="rm" data-open="${t.memberId}">
             <div class="rn">${esc(nameOf(t.memberId))}</div>
-            <div class="rs"><span>${esc(t.date||"")}</span><span>· ${esc(accOf(t.accountId))}</span>${t.description?`<span>· ${esc(t.description)}</span>`:""}</div>
+            <div class="rs"><span>${esc(t.date||"")}</span>
+              <span>· <b style="color:var(--brand)">${esc(accOf(t.accountId))}</b></span>
+              ${t.description?`<span>· ${esc(t.description)}</span>`:""}</div>
           </div>
           <div class="ra"><div class="amt clear">+${cur} ${money(t.amount)}</div></div>
-        </div>`).join("")}</div>`
-    : `<div class="card"><div class="empty"><div class="b grot">No payments yet</div><p>Payments you record will appear here.</p></div></div>`;
+        </div>`).join("")}</div>`;
+  }
   v.innerHTML=h; wire(v);
+
+  v.querySelectorAll("[data-mr]").forEach(b=>b.onclick=()=>{ ui.mRange=b.dataset.mr; viewMoney(); });
+  const mg=document.getElementById("mGo");
+  if(mg) mg.onclick=()=>{ ui.mFrom=document.getElementById("mF").value; ui.mTo=document.getElementById("mT").value;
+    if(!ui.mFrom||!ui.mTo){ flash("Pick both dates"); return; } viewMoney(); };
+  const cs=document.getElementById("mCsv"); if(cs) cs.onclick=()=>collectionCSV(pays,B);
+  const pd=document.getElementById("mPdf"); if(pd) pd.onclick=()=>collectionPDF(pays,groups,total,B);
+}
+function collectionCSV(pays,B){
+  const accs=State.settings.accounts||[];
+  const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:""; };
+  const accOf=id=>{ const a=accs.find(x=>x.id===id); return a?a.provider:"Cash"; };
+  const q=s=>`"${String(s??"").replace(/"/g,'""')}"`;
+  const rows=[["Date","Customer","Account","Description","Amount"]]
+    .concat(pays.map(t=>[t.date||"", nameOf(t.memberId), accOf(t.accountId), t.description||"", t.amount||0]));
+  const csv=rows.map(r=>r.map(q).join(",")).join("\n");
+  const b=new Blob([csv],{type:"text/csv"}); const u=URL.createObjectURL(b);
+  const a=document.createElement("a"); a.href=u; a.download=`collections-${todayISO()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800);
+  toast("CSV downloaded");
+}
+function collectionPDF(pays,groups,total,B){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
+  const { jsPDF }=window.jspdf; const cur=C();
+  const accs=State.settings.accounts||[];
+  const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:"—"; };
+  const accOf=id=>{ const a=accs.find(x=>x.id===id); return a?a.provider:"Cash"; };
+  const doc=new jsPDF({unit:"pt",format:"a4"});
+  const L=45,R=550,W=R-L, G=[14,79,68], GOLD=[176,138,62];
+  doc.setFillColor(...G); doc.rect(0,0,595,84,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(19); doc.setTextColor(255,255,255);
+  doc.text(State.settings.org, L, 38);
+  doc.setFontSize(11); doc.setTextColor(226,214,180); doc.text("COLLECTION REPORT", L, 58);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(200,220,213);
+  doc.text(B.label, R, 38, {align:"right"});
+  doc.text(new Date().toLocaleDateString(), R, 55, {align:"right"});
+  doc.setFillColor(...GOLD); doc.rect(0,84,595,3,"F");
+  let y=116;
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(110,118,115);
+  doc.text("TOTAL COLLECTED", L, y);
+  doc.setFontSize(20); doc.setTextColor(46,125,91);
+  doc.text(`${cur} ${money(total)}`, L, y+22);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(120,126,123);
+  doc.text(`${pays.length} payment${pays.length===1?"":"s"}`, L, y+37);
+  y+=62;
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(110,118,115);
+  doc.text("BY ACCOUNT", L, y); y+=16;
+  doc.setFontSize(10);
+  for(const g of groups){
+    if(y>780){ doc.addPage(); y=55; }
+    doc.setTextColor(20,26,24); doc.setFont("helvetica","normal");
+    doc.text(`${g.name}  (${g.n})`, L, y);
+    doc.setFont("helvetica","bold");
+    doc.text(`${cur} ${money(g.total)}`, R-4, y, {align:"right"});
+    y+=16;
+  }
+  y+=12;
+  doc.setFillColor(...G); doc.rect(L,y-13,W,20,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(255,255,255);
+  doc.text("DATE",L+5,y); doc.text("CUSTOMER",L+75,y); doc.text("ACCOUNT",L+250,y);
+  doc.text("AMOUNT",R-4,y,{align:"right"});
+  y+=18;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+  let i=0;
+  for(const t of pays){
+    if(y>780){ doc.addPage(); y=55; }
+    if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-11,W,17,"F"); }
+    doc.setTextColor(120,126,123); doc.text(String(t.date||""), L+5, y);
+    doc.setTextColor(20,26,24); doc.text(String(nameOf(t.memberId)).slice(0,26), L+75, y);
+    doc.setTextColor(90,96,93); doc.text(String(accOf(t.accountId)).slice(0,16), L+250, y);
+    doc.setFont("helvetica","bold"); doc.setTextColor(46,125,91);
+    doc.text(money(t.amount), R-4, y, {align:"right"});
+    doc.setFont("helvetica","normal");
+    y+=17; i++;
+  }
+  doc.setDrawColor(...GOLD); doc.line(L,805,R,805);
+  doc.setFontSize(8); doc.setTextColor(140,146,143);
+  doc.text(`${State.settings.org} · Collection report · ${B.label}`, L, 817);
+  doc.save(`collection-report-${todayISO()}.pdf`);
+  toast("Report saved to Downloads");
 }
 
 function wire(v){
