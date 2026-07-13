@@ -485,8 +485,30 @@ function openLocForm(existing, parentId){
     <div class="m-head"><h2>${title}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
     <div class="m-body">
       ${parentId&&!existing?`<div class="hint">Inside: ${esc(locPathText(parentId))}</div>`:""}
-      <label class="fld"><span class="lt">Name</span><input class="inp" id="l-name" value="${esc(l.name||"")}" placeholder="${parentId?"e.g. Compartment 3":"e.g. Rack A / Almari 1"}"></label>
+      ${parentId&&!existing?(()=>{
+        const sibs=State.locations.filter(x=>x.parentId===parentId);
+        const nums=sibs.map(x=>parseInt(x.name,10)).filter(n=>!isNaN(n));
+        const next=nums.length?Math.max(...nums)+1:1;
+        return `<div style="background:var(--green-soft,#E6F0EC);border-radius:11px;padding:11px 13px;margin-bottom:13px">
+          <div style="font-size:12.5px;font-weight:600;margin-bottom:7px">Add more numbered sub-boxes</div>
+          <div style="display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap">
+            <label class="fld" style="margin:0;flex:1;min-width:110px"><span class="lt">How many</span>
+              <input class="inp mono" id="l-more" inputmode="numeric" placeholder="e.g. 10"></label>
+            <button type="button" class="btn primary" id="l-moregо">Add</button>
+          </div>
+          <div class="hint" style="margin:7px 0 0">This box already has ${sibs.length}. New ones continue from <b>${next}</b> — no renumbering needed.</div>
+        </div>`;})():""}
+      <label class="fld"><span class="lt">${parentId&&!existing?"…or add one by name":"Name"}</span><input class="inp" id="l-name" value="${esc(l.name||"")}" placeholder="${parentId?"e.g. 101 or Compartment A":"e.g. Rack A / Almari 1"}"></label>
       <label class="fld"><span class="lt">Note <span style="font-weight:400;color:var(--faint)">(optional)</span></span><input class="inp" id="l-note" value="${esc(l.note||"")}" placeholder="What's kept here"></label>
+      ${!existing?`
+      <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
+        <label class="fld" style="margin-bottom:8px"><span class="lt">Sub-boxes inside <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+          <input class="inp mono" id="l-subs" inputmode="numeric" placeholder="e.g. 100"></label>
+        <div class="hint" style="margin:0">Leave empty for none. Enter 100 and it creates sub-boxes numbered 1 to 100 inside this box, ready to fill.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+          ${[10,20,50,100].map(n=>`<button type="button" class="btn sm" data-qsub="${n}">${n}</button>`).join("")}
+        </div>
+      </div>`:""}
     </div>
     <div class="m-foot">
       ${existing?`<button class="btn danger" id="l-del" style="margin-right:auto">Delete box</button>`:""}
@@ -494,11 +516,39 @@ function openLocForm(existing, parentId){
       <button class="btn primary" id="l-save">${existing?"Save":"Create"}</button>
     </div>`);
   const nameEl=document.getElementById("l-name"); nameEl.focus();
+  scrim.querySelectorAll("[data-qsub]").forEach(b=>b.onclick=()=>{
+    const f=document.getElementById("l-subs"); if(f) f.value=b.dataset.qsub;
+  });
+  const moreBtn=document.getElementById("l-moregо");
+  if(moreBtn) moreBtn.onclick=()=>{
+    const n=parseInt(document.getElementById("l-more").value,10)||0;
+    if(!(n>0)){ flash("How many sub-boxes?"); return; }
+    if(n>500){ flash("Maximum 500 at once"); return; }
+    const sibs=State.locations.filter(x=>x.parentId===parentId);
+    const nums=sibs.map(x=>parseInt(x.name,10)).filter(v=>!isNaN(v));
+    let next=nums.length?Math.max(...nums)+1:1;
+    for(let i=0;i<n;i++){
+      State.locations.push({id:uid(),name:String(next+i),note:"",parentId,createdAt:Date.now()+i});
+    }
+    persist(); render(); closeScrim();
+    toast(`Added ${n} sub-boxes (${next}–${next+n-1})`);
+  };
   document.getElementById("l-save").onclick=()=>{
     const name=nameEl.value.trim(); if(!name){ flash("Enter a name"); return; }
     const note=document.getElementById("l-note").value.trim();
     if(existing){ existing.name=name; existing.note=note; toast("Box updated"); }
-    else{ State.locations.push({id:uid(),name,note,parentId:parentId||null,createdAt:Date.now()}); toast(parentId?"Sub-box added":"Box added"); }
+    else{
+      const pid=uid();
+      State.locations.push({id:pid,name,note,parentId:parentId||null,createdAt:Date.now()});
+      const nSub=parseInt((document.getElementById("l-subs")||{}).value,10)||0;
+      if(nSub>0){
+        if(nSub>500){ flash("Maximum 500 sub-boxes at once"); return; }
+        for(let i=1;i<=nSub;i++){
+          State.locations.push({id:uid(),name:String(i),note:"",parentId:pid,createdAt:Date.now()+i});
+        }
+        toast(`${name} created with ${nSub} sub-boxes`);
+      } else toast(parentId?"Sub-box added":"Box added");
+    }
     persist(); render(); closeScrim();
   };
   if(existing){
@@ -731,9 +781,16 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
       if(snap.exists){
         var d=snap.data()&&snap.data().state;
         if(d){
+          try{ if(Array.isArray(d.locations) && d.locations.length) cloudHadData=true; }catch(_){}
           var rt=(d.settings&&d.settings.updatedAt)||0;
           var lt=(State.settings&&State.settings.updatedAt)||0;
-          if(rt>lt){ if(typeof applyLoaded==="function") applyLoaded(d); if(typeof render==="function") render(); try{lsSave();}catch(_){} }
+          var localEmpty = !(State.locations||[]).length;
+          var cloudHas   = Array.isArray(d.locations) && d.locations.length;
+          if(rt>lt || (localEmpty && cloudHas)){
+            if(typeof applyLoaded==="function") applyLoaded(d);
+            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
+            if(typeof render==="function") render(); try{lsSave();}catch(_){}
+          }
         }
         ready=true; note("\u2601 Synced across your devices.");
       }else{ ready=true; pushNow(); }
@@ -742,6 +799,9 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
   function pushNow(){
     if(!db) return;
+    if(!ready) return;
+    try{ if(cloudHadData && Array.isArray(State.locations) && !State.locations.length){
+      note('<span style="color:#B0492C">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
     try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       ref().set({state:State, ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); })
         .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });

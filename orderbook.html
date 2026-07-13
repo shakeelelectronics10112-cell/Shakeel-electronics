@@ -488,9 +488,16 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
       if(snap.exists){
         var d=snap.data()&&snap.data().state;
         if(d){
+          try{ if(Array.isArray(d.orders) && d.orders.length) cloudHadData=true; }catch(_){}
           var rt=(d.settings&&d.settings.updatedAt)||0;
           var lt=(State.settings&&State.settings.updatedAt)||0;
-          if(rt>lt){ if(typeof applyLoaded==="function") applyLoaded(d); if(typeof render==="function") render(); try{lsSave();}catch(_){} }
+          var localEmpty = !(State.orders||[]).length;
+          var cloudHas   = Array.isArray(d.orders) && d.orders.length;
+          if(rt>lt || (localEmpty && cloudHas)){
+            if(typeof applyLoaded==="function") applyLoaded(d);
+            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
+            if(typeof render==="function") render(); try{lsSave();}catch(_){}
+          }
         }
         ready=true; note("\u2601 Synced across your devices.");
       }else{ ready=true; pushNow(); }
@@ -499,6 +506,9 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
   function pushNow(){
     if(!db) return;
+    if(!ready) return;
+    try{ if(cloudHadData && Array.isArray(State.orders) && !State.orders.length){
+      note('<span style="color:#B0492C">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
     try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       ref().set({state:State, ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); })
         .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });
