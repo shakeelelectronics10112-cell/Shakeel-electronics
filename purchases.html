@@ -141,6 +141,19 @@
   .cw-item{min-width:150px}.cw-cat{min-width:110px}.cw-vendor{min-width:120px}.cw-num{min-width:66px}.cw-status{min-width:120px}.cw-fwd{min-width:110px}.cw-date{min-width:130px}
   .gridbar{display:flex;gap:10px;align-items:center;margin:12px 0}
   .gridbar .cnt{font-size:12px;color:var(--faint);margin-left:auto}
+
+  .grid td.num{padding:0}
+  .rowmenu{width:100%;min-width:30px;padding:9px 4px;font-family:"JetBrains Mono",monospace;font-size:11.5px;
+           font-weight:700;color:var(--muted);border-radius:6px;transition:.13s;position:relative}
+  .rowmenu:hover{background:var(--green-soft);color:var(--green)}
+  .rowmenu::after{content:"⋮";position:absolute;right:2px;top:50%;transform:translateY(-50%);
+                  font-size:11px;color:var(--faint);opacity:.6}
+  .grid th:first-child, .grid td:first-child{position:sticky;left:0;z-index:2;background:var(--panel)}
+  .grid th:first-child{background:var(--green)}
+  .grid th:nth-child(2), .grid td:nth-child(2){position:sticky;left:34px;z-index:2;background:var(--panel);
+           box-shadow:1px 0 0 var(--line)}
+  .grid th:nth-child(2){background:var(--green)}
+  .sheet-tip{font-size:11.5px;color:var(--muted);margin:0 0 9px;display:flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -333,13 +346,14 @@ function renderPurchases(){
   if(State.purchases.length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">Empty sheet</div><p>Tap <b>Add row</b> and just start typing — like Excel. Fill in the product now; add the vendor, price, qty or status whenever you get them. Totals calculate automatically.</p><button class="btn primary" id="addRow2" style="margin:0 auto">Add first row</button></div></div>`;
   }else{
+    html+=`<div class="sheet-tip">💡 Tap a row number to change status, duplicate or delete that row.</div>`;
     html+=`<div class="gridwrap"><table class="grid"><thead><tr>
       <th>#</th><th class="cw-item">Item / Part No.</th><th class="cw-cat">Category</th><th class="cw-vendor">Vendor</th>
       <th class="cw-num">Qty</th><th class="cw-num">¥/pc</th><th class="cw-num">Rate</th>
       <th style="text-align:right">Total Rs</th><th class="cw-status">Status</th><th class="cw-fwd">Forwarder</th><th></th></tr></thead><tbody id="gridBody">`;
     html+= list.map((p,i)=>{ const t=pTotals(p);
       return `<tr data-row="${p.id}">
-        <td class="num">${i+1}</td>
+        <td class="num"><button class="rowmenu" data-rowmenu="${p.id}" title="Row actions">${i+1}</button></td>
         <td class="cw-item"><input data-f="item" value="${esc(p.item||"")}" placeholder="product…"></td>
         <td class="cw-cat"><select data-f="category">${catOpts(p.category)}</select></td>
         <td class="cw-vendor"><select data-f="vendor">${venOpts(p.vendor)}</select></td>
@@ -418,6 +432,9 @@ function finishShipment(){
 function wireGrid(rerender){
   rerender = rerender || renderPurchases;
   const body=document.getElementById("gridBody"); if(!body) return;
+  v.querySelectorAll("[data-rowmenu]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); rowMenu(b.dataset.rowmenu);
+  });
   body.querySelectorAll("tr[data-row]").forEach(tr=>{
     const p=State.purchases.find(x=>x.id===tr.dataset.row); if(!p) return;
     const recalc=()=>{ const cell=tr.querySelector("[data-total]"); if(cell) cell.textContent=money(pTotals(p).pkr); };
@@ -1387,6 +1404,53 @@ function purchaseSummaryPDF(no){
   toast("Saved to your Downloads folder");
 }
 
+
+
+/* ---------- ROW ACTIONS (mobile-friendly) ---------- */
+function rowMenu(id){
+  const p=State.purchases.find(x=>x.id===id); if(!p) return;
+  const t=pTotals(p);
+  const statuses=(State.settings.statuses&&State.settings.statuses.length)
+    ? State.settings.statuses : ["Ordered","Paid","Shipped","Received","Cancelled"];
+  openScrim(`<div class="m-head"><h2>${esc(p.item||"Untitled row")}</h2>
+      <button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="detail-sum">
+        <div class="cell"><div class="l">Qty</div><div class="v">${p.qty||0}</div></div>
+        <div class="cell"><div class="l">¥/pc</div><div class="v">${p.priceRMB?money2(p.priceRMB):"—"}</div></div>
+        <div class="cell"><div class="l">Total</div><div class="v">${C()} ${money(t.pkr)}</div></div>
+      </div>
+      ${p.vendor?`<div class="hint" style="margin-top:-4px">Vendor: <b>${esc(p.vendor)}</b>${p.category?` · ${esc(p.category)}`:""}</div>`:""}
+
+      <div class="sect" style="margin-top:6px">Status</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        ${statuses.map(s=>`<button class="btn" data-setst="${esc(s)}"
+          style="justify-content:center;${(p.status||"Ordered")===s
+            ?"background:var(--green);color:#fff;border-color:var(--green)":""}">${esc(s)}</button>`).join("")}
+      </div>
+
+      <div class="sect">Row</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="rm-dup" style="flex:1;justify-content:center">⧉ Duplicate</button>
+        <button class="btn danger" id="rm-del" style="flex:1;justify-content:center">🗑 Delete row</button>
+      </div>
+    </div>`);
+  scrim.querySelectorAll("[data-setst]").forEach(b=>b.onclick=()=>{
+    p.status=b.dataset.setst; p.updatedAt=Date.now();
+    persist(); render(); closeScrim(); toast(`Status: ${p.status}`);
+  });
+  document.getElementById("rm-dup").onclick=()=>{
+    const c=Object.assign({},p,{id:uid(),createdAt:Date.now(),updatedAt:Date.now()});
+    const i=State.purchases.findIndex(x=>x.id===p.id);
+    State.purchases.splice(i+1,0,c);
+    persist(); render(); closeScrim(); toast("Row duplicated");
+  };
+  document.getElementById("rm-del").onclick=()=>{
+    if(!confirm(`Delete "${p.item||"this row"}"?`)) return;
+    State.purchases=State.purchases.filter(x=>x.id!==p.id);
+    persist(); render(); closeScrim(); toast("Row deleted");
+  };
+}
 
 /* ---------- PRICE HISTORY: best vendor per item, across every invoice ---------- */
 function priceBook(){
