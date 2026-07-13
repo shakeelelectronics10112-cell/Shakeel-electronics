@@ -1057,7 +1057,7 @@ document.getElementById("impFile").addEventListener("change",e=>{
           projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
           messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="ledger", SHOP="main";
-  var db=null, ready=false, pt=null;
+  var db=null, ready=false, pt=null, cloudHadData=false;
   function note(t){ var e=document.getElementById("note"); if(e) e.innerHTML=t; }
   if(typeof firebase==="undefined") return;
   try{
@@ -1074,9 +1074,19 @@ document.getElementById("impFile").addEventListener("change",e=>{
     ref().onSnapshot(function(s){
       if(s.exists){
         var d=s.data()&&s.data().state;
+        if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
           var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
-          if(rt>lt){ applyLoaded(d); render(); try{lsSave();}catch(_){} }
+          var localEmpty = !State.members.length && !State.transactions.length;
+          var cloudHas   = (Array.isArray(d.members) && d.members.length) ||
+                           (Array.isArray(d.transactions) && d.transactions.length);
+          // Always adopt the cloud when this device has nothing yet — a fresh/empty
+          // app must never look "newer" than real data sitting in the cloud.
+          if(rt>lt || (localEmpty && cloudHas)){
+            applyLoaded(d);
+            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
+            render(); try{lsSave();}catch(_){}
+          }
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }
@@ -1084,6 +1094,11 @@ document.getElementById("impFile").addEventListener("change",e=>{
   }
   function push(){
     if(!db) return;
+    if(!ready){ return; }                      // never push before we've read the cloud
+    if(!State.members.length && cloudHadData){ // never wipe real data with an empty app
+      note('<span style="color:var(--warn)">Safety: refusing to overwrite cloud data</span>');
+      return;
+    }
     try{
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       ref().set({state:State, ts:Date.now()})

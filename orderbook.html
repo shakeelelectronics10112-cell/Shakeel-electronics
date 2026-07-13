@@ -469,7 +469,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
 (function(){
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="orderbook", SHOP="main";
-  var db=null, ready=false, pushTimer=null;
+  var db=null, ready=false, pushTimer=null, cloudHadData=false;
   function note(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
   if(typeof firebase==="undefined"){ return; }        // SDK blocked/offline -> stay on-device
   try{

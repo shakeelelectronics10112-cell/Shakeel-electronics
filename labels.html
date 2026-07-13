@@ -571,7 +571,7 @@ document.getElementById("importFile").addEventListener("change",e=>{ if(e.target
 (function(){
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="labels", SHOP="main";
-  var db=null, ready=false, pt=null;
+  var db=null, ready=false, pt=null, cloudHadData=false;
   function n(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
   if(typeof firebase==="undefined") return;
   try{
@@ -585,6 +585,7 @@ document.getElementById("importFile").addEventListener("change",e=>{ if(e.target
     ref().onSnapshot(function(s){
       window.__cloudActive=true;
       if(s.exists){ var d=s.data()&&s.data().state;
+        try{ if(d && Array.isArray(d.addresses) && d.addresses.length) cloudHadData=true; }catch(_){}
         if(d){ var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
           if(rt>lt){ applyLoaded(d); render(); try{lsSave();}catch(_){} } }
         ready=true; n("☁ Synced across your devices.");
