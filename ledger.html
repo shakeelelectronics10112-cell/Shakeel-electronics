@@ -1159,6 +1159,23 @@ document.getElementById("impFile").addEventListener("change",e=>{
 <script>
 /* ---------- cloud sync (auth comes from the app shell login) ---------- */
 (function(){
+  
+  /* ===== ROLE GUARD — this app is owner-only ===== */
+  var STAFF_EMAILS = ["husnainali10112@gmail.com"];
+  function blockStaff(email){
+    if(STAFF_EMAILS.indexOf((email||"").toLowerCase()) < 0) return false;
+    document.body.innerHTML =
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;'
+      + 'font-family:Inter,system-ui,sans-serif;background:#F5F6F3">'
+      + '<div style="max-width:340px;text-align:center">'
+      + '<div style="font-size:40px;margin-bottom:12px">🔒</div>'
+      + '<div style="font-family:\'Space Grotesk\',sans-serif;font-size:19px;font-weight:700;color:#0F1917;margin-bottom:8px">Not available</div>'
+      + '<div style="font-size:14px;color:#6B7975;line-height:1.55">This section is for the owner only.<br>'
+      + 'You have access to <b>Stock</b>, <b>Orders</b> and <b>Labels</b>.</div>'
+      + '</div></div>';
+    return true;
+  }
+
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",
           projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
           messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
@@ -1169,7 +1186,7 @@ document.getElementById("impFile").addEventListener("change",e=>{
   try{
     firebase.initializeApp(FB); db=firebase.firestore();
     firebase.auth().onAuthStateChanged(function(u){
-      if(u && !u.isAnonymous) start();
+      if(u && !u.isAnonymous){ if(blockStaff(u.email)) return; start(); }
       else note('<span style="color:var(--warn)">Not signed in — open from the main app.</span>');
     });
   }catch(e){ return; }

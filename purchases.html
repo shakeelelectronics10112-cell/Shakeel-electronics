@@ -1702,6 +1702,23 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 <script>
 /* ---------- Cloud sync (Firebase Firestore) ---------- */
 (function(){
+  
+  /* ===== ROLE GUARD — this app is owner-only ===== */
+  var STAFF_EMAILS = ["husnainali10112@gmail.com"];
+  function blockStaff(email){
+    if(STAFF_EMAILS.indexOf((email||"").toLowerCase()) < 0) return false;
+    document.body.innerHTML =
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;'
+      + 'font-family:Inter,system-ui,sans-serif;background:#F5F6F3">'
+      + '<div style="max-width:340px;text-align:center">'
+      + '<div style="font-size:40px;margin-bottom:12px">🔒</div>'
+      + '<div style="font-family:\'Space Grotesk\',sans-serif;font-size:19px;font-weight:700;color:#0F1917;margin-bottom:8px">Not available</div>'
+      + '<div style="font-size:14px;color:#6B7975;line-height:1.55">This section is for the owner only.<br>'
+      + 'You have access to <b>Stock</b>, <b>Orders</b> and <b>Labels</b>.</div>'
+      + '</div></div>';
+    return true;
+  }
+
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="purchases", SHOP="main";
   var db=null, ready=false, pushTimer=null, cloudHadData=false;
@@ -1710,7 +1727,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   try{
     firebase.initializeApp(FB); db=firebase.firestore();
     if(typeof updateStorageNote==="function"){ var _u=updateStorageNote; updateStorageNote=function(){ if(window.__cloudActive) return; _u(); }; }
-    firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous) start(); });
+    firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous){ if(blockStaff(user.email)) return; start(); } });
   }catch(e){ return; }
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
