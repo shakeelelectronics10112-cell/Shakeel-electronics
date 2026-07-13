@@ -338,7 +338,7 @@
 </nav>
 
 <script>
-var V = "33";  // cache-buster: bump when you upload new app files
+var V = "35";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -464,6 +464,16 @@ if("serviceWorker" in navigator){
 <script>
 /* ---------- live dashboard ---------- */
 (function(){
+  /* ===== ROLES =====
+     OWNER : full access — Ledger, Buy, Stock, Orders, Labels
+     STAFF : Stock, Orders and Labels ONLY — no money, no costs
+     To add another staff member: add their email below (lowercase),
+     AND add it to the Firestore rules. */
+  var OWNER_EMAILS = ["shakeelelectronics10112@gmail.com"];
+  var STAFF_EMAILS = ["husnainali10112@gmail.com"];
+  var STAFF_APPS   = ["stockbox","orderbook","labels"];
+  var ROLE = "owner";
+
   var FB = {apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",
             projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
             messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
