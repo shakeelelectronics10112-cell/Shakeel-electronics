@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  :root{--paper:#F4F5F2;--panel:#FFFFFF;--ink:#16211F;--muted:#6B7975;--faint:#9AA6A2;--line:#E2E6E1;--line-strong:#CDD4CF;--green:#10564A;--green-hi:#0C453B;--green-soft:#E7F0EC;--paid:#2E7D5B;--warn:#B8492C;--warn-soft:#F7E9E1;--gold:#B08A3E;--amber:#B7791F;--amber-soft:#FBF0D9;--blue:#1F6F8B;--blue-soft:#E1EFF3;--shadow:0 1px 2px rgba(22,33,31,.04),0 8px 24px rgba(22,33,31,.06);--radius:14px;--ease:cubic-bezier(.22,.61,.36,1);}
+  :root{--paper:#F5F6F3;--panel:#FFFFFF;--ink:#0F1917;--muted:#6B7975;--faint:#9AA6A2;--line:#E4E8E4;--line-strong:#D2D8D3;--green:#0E4F44;--green-hi:#0A3E35;--green-soft:#E6F0EC;--paid:#2E7D5B;--warn:#B0492C;--warn-soft:#F8EAE4;--gold:#B08A3E;--amber:#8A6A2A;--amber-soft:#FBF3E2;--blue:#1F6F8B;--blue-soft:#E4F0F4;--shadow:0 1px 2px rgba(15,25,23,.04),0 8px 26px rgba(15,25,23,.06);--radius:15px;--ease:cubic-bezier(.22,.61,.36,1);}
   *{box-sizing:border-box}html,body{margin:0}html{-webkit-text-size-adjust:100%}
   body{background:var(--paper);color:var(--ink);font-family:"Inter",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh;overscroll-behavior-y:none}
   .mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}.grot{font-family:"Space Grotesk",system-ui,sans-serif}
@@ -27,10 +27,10 @@
   header.top{position:sticky;top:0;z-index:20;background:rgba(244,245,242,.9);backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line)}
   .top-inner{max-width:1000px;margin:0 auto;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
-  .brand .mark{font-family:"Space Grotesk";font-weight:700;font-size:19px;letter-spacing:-.02em}.brand .mark b{color:var(--green)}
+  .brand .mark{font-family:"Space Grotesk";font-weight:700;font-size:18px;letter-spacing:-.02em}.brand .mark b{color:var(--green)}
   .brand .org{font-size:12px;color:var(--muted);border-left:1px solid var(--line-strong);padding-left:9px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text}
   .rate-badge{font-size:12px;font-weight:600;color:var(--green);background:var(--green-soft);padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
-  .btn{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;padding:9px 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);transition:.15s;white-space:nowrap;user-select:none}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:9px 13px;border-radius:10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);transition:.15s;white-space:nowrap;user-select:none}
   .btn:hover{border-color:var(--faint);transform:translateY(-1px)}.btn:active{transform:translateY(0)}
   .btn.primary{background:var(--green);color:#fff;border-color:var(--green)}.btn.primary:hover{background:var(--green-hi)}
   .btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:9px 10px}.btn.ghost:hover{background:var(--line);color:var(--ink)}
@@ -38,10 +38,10 @@
   .btn.install{background:var(--gold);color:#26200E;border-color:var(--gold);font-weight:700}.btn.install:hover{background:#C79B4A}
   .btn.wa{background:#25D366;color:#fff;border-color:#25D366}.btn.wa:hover{background:#1Fb457}
   .btn svg{width:16px;height:16px}.btn.sm{padding:6px 11px;font-size:12.5px}
-  .tabs{display:flex;gap:4px;background:var(--line);padding:4px;border-radius:12px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs{display:flex;gap:4px;background:#E9ECE8;padding:4px;border-radius:12px;margin:14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
   .tabs button{flex:0 0 auto;min-width:62px;font-size:13px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;transition:.15s;user-select:none;white-space:nowrap}
-  .tabs button.on{background:var(--panel);color:var(--green);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .tabs button.on{background:#fff;color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.07)}
   .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
   .stat .lab{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -157,6 +157,7 @@
     <button data-tab="purchases" class="on">Sheet</button>
     <button data-tab="tobuy">To-buy</button>
     <button data-tab="category">Category</button>
+    <button data-tab="prices">Prices</button>
     <button data-tab="pos">PO</button>
     <button data-tab="tracking">Track</button>
     <button data-tab="vendors">Vendors</button>
@@ -263,6 +264,7 @@ function render(){
   if(ui.tab==="purchases") renderPurchases();
   else if(ui.tab==="tobuy") renderToBuy();
   else if(ui.tab==="category") renderCategory();
+  else if(ui.tab==="prices") renderPrices();
   else if(ui.tab==="pos") renderPOs();
   else if(ui.tab==="tracking") renderTracking();
   else if(ui.tab==="vendors") renderVendors();
@@ -306,6 +308,7 @@ function shipBarHTML(){
     <span style="font-size:12.5px;color:var(--muted)">${rows.length} items · <b class="mono" style="color:var(--green)">${C()} ${money(tot)}</b></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost sm" id="shipManage" title="Rename or delete this invoice">⚙</button>
+      <button class="btn sm" id="sumBtn">📄 Purchase PDF</button>
       <button class="btn sm" id="arrivalBtn">📦 New arrival PDF</button>
       ${isOpen?`<button class="btn primary sm" id="finishShip">Finish → new shipment</button>`:""}
     </div>
@@ -359,6 +362,7 @@ function renderPurchases(){
   const fb=document.getElementById("finishShip"); if(fb) fb.onclick=finishShipment;
   const ab2=document.getElementById("arrivalBtn"); if(ab2) ab2.onclick=()=>arrivalPreview(ui.shipView);
   const smg=document.getElementById("shipManage"); if(smg) smg.onclick=()=>manageShipment(ui.shipView);
+  const sb=document.getElementById("sumBtn"); if(sb) sb.onclick=()=>purchaseSummaryPDF(ui.shipView);
   wireGrid();
 }
 function manageShipment(no){
@@ -1239,6 +1243,171 @@ function openRFQ(){
   draw();
 }
 
+
+/* ---------- PURCHASE SUMMARY PDF (all products with PKR prices) ---------- */
+function buildPurchaseSummaryDoc(no){
+  const { jsPDF }=window.jspdf;
+  const rows=State.purchases.filter(p=>p.shipment===no && (p.item||p.vendor));
+  const doc=new jsPDF({unit:"pt",format:"a4"}); const L=40,R=555,W=R-L;
+  const G=[16,86,74], GOLD=[176,138,62];
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(0,0,595,80,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(18); doc.setTextColor(255,255,255);
+  doc.text(State.settings.org, L, 36);
+  doc.setFontSize(11); doc.setTextColor(226,214,180); doc.text("PURCHASE SUMMARY", L, 56);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(210,225,220);
+  doc.text(shipLabel(no), R, 36, {align:"right"});
+  doc.text(`Rate ¥1 = Rs ${State.settings.rate}`, R, 54, {align:"right"});
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]); doc.rect(0,80,595,3,"F");
+  let y=108;
+  const cQty=R-260, cRmb=R-195, cUnit=R-110, cTot=R;
+  doc.setFillColor(G[0],G[1],G[2]); doc.rect(L,y-13,W,20,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(255,255,255);
+  doc.text("#",L+4,y); doc.text("ITEM / PART NO.",L+22,y); 
+  doc.text("QTY",cQty,y,{align:"right"}); doc.text("¥/PC",cRmb,y,{align:"right"});
+  doc.text("UNIT Rs",cUnit,y,{align:"right"}); doc.text("TOTAL Rs",cTot,y,{align:"right"});
+  y+=17;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(26,32,30);
+  let gTot=0, gRmb=0, n=0;
+  for(const p of rows){
+    const t=pTotals(p); gTot+=t.pkr; gRmb+=t.rmb; n++;
+    if(y>780){ doc.addPage(); y=50; }
+    if(n%2===0){ doc.setFillColor(246,248,246); doc.rect(L,y-11,W,17,"F"); }
+    doc.setTextColor(150,155,152); doc.text(String(n),L+4,y);
+    doc.setTextColor(26,32,30);
+    doc.text(String(p.item||"—").slice(0,34),L+22,y);
+    doc.setTextColor(120,128,124); doc.setFontSize(7.5);
+    doc.text(String(p.vendor||"").slice(0,14), L+22+185, y);
+    doc.setFontSize(9); doc.setTextColor(26,32,30);
+    doc.text(String(p.qty||0),cQty,y,{align:"right"});
+    doc.text(money2(p.priceRMB||0),cRmb,y,{align:"right"});
+    doc.text(money(t.unit),cUnit,y,{align:"right"});
+    doc.setFont("helvetica","bold"); doc.text(money(t.pkr),cTot,y,{align:"right"}); doc.setFont("helvetica","normal");
+    y+=17;
+  }
+  y+=6; doc.setDrawColor(200,206,203); doc.line(L,y-12,R,y-12);
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(G[0],G[1],G[2]);
+  doc.text(`TOTAL  (${n} items)`, L+22, y+4);
+  doc.text(`¥ ${money2(gRmb)}`, cUnit, y+4, {align:"right"});
+  doc.setFontSize(13); doc.text(`Rs ${money(gTot)}`, cTot, y+4, {align:"right"});
+  doc.setDrawColor(GOLD[0],GOLD[1],GOLD[2]); doc.line(L,805,R,805);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(140,145,142);
+  doc.text(`${State.settings.org} · ${shipLabel(no)} · unit costs include the ¥→Rs rate`, L, 818);
+  return doc;
+}
+function purchaseSummaryPDF(no){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
+  const rows=State.purchases.filter(p=>p.shipment===no && (p.item||p.vendor));
+  if(!rows.length){ flash("No products in this invoice yet"); return; }
+  buildPurchaseSummaryDoc(no).save(`purchase-summary-${shipLabel(no).replace(/[^\w]+/g,"-")}.pdf`);
+  toast("Saved to your Downloads folder");
+}
+
+
+/* ---------- PRICE HISTORY: best vendor per item, across every invoice ---------- */
+function priceBook(){
+  const book={};
+  for(const p of State.purchases){
+    const it=(p.item||"").trim(); if(!it) continue;
+    if(!p.vendor || !(p.priceRMB>0)) continue;
+    const k=it.toUpperCase();
+    book[k]=book[k]||{item:it, quotes:[]};
+    book[k].quotes.push({
+      vendor:p.vendor, price:p.priceRMB, qty:p.qty||0,
+      shipment:p.shipment, date:p.date||"", when:p.createdAt||0
+    });
+  }
+  Object.keys(book).forEach(k=>{
+    const q=book[k].quotes.sort((a,b)=>a.price-b.price);
+    book[k].best=q[0];
+    book[k].worst=q[q.length-1];
+    book[k].latest=book[k].quotes.slice().sort((a,b)=>b.when-a.when)[0];
+    book[k].vendors=[...new Set(q.map(x=>x.vendor))].length;
+    book[k].spread=q.length>1 ? ((q[q.length-1].price-q[0].price)/q[0].price*100) : 0;
+  });
+  return book;
+}
+function renderPrices(){
+  const v=document.getElementById("view"); const cur=C(); const rate=State.settings.rate;
+  const book=priceBook();
+  const q=ui.search.trim().toLowerCase();
+  let items=Object.values(book);
+  if(q) items=items.filter(x=>x.item.toLowerCase().includes(q));
+  items.sort((a,b)=>b.spread-a.spread);
+  const savings=items.reduce((s,x)=>{
+    if(!x.latest || !x.best) return s;
+    const diff=(x.latest.price - x.best.price);
+    return s + (diff>0 ? diff*(x.latest.qty||0) : 0);
+  },0);
+
+  let html=`<div class="card" style="padding:14px 16px;margin-bottom:12px;background:linear-gradient(180deg,#FBF3E2,#fff);border-color:#E4D3A8">
+    <div style="font-weight:700;font-size:14px">💡 Price intelligence</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Every price you've ever paid, per item. Sorted by biggest price gap — that's where you're losing money.</div>
+    ${savings>0?`<div style="margin-top:9px;font-size:13px">On your last buy you could have saved about <b class="mono" style="color:var(--paid)">¥${money(savings)}</b> (${cur} ${money(savings*rate)}) by using the cheapest vendor each time.</div>`:""}
+  </div>`;
+  html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="pbsearch" placeholder="Search an item to compare vendors" value="${esc(ui.search)}"></div></div>`;
+
+  if(!items.length){
+    html+=`<div class="card"><div class="empty"><div class="big grot">No price history yet</div><p>Once items have a vendor and a price, this compares what each vendor charged you.</p></div></div>`;
+  }else{
+    html+=`<div class="card">`+items.slice(0,60).map(x=>{
+      const gap=x.spread;
+      const col = gap>25?"var(--warn)" : gap>10?"var(--amber)" : "var(--paid)";
+      return `<div class="prow" data-pb="${esc(x.item)}">
+        <div class="mid"><div class="it">${esc(x.item)}</div>
+          <div class="meta">
+            <span style="color:var(--paid)">best ¥${money2(x.best.price)} · ${esc(x.best.vendor)}</span>
+            ${x.vendors>1?`<span>· ${x.vendors} vendors</span>`:""}
+            ${x.latest && x.latest.price>x.best.price ? `<span style="color:var(--warn)">· last paid ¥${money2(x.latest.price)}</span>` : ""}
+          </div>
+        </div>
+        <div class="amt">
+          ${gap>0.5?`<div class="pk mono" style="color:${col}">+${gap.toFixed(0)}%</div><div class="rmb">price gap</div>`
+                   :`<div class="pk mono" style="color:var(--paid)">✓</div><div class="rmb">one price</div>`}
+        </div>
+      </div>`;
+    }).join("")+`</div>`;
+  }
+  v.innerHTML=html;
+  const ss=document.getElementById("pbsearch");
+  if(ss) ss.oninput=e=>{ ui.search=e.target.value; const p=e.target.selectionStart; renderPrices();
+    const n=document.getElementById("pbsearch"); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch(_){} } };
+  v.querySelectorAll("[data-pb]").forEach(r=>r.onclick=()=>openPriceItem(r.dataset.pb));
+}
+function openPriceItem(item){
+  const book=priceBook(); const x=book[item.toUpperCase()]; if(!x) return;
+  const cur=C(); const rate=State.settings.rate;
+  const byV={};
+  for(const q of x.quotes){
+    byV[q.vendor]=byV[q.vendor]||{vendor:q.vendor, prices:[], qty:0};
+    byV[q.vendor].prices.push(q.price); byV[q.vendor].qty+=q.qty;
+  }
+  const rows=Object.values(byV).map(v=>({
+    vendor:v.vendor, low:Math.min(...v.prices), high:Math.max(...v.prices),
+    times:v.prices.length, qty:v.qty
+  })).sort((a,b)=>a.low-b.low);
+  openScrim(`<div class="m-head"><h2>${esc(x.item)}</h2>
+      <button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="detail-sum">
+        <div class="cell"><div class="l">Best price</div><div class="v" style="color:var(--paid)">¥${money2(x.best.price)}</div></div>
+        <div class="cell"><div class="l">Highest paid</div><div class="v" style="color:var(--warn)">¥${money2(x.worst.price)}</div></div>
+        <div class="cell"><div class="l">Vendors</div><div class="v">${x.vendors}</div></div>
+      </div>
+      <div class="hint" style="margin-bottom:12px">Cheapest first. Buy from the top one unless quality or lead time says otherwise.</div>
+      ${rows.map((r,i)=>`
+        <div class="txn ${i===0?"pay":"buy"}">
+          <div class="ic">${i===0?"★":"·"}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600">${esc(r.vendor)}${i===0?` <span class="chip cat">cheapest</span>`:""}</div>
+            <div style="font-size:11.5px;color:var(--muted)">bought ${r.times}× · ${r.qty} pcs · ${cur} ${money(r.low*rate)}/pc</div>
+          </div>
+          <div class="a mono">¥${money2(r.low)}${r.high>r.low?` – ${money2(r.high)}`:""}</div>
+        </div>`).join("")}
+    </div>
+    <div class="m-foot"><button class="btn primary" data-close>Done</button></div>`);
+}
+
 /* ---------- settings ---------- */
 function openSettings(){
   const s=State.settings;
@@ -1345,8 +1514,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   try{
     firebase.initializeApp(FB); db=firebase.firestore();
     if(typeof updateStorageNote==="function"){ var _u=updateStorageNote; updateStorageNote=function(){ if(window.__cloudActive) return; _u(); }; }
-    firebase.auth().signInAnonymously().catch(function(){ note('<span style="color:var(--warn)">\u2601 Cloud sign-in off — saved on this device.</span>'); });
-    firebase.auth().onAuthStateChanged(function(user){ if(user) start(); });
+    firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous) start(); });
   }catch(e){ return; }
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
