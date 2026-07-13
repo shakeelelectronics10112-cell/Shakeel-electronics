@@ -316,7 +316,7 @@
 </nav>
 
 <script>
-var V = "20";  // cache-buster: bump when you upload new app files
+var V = "26";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -458,6 +458,8 @@ if("serviceWorker" in navigator){
     };
 
     firebase.auth().onAuthStateChanged(function(u){
+      // an old anonymous session is no longer valid — throw it away
+      if(u && u.isAnonymous){ firebase.auth().signOut(); return; }
       if(u){
         gate.style.display = "none";
         document.body.classList.remove("locked");
