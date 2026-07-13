@@ -509,6 +509,8 @@ function viewMoney(){
   const accs=State.settings.accounts||[];
   const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:"—"; };
   const accOf=id=>{ const a=accs.find(x=>x.id===id); return a?a.provider:"Cash"; };
+  const accLabel=id=>{ const a=accs.find(x=>x.id===id);
+    return a ? (a.provider + (a.number?` ${a.number}`:"")) : "Cash"; };
 
   const pays=State.transactions
     .filter(t=>t.type==="payment")
@@ -520,7 +522,9 @@ function viewMoney(){
   const byAcc={};
   for(const t of pays){
     const k=t.accountId||"cash";
-    byAcc[k]=byAcc[k]||{ id:k, name:accOf(t.accountId), total:0, n:0 };
+    const a=accs.find(x=>x.id===t.accountId);
+    byAcc[k]=byAcc[k]||{ id:k, name:accOf(t.accountId),
+      number:(a&&a.number)||"", title:(a&&a.title)||"", total:0, n:0 };
     byAcc[k].total+=(t.amount||0); byAcc[k].n++;
   }
   const groups=Object.values(byAcc).sort((a,b)=>b.total-a.total);
@@ -548,10 +552,13 @@ function viewMoney(){
 
   h+=`<div class="sect">Money received into each account</div>`;
   h+= groups.length ? `<div class="card" style="padding:14px 15px">${groups.map(g=>`
-      <div style="margin-bottom:13px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:5px">
-          <span style="font-weight:600">${esc(g.name)}</span>
-          <span class="mono" style="font-weight:700">${cur} ${money(g.total)}
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px">
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13.5px">${esc(g.name)}</div>
+            ${g.number?`<div class="mono" style="font-size:11.5px;color:var(--muted);margin-top:1px">${esc(g.number)}${g.title?` · ${esc(g.title)}`:""}</div>`:""}
+          </div>
+          <span class="mono" style="font-weight:700;font-size:13.5px;white-space:nowrap">${cur} ${money(g.total)}
             <span style="font-size:11px;color:var(--muted);font-weight:600">· ${g.n}</span></span>
         </div>
         <div style="height:7px;background:var(--line);border-radius:4px;overflow:hidden">
@@ -570,7 +577,7 @@ function viewMoney(){
           <div class="rm" data-open="${t.memberId}">
             <div class="rn">${esc(nameOf(t.memberId))}</div>
             <div class="rs"><span>${esc(t.date||"")}</span>
-              <span>· <b style="color:var(--brand)">${esc(accOf(t.accountId))}</b></span>
+              <span>· <b style="color:var(--brand)">${esc(accLabel(t.accountId))}</b></span>
               ${t.description?`<span>· ${esc(t.description)}</span>`:""}</div>
           </div>
           <div class="ra"><div class="amt clear">+${cur} ${money(t.amount)}</div></div>
@@ -590,8 +597,9 @@ function collectionCSV(pays,B){
   const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:""; };
   const accOf=id=>{ const a=accs.find(x=>x.id===id); return a?a.provider:"Cash"; };
   const q=s=>`"${String(s??"").replace(/"/g,'""')}"`;
-  const rows=[["Date","Customer","Account","Description","Amount"]]
-    .concat(pays.map(t=>[t.date||"", nameOf(t.memberId), accOf(t.accountId), t.description||"", t.amount||0]));
+  const numOf=id=>{ const a=accs.find(x=>x.id===id); return a?(a.number||""):""; };
+  const rows=[["Date","Customer","Account","Account number","Description","Amount"]]
+    .concat(pays.map(t=>[t.date||"", nameOf(t.memberId), accOf(t.accountId), numOf(t.accountId), t.description||"", t.amount||0]));
   const csv=rows.map(r=>r.map(q).join(",")).join("\n");
   const b=new Blob([csv],{type:"text/csv"}); const u=URL.createObjectURL(b);
   const a=document.createElement("a"); a.href=u; a.download=`collections-${todayISO()}.csv`;
@@ -627,11 +635,14 @@ function collectionPDF(pays,groups,total,B){
   doc.setFontSize(10);
   for(const g of groups){
     if(y>780){ doc.addPage(); y=55; }
-    doc.setTextColor(20,26,24); doc.setFont("helvetica","normal");
-    doc.text(`${g.name}  (${g.n})`, L, y);
-    doc.setFont("helvetica","bold");
+    doc.setTextColor(20,26,24); doc.setFont("helvetica","bold");
+    doc.text(`${g.name}`, L, y);
+    doc.setFont("helvetica","normal"); doc.setTextColor(120,126,123); doc.setFontSize(9);
+    if(g.number) doc.text(`${g.number}${g.title?"  ·  "+g.title:""}`, L+95, y);
+    doc.text(`(${g.n})`, L+300, y);
+    doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(20,26,24);
     doc.text(`${cur} ${money(g.total)}`, R-4, y, {align:"right"});
-    y+=16;
+    y+=17;
   }
   y+=12;
   doc.setFillColor(...G); doc.rect(L,y-13,W,20,"F");
@@ -646,7 +657,9 @@ function collectionPDF(pays,groups,total,B){
     if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-11,W,17,"F"); }
     doc.setTextColor(120,126,123); doc.text(String(t.date||""), L+5, y);
     doc.setTextColor(20,26,24); doc.text(String(nameOf(t.memberId)).slice(0,26), L+75, y);
-    doc.setTextColor(90,96,93); doc.text(String(accOf(t.accountId)).slice(0,16), L+250, y);
+    const _a=accs.find(x=>x.id===t.accountId);
+    doc.setTextColor(90,96,93);
+    doc.text(String(_a ? (_a.provider + (_a.number?" "+_a.number:"")) : "Cash").slice(0,30), L+250, y);
     doc.setFont("helvetica","bold"); doc.setTextColor(46,125,91);
     doc.text(money(t.amount), R-4, y, {align:"right"});
     doc.setFont("helvetica","normal");
@@ -791,7 +804,7 @@ function entryForm(existing, type, memberId){
           ? `<label class="f"><span class="lt">Due date</span><input class="inp" id="e-du" type="date" value="${defDue}"></label>`
           : `<label class="f"><span class="lt">Received in</span>
               <select class="inp" id="e-ac"><option value="">Cash</option>
-              ${accs.map(a=>`<option value="${a.id}" ${t.accountId===a.id?"selected":""}>${esc(a.provider)}</option>`).join("")}</select></label>`}
+              ${accs.map(a=>`<option value="${a.id}" ${t.accountId===a.id?"selected":""}>${esc(a.provider)}${a.number?` — ${esc(a.number)}`:""}</option>`).join("")}</select></label>`}
       </div>
     </div>
     <div class="mf"><button class="btn" data-close>Cancel</button>
