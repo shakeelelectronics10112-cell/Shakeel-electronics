@@ -988,7 +988,18 @@ function buildPODoc(po){
   return doc;
 }
 
-function poPDF(po){ buildPODoc(po).save(poFileName(po)); toast("PO PDF saved"); }
+function poFileName(po){
+  const no = po.docNo || "PO";
+  const v = (po.vendor||"vendor").replace(/[^\w]+/g,"-");
+  return `${no}-${v}.pdf`;
+}
+function poPDF(po){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
+  try{
+    buildPODoc(po).save(poFileName(po));
+    toast("PO saved to your Downloads folder");
+  }catch(e){ flash("Couldn't build the PDF: "+(e&&e.message||"error")); }
+}
 function poWhatsAppText(po){ const t=poTotal(po); return `${State.settings.org} — ${po.number||"Purchase Order"}\nVendor: ${po.vendor}\n`+po.lines.map(l=>`• ${l.qty}× ${l.item} @¥${money2(l.priceRMB)}`).join("\n")+`\nTotal: ¥${money2(t)} (~Rs ${money(t*(po.rate||State.settings.rate))})`; }
 function poPreview(po){
   const t=poTotal(po), rate=po.rate||State.settings.rate, cur=C();
@@ -1037,7 +1048,7 @@ function poPreview(po){
       </div>
     </div>
     <div class="m-foot"><button class="btn" id="pv-save">Save PDF</button><button class="btn wa" id="pv-wa">Send on WhatsApp</button></div>`);
-  document.getElementById("pv-save").onclick=()=>{ if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; } buildPODoc(po).save(poFileName(po)); toast("Saved to your Downloads folder"); };
+  document.getElementById("pv-save").onclick=()=>poPDF(po);
   document.getElementById("pv-wa").onclick=()=>{ const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(poWhatsAppText(po))}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
 }
 
