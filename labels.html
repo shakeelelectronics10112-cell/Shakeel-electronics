@@ -162,7 +162,8 @@ async function load(){
   if(!d){ try{ const s=localStorage.getItem(KEY); if(s) d=JSON.parse(s); }catch(e){} }
   if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.addresses=d.addresses||[]; }
   // migrate the old true/false rotate setting
-  if(State.settings.rot===undefined) State.settings.rot = (State.settings.rotate===false ? 0 : 270);
+  if(State.settings.rot===undefined) State.settings.rot = 180;
+  if(State.settings.rot===90 || State.settings.rot===270) State.settings.rot = 180;
 }
 function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return true; }catch(e){ return false; } }
 let t1=null, storageOK=true;
@@ -223,48 +224,12 @@ function labelHTML(a){
     </div>
   </div>`;
 }
-function doPrint(html){
-  const rot = ((State.settings.rot|0) % 360 + 360) % 360;   // 0 | 90 | 180 | 270
-  const sideways = (rot===90 || rot===270);
-  const pageW = sideways ? "6in" : "4in";
-  const pageH = sideways ? "4in" : "6in";
 
-  document.getElementById("pageStyle").textContent =
-    `@page { size: ${pageW} ${pageH}; margin: 0; }`;
-
-  const pa = document.getElementById("printArea");
-  pa.innerHTML = html;
-  pa.style.width  = pageW;
-  pa.style.height = pageH;
-
-  const box = pa.querySelector(".labelbox");
-  if(box){
-    box.style.width  = "4in";
-    box.style.height = "6in";
-    box.style.position = "absolute";
-    box.style.transformOrigin = "top left";
-    if(rot===0){
-      box.style.top="0"; box.style.left="0"; box.style.transform="none";
-    } else if(rot===180){
-      box.style.top="6in"; box.style.left="4in"; box.style.transform="rotate(180deg)";
-    } else if(rot===90){
-      box.style.top="0"; box.style.left="6in"; box.style.transform="rotate(90deg)";
-    } else { // 270
-      box.style.top="4in"; box.style.left="0"; box.style.transform="rotate(-90deg)";
-    }
-  }
-  setTimeout(()=>window.print(), 80);
-}
 window.addEventListener("afterprint",()=>{
   document.getElementById("pageStyle").textContent="";
   document.getElementById("printArea").innerHTML="";
 });
-function printLabel(id){
-  const a=State.addresses.find(x=>x.id===id); if(!a) return;
-  a.prints=(a.prints||0)+1; a.lastPrinted=Date.now(); persist(); render();
-  doPrint(labelHTML(a));
-  toast("Sending to printer…");
-}
+
 function openPreview(id){
   const a=State.addresses.find(x=>x.id===id); if(!a) return;
   openScrim(`<div class="m-head"><h2>${esc(a.name)}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
@@ -282,80 +247,13 @@ function openPreview(id){
 
 
 /* ---------- PDF label: exactly 4in x 6in, no browser header/footer ---------- */
-function buildLabelPDF(a){
-  const { jsPDF }=window.jspdf;
-  const s=State.settings;
-  const rot=((s.rot|0)%360+360)%360;
-  const sideways=(rot===90||rot===270);
-  // page is what the printer feeds; label art is always 4 wide x 6 tall
-  const pw = sideways ? 6 : 4, ph = sideways ? 4 : 6;
-  const doc=new jsPDF({unit:"in", format:[pw,ph], orientation: pw>ph?"landscape":"portrait"});
 
-  // draw onto a 4x6 canvas, then place rotated
-  const W=4, H=6, M=0.20;
 
-  const lines=[a.line1,a.line2,a.city].filter(Boolean);
-  return `<div class="labelbox">
-    <div class="lb-to">TO :</div>
-    <div class="lb-rcv">
-      <div class="lb-name">${esc(a.name||"")}</div>
-      ${lines.length?`<div class="lb-addr">${lines.map(esc).join("<br>")}</div>`:""}
-      ${a.phone?`<div class="lb-phone">${esc(a.phone)}</div>`:""}
-    </div>
-    <div class="lb-mid"></div>
-    <div class="lb-from">
-      <div class="lb-fline">FROM : ${esc(s.org)}</div>
-      <div class="lb-fsub">${esc(s.person)}${s.phone?" : "+esc(s.phone):""}</div>
-      ${s.ref?`<div class="lb-fref">${esc(s.ref)}</div>`:""}
-    </div>
-    <div class="lb-foot">
-      ${s.tag1?`<div class="lb-f1">${esc(s.tag1)}</div>`:""}
-      ${s.tag2?`<div class="lb-f2">${esc(s.tag2)}</div>`:""}
-    </div>
-  </div>`;
-}
-function doPrint(html){
-  const rot = ((State.settings.rot|0) % 360 + 360) % 360;   // 0 | 90 | 180 | 270
-  const sideways = (rot===90 || rot===270);
-  const pageW = sideways ? "6in" : "4in";
-  const pageH = sideways ? "4in" : "6in";
-
-  document.getElementById("pageStyle").textContent =
-    `@page { size: ${pageW} ${pageH}; margin: 0; }`;
-
-  const pa = document.getElementById("printArea");
-  pa.innerHTML = html;
-  pa.style.width  = pageW;
-  pa.style.height = pageH;
-
-  const box = pa.querySelector(".labelbox");
-  if(box){
-    box.style.width  = "4in";
-    box.style.height = "6in";
-    box.style.position = "absolute";
-    box.style.transformOrigin = "top left";
-    if(rot===0){
-      box.style.top="0"; box.style.left="0"; box.style.transform="none";
-    } else if(rot===180){
-      box.style.top="6in"; box.style.left="4in"; box.style.transform="rotate(180deg)";
-    } else if(rot===90){
-      box.style.top="0"; box.style.left="6in"; box.style.transform="rotate(90deg)";
-    } else { // 270
-      box.style.top="4in"; box.style.left="0"; box.style.transform="rotate(-90deg)";
-    }
-  }
-  setTimeout(()=>window.print(), 80);
-}
 window.addEventListener("afterprint",()=>{
   document.getElementById("pageStyle").textContent="";
   document.getElementById("printArea").innerHTML="";
 });
-function printLabel(id){
-  const a=State.addresses.find(x=>x.id===id); if(!a) return;
-  a.prints=(a.prints||0)+1; a.lastPrinted=Date.now(); persist(); render();
-  doPrint(labelHTML(a));
-  toast("Sending to printer…");
-}
+
 function openPreview(id){
   const a=State.addresses.find(x=>x.id===id); if(!a) return;
   openScrim(`<div class="m-head"><h2>${esc(a.name)}</h2><button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
@@ -373,50 +271,49 @@ function openPreview(id){
 
 
 /* ---------- PDF label: exactly 4in x 6in, no browser header/footer ---------- */
+
 function buildLabelPDF(a){
   const { jsPDF }=window.jspdf;
   const s=State.settings;
-  const rot=((s.rot|0)%360+360)%360;
-  const sideways=(rot===90||rot===270);
-  // page is what the printer feeds; label art is always 4 wide x 6 tall
-  const pw = sideways ? 6 : 4, ph = sideways ? 4 : 6;
-  const doc=new jsPDF({unit:"in", format:[pw,ph], orientation: pw>ph?"landscape":"portrait"});
+  const rot=((s.rot|0)%360+360)%360;   // 0 or 180
 
-  // draw onto a 4x6 canvas, then place rotated
+  /* The PAGE is ALWAYS 4in x 6in portrait — same shape as the sticker.
+     Only the CONTENT is rotated inside it, so the printer never gets a
+     landscape page. */
   const W=4, H=6, M=0.20;
-  const lines=[a.line1,a.line2,a.city].filter(Boolean);
-  const draw=(page)=>{
-    const T=[];
-    T.push({t:"TO :", y:0.52, size:19, align:"left"});
-    let y=1.30;
-    T.push({t:(a.name||"").toUpperCase(), y, size:21}); y+=0.34;
-    lines.forEach(l=>{ T.push({t:l.toUpperCase(), y, size:21}); y+=0.34; });
-    if(a.phone){ T.push({t:a.phone, y, size:21}); y+=0.34; }
-    let fy=4.30;
-    T.push({t:"FROM : "+(s.org||"").toUpperCase(), y:fy, size:15}); fy+=0.24;
-    if(s.person||s.phone) { T.push({t:((s.person||"")+(s.phone?" : "+s.phone:"")).toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
-    if(s.ref){ T.push({t:s.ref.toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
-    let gy=5.42;
-    if(s.tag1){ T.push({t:s.tag1.toUpperCase(), y:gy, size:9.5}); gy+=0.19; }
-    if(s.tag2){ T.push({t:s.tag2.toUpperCase(), y:gy, size:10.5}); }
-    return T;
-  };
+  const doc=new jsPDF({unit:"in", format:[W,H], orientation:"portrait"});
 
-  const items=draw();
-  for(const it of items){
+  const lines=[a.line1,a.line2,a.city].filter(Boolean);
+  const T=[];
+  T.push({t:"TO :", y:0.52, size:19, align:"left"});
+  let y=1.30;
+  T.push({t:(a.name||"").toUpperCase(), y, size:21}); y+=0.34;
+  lines.forEach(l=>{ T.push({t:l.toUpperCase(), y, size:21}); y+=0.34; });
+  if(a.phone){ T.push({t:a.phone, y, size:21}); y+=0.34; }
+  let fy=4.30;
+  T.push({t:"FROM : "+(s.org||"").toUpperCase(), y:fy, size:15}); fy+=0.24;
+  if(s.person||s.phone){ T.push({t:((s.person||"")+(s.phone?" : "+s.phone:"")).toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
+  if(s.ref){ T.push({t:s.ref.toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
+  let gy=5.42;
+  if(s.tag1){ T.push({t:s.tag1.toUpperCase(), y:gy, size:9.5}); gy+=0.19; }
+  if(s.tag2){ T.push({t:s.tag2.toUpperCase(), y:gy, size:10.5}); }
+
+  for(const it of T){
     doc.setFont("helvetica","bold");
     doc.setFontSize(it.size);
-    const lx = it.align==="left" ? M : W/2;
+    const lx = (it.align==="left") ? M : W/2;
     const ly = it.y;
-    let X, Y, ang=0, al = it.align==="left" ? "left" : "center";
-    if(rot===0){ X=lx; Y=ly; ang=0; }
-    else if(rot===180){ X=W-lx; Y=H-ly; ang=180; }
-    else if(rot===270){ X=ly; Y=H-lx; ang=90; }   // page 6x4
-    else { X=pw-ly; Y=lx; ang=270; }              // rot 90, page 6x4
-    doc.text(it.t, X, Y, {align:al, angle:ang, baseline:"alphabetic"});
+    const al = (it.align==="left") ? "left" : "center";
+    if(rot===180){
+      // rotate the content 180 inside the same portrait page
+      doc.text(it.t, W-lx, H-ly, {align:al, angle:180, baseline:"alphabetic"});
+    } else {
+      doc.text(it.t, lx, ly, {align:al, baseline:"alphabetic"});
+    }
   }
   return doc;
 }
+
 function pdfLabel(id){
   const a=State.addresses.find(x=>x.id===id); if(!a) return;
   if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
@@ -490,9 +387,9 @@ function openSettings(){
       <label class="fld"><span class="lt">Footer line 2</span><input class="inp" id="s-t2" value="${esc(s.tag2||"")}"></label>
       <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
         <span class="lt" style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">Print rotation</span>
-        <div class="hint" style="margin:0 0 9px">If the label prints sideways, upside-down, or off the sticker — try another option and print again.</div>
+        <div class="hint" style="margin:0 0 9px">The page is always 4 × 6 inch portrait. If the text comes out the wrong way up on the sticker, switch to the other option.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${[[0,"Normal","No rotation"],[180,"Upside-down","Rotate 180°"],[270,"Sideways ↺","Rotate 90° left"],[90,"Sideways ↻","Rotate 90° right"]]
+          ${[[0,"Normal","Text reads upright"],[180,"Upside-down","Rotate 180°"]]
             .map(([deg,t,sub])=>`<button type="button" class="rotbtn" data-rot="${deg}" style="text-align:left;border:2px solid ${s.rot===deg?"var(--green)":"var(--line-strong)"};background:${s.rot===deg?"var(--green-soft)":"#fff"};border-radius:10px;padding:9px 11px">
               <div style="font-weight:700;font-size:13px;color:${s.rot===deg?"var(--green)":"var(--ink)"}">${t}</div>
               <div style="font-size:11.5px;color:var(--muted)">${sub}</div></button>`).join("")}
