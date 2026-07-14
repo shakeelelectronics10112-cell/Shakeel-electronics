@@ -322,6 +322,7 @@ function shipBarHTML(){
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost sm" id="shipManage" title="Rename or delete this invoice">⚙</button>
       <button class="btn sm" id="sumBtn">📄 Purchase PDF</button>
+      <button class="btn sm" id="xlsBtn">📊 Excel</button>
       <button class="btn sm" id="arrivalBtn">📦 New arrival PDF</button>
       ${isOpen?`<button class="btn primary sm" id="finishShip">Finish → new shipment</button>`:""}
     </div>
@@ -400,6 +401,7 @@ function renderPurchases(){
   const ab2=document.getElementById("arrivalBtn"); if(ab2) ab2.onclick=()=>arrivalPreview(ui.shipView);
   const smg=document.getElementById("shipManage"); if(smg) smg.onclick=()=>manageShipment(ui.shipView);
   const sb=document.getElementById("sumBtn"); if(sb) sb.onclick=()=>purchaseSummaryPDF(ui.shipView);
+  const xb=document.getElementById("xlsBtn"); if(xb) xb.onclick=()=>invoiceCSV(ui.shipView);
   wireGrid();
 }
 function manageShipment(no){
@@ -1452,6 +1454,32 @@ function purchaseSummaryPDF(no){
 }
 
 
+
+
+/* ---------- EXCEL EXPORT: current invoice as a spreadsheet ---------- */
+function invoiceCSV(shipNo){
+  const rows=State.purchases.filter(p=>p.shipment===shipNo && (p.item||p.vendor));
+  if(!rows.length){ flash("No products in this invoice yet"); return; }
+  const rate=State.settings.rate;
+  const q=s=>`"${String(s??"").replace(/"/g,'""')}"`;
+  const data=[["#","Item / Part No.","Category","Vendor","Forwarder","Qty","Price RMB","Total RMB","Rate","Unit Rs","Total Rs","Status","Date"]];
+  let i=1;
+  for(const p of rows){
+    const t=pTotals(p);
+    data.push([i++, p.item||"", p.category||"", p.vendor||"", p.forwarder||"",
+      p.qty||0, p.priceRMB||0, t.rmb.toFixed(2), p.rate||rate,
+      Math.round(t.unit), Math.round(t.pkr), p.status||"", p.date||""]);
+  }
+  const tot=rows.reduce((a,p)=>{const t=pTotals(p); a.rmb+=t.rmb; a.pkr+=t.pkr; return a;},{rmb:0,pkr:0});
+  data.push([]);
+  data.push(["","TOTAL","","","","","",tot.rmb.toFixed(2),"","",Math.round(tot.pkr),"",""]);
+  const csv="\uFEFF"+data.map(r=>r.map(q).join(",")).join("\r\n"); // BOM so Excel opens it cleanly
+  const b=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const u=URL.createObjectURL(b); const a=document.createElement("a");
+  a.href=u; a.download=`${shipLabel(shipNo).replace(/[^\w]+/g,"-")}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800);
+  toast("Excel file saved — open it in Excel or Google Sheets");
+}
 
 /* ---------- ROW ACTIONS (mobile-friendly) ---------- */
 function rowMenu(id){

@@ -172,6 +172,7 @@
   <div class="foot">
     <span id="note"></span>
     <div class="r">
+      <button class="btn gh sm" id="rptBtn">📈 Report</button>
       <button class="btn gh sm" id="setBtn">Settings</button>
       <button class="btn gh sm" id="expBtn">Backup</button>
       <button class="btn gh sm" id="impBtn">Import</button>
@@ -1043,6 +1044,95 @@ function statementPDF(id){
   toast("Statement saved to Downloads");
 }
 
+
+/* ---------- MONTHLY BUSINESS REPORT ---------- */
+function monthlyReport(){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
+  const { jsPDF }=window.jspdf; const cur=C();
+  const now=new Date();
+  const mStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const mName=now.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  const inMonth=t=>{ const w=payTime(t); return w>=mStart && w<=Date.now(); };
+
+  const charges=State.transactions.filter(t=>t.type==="charge"&&inMonth(t));
+  const pays=State.transactions.filter(t=>t.type==="payment"&&inMonth(t));
+  const chargedSum=charges.reduce((s,t)=>s+(t.amount||0),0);
+  const paidSum=pays.reduce((s,t)=>s+(t.amount||0),0);
+  const T=totals(); const A=ageing();
+
+  // top debtors
+  const debtors=State.members.map(m=>({name:m.name, s:statusOf(m.id)}))
+    .filter(x=>x.s.bal>0.5).sort((a,b)=>b.s.bal-a.s.bal).slice(0,10);
+  // top payers this month
+  const byPayer={};
+  for(const t of pays){ byPayer[t.memberId]=(byPayer[t.memberId]||0)+(t.amount||0); }
+  const payers=Object.entries(byPayer).map(([id,v])=>({
+    name:(State.members.find(m=>m.id===id)||{}).name||"—", v
+  })).sort((a,b)=>b.v-a.v).slice(0,10);
+
+  const doc=new jsPDF({unit:"pt",format:"a4"});
+  const no=docNo("RPT");
+  let y=letterhead(doc,"Business Report",[`No. ${no}`, mName, new Date().toLocaleDateString()]);
+
+  // headline numbers
+  const cells=[
+    ["COLLECTED THIS MONTH", cur+" "+money(paidSum), BRAND.good],
+    ["NEW CREDIT GIVEN", cur+" "+money(chargedSum), BRAND.ink],
+    ["TOTAL OWED TO YOU", cur+" "+money(T.owed), BRAND.green],
+    ["OF WHICH OVERDUE", cur+" "+money(T.overdue), BRAND.warn]
+  ];
+  let cx=40;
+  for(const [l,v,col] of cells){
+    doc.setFillColor(247,249,247); doc.roundedRect(cx,y-14,122,52,6,6,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(6.6); doc.setTextColor(...BRAND.muted);
+    doc.text(l, cx+9, y);
+    doc.setFontSize(11.5); doc.setTextColor(...col);
+    doc.text(v, cx+9, y+20);
+    cx+=129;
+  }
+  y+=62;
+
+  // ageing
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.6); doc.setTextColor(...BRAND.muted);
+  doc.text("AGEING OF RECEIVABLES", 40, y); y+=14;
+  const tot=A.cur+A.d30+A.d60+A.d90||1; let ax=40;
+  const segs=[[A.cur,BRAND.good,"Not due"],[A.d30,BRAND.gold,"1–30d"],[A.d60,BRAND.warn,"31–60d"],[A.d90,[139,46,27],"60d+"]];
+  for(const [v,c] of segs){ const w=Math.max(0,v/tot*515);
+    doc.setFillColor(...c); if(w>0.5) doc.rect(ax,y-8,w,10,"F"); ax+=w; }
+  y+=14; doc.setFont("helvetica","normal"); doc.setFontSize(8.2);
+  ax=40;
+  for(const [v,c,l] of segs){
+    doc.setFillColor(...c); doc.rect(ax,y-6,6,6,"F");
+    doc.setTextColor(...BRAND.muted); doc.text(`${l}  ${cur} ${money(v)}`, ax+10, y);
+    ax+=128;
+  }
+  y+=26;
+
+  // two columns: top debtors / top payers
+  const col=(x,title,rows,valColor)=>{
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.6); doc.setTextColor(...BRAND.muted);
+    doc.text(title, x, y);
+    let yy=y+15; doc.setFontSize(9);
+    for(const r of rows){
+      doc.setFont("helvetica","normal"); doc.setTextColor(...BRAND.ink);
+      doc.text(String(r.n).slice(0,24), x, yy);
+      doc.setFont("helvetica","bold"); doc.setTextColor(...valColor);
+      doc.text(String(r.v), x+240, yy, {align:"right"});
+      yy+=15;
+    }
+    return yy;
+  };
+  const y1=col(40,"TOP OUTSTANDING BALANCES",
+    debtors.map(d=>({n:d.name, v:cur+" "+money(d.s.bal)})), BRAND.warn);
+  const y2=col(315,"TOP PAYERS THIS MONTH",
+    payers.length?payers.map(p=>({n:p.name, v:cur+" "+money(p.v)})):[{n:"No payments yet",v:""}], BRAND.good);
+  y=Math.max(y1,y2)+10;
+
+  docFooter(doc,{sign:true});
+  doc.save(`${no}-${mName.replace(/\s+/g,"-")}.pdf`);
+  toast("Business report saved");
+}
+
 /* ---------- settings / backup ---------- */
 function openSettings(){
   const s=State.settings;
@@ -1144,6 +1234,7 @@ document.getElementById("fab").onclick=()=>{
 };
 document.getElementById("bulkBtn").onclick=bulkRemind;
 document.getElementById("setBtn").onclick=openSettings;
+document.getElementById("rptBtn").onclick=monthlyReport;
 document.getElementById("expBtn").onclick=backup;
 document.getElementById("impBtn").onclick=()=>document.getElementById("impFile").click();
 document.getElementById("impFile").addEventListener("change",e=>{
