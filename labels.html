@@ -163,7 +163,6 @@ async function load(){
   if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.addresses=d.addresses||[]; }
   // migrate the old true/false rotate setting
   if(State.settings.rot===undefined) State.settings.rot = 180;
-  if(State.settings.rot===90 || State.settings.rot===270) State.settings.rot = 180;
 }
 function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return true; }catch(e){ return false; } }
 let t1=null, storageOK=true;
@@ -272,44 +271,70 @@ function openPreview(id){
 
 /* ---------- PDF label: exactly 4in x 6in, no browser header/footer ---------- */
 
+
+
 function buildLabelPDF(a){
   const { jsPDF }=window.jspdf;
   const s=State.settings;
-  const rot=((s.rot|0)%360+360)%360;   // 0 or 180
+  const rot=((s.rot|0)%360+360)%360;      // 0 | 90 | 180 | 270
+  const sideways=(rot===90||rot===270);
 
-  /* The PAGE is ALWAYS 4in x 6in portrait — same shape as the sticker.
-     Only the CONTENT is rotated inside it, so the printer never gets a
-     landscape page. */
-  const W=4, H=6, M=0.20;
+  /* PAGE IS ALWAYS 4in x 6in PORTRAIT — same as the physical sticker.
+     The CONTENT is rotated inside it. For the sideways options we lay the
+     label out in a wide 6x4 "art space" first, then rotate it into the
+     portrait page — this cancels out a printer that turns the page itself. */
+  const W=4, H=6;
   const doc=new jsPDF({unit:"in", format:[W,H], orientation:"portrait"});
+
+  const AW = sideways ? 6 : 4;    // art width
+  const AH = sideways ? 4 : 6;    // art height
+  const M  = 0.20;
+  const sc = sideways ? 0.80 : 1; // shrink a little so the wide layout fits
 
   const lines=[a.line1,a.line2,a.city].filter(Boolean);
   const T=[];
-  T.push({t:"TO :", y:0.52, size:19, align:"left"});
-  let y=1.30;
-  T.push({t:(a.name||"").toUpperCase(), y, size:21}); y+=0.34;
-  lines.forEach(l=>{ T.push({t:l.toUpperCase(), y, size:21}); y+=0.34; });
-  if(a.phone){ T.push({t:a.phone, y, size:21}); y+=0.34; }
-  let fy=4.30;
-  T.push({t:"FROM : "+(s.org||"").toUpperCase(), y:fy, size:15}); fy+=0.24;
-  if(s.person||s.phone){ T.push({t:((s.person||"")+(s.phone?" : "+s.phone:"")).toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
-  if(s.ref){ T.push({t:s.ref.toUpperCase(), y:fy, size:12.5}); fy+=0.21; }
-  let gy=5.42;
-  if(s.tag1){ T.push({t:s.tag1.toUpperCase(), y:gy, size:9.5}); gy+=0.19; }
-  if(s.tag2){ T.push({t:s.tag2.toUpperCase(), y:gy, size:10.5}); }
+  const step = (sideways ? 0.30 : 0.34);
+  T.push({t:"TO :", y: sideways?0.42:0.52, size:19*sc, align:"left"});
+  let y = sideways ? 0.92 : 1.30;
+  T.push({t:(a.name||"").toUpperCase(), y, size:21*sc}); y+=step;
+  lines.forEach(l=>{ T.push({t:l.toUpperCase(), y, size:21*sc}); y+=step; });
+  if(a.phone){ T.push({t:a.phone, y, size:21*sc}); y+=step; }
+
+  let fy = sideways ? 2.86 : 4.30;
+  T.push({t:"FROM : "+(s.org||"").toUpperCase(), y:fy, size:15*sc}); fy += sideways?0.21:0.24;
+  if(s.person||s.phone){ T.push({t:((s.person||"")+(s.phone?" : "+s.phone:"")).toUpperCase(), y:fy, size:12.5*sc}); fy += sideways?0.19:0.21; }
+  if(s.ref){ T.push({t:s.ref.toUpperCase(), y:fy, size:12.5*sc}); }
+
+  let gy = sideways ? 3.60 : 5.42;
+  if(s.tag1){ T.push({t:s.tag1.toUpperCase(), y:gy, size:9.5*sc}); gy += sideways?0.17:0.19; }
+  if(s.tag2){ T.push({t:s.tag2.toUpperCase(), y:gy, size:10.5*sc}); }
+
+  /* usable width inside the margins — nothing may exceed this */
+  const maxW = AW - (2*M);
 
   for(const it of T){
     doc.setFont("helvetica","bold");
-    doc.setFontSize(it.size);
-    const lx = (it.align==="left") ? M : W/2;
-    const ly = it.y;
-    const al = (it.align==="left") ? "left" : "center";
-    if(rot===180){
-      // rotate the content 180 inside the same portrait page
-      doc.text(it.t, W-lx, H-ly, {align:al, angle:180, baseline:"alphabetic"});
-    } else {
-      doc.text(it.t, lx, ly, {align:al, baseline:"alphabetic"});
+
+    /* AUTO-FIT: shrink this line until it fits the sticker width.
+       Long taglines used to run off both edges — this prevents it. */
+    let size = it.size;
+    doc.setFontSize(size);
+    let w = doc.getTextWidth(it.t);
+    while(w > maxW && size > 4){
+      size -= 0.5;
+      doc.setFontSize(size);
+      w = doc.getTextWidth(it.t);
     }
+
+    const ax = (it.align==="left") ? M : AW/2;
+    const ay = it.y;
+    const al = (it.align==="left") ? "left" : "center";
+    let X, Y, ang;
+    if(rot===0){        X=ax;        Y=ay;        ang=0;   }
+    else if(rot===180){ X=AW-ax;     Y=AH-ay;     ang=180; }
+    else if(rot===90){  X=AH-ay;     Y=ax;        ang=-90; }
+    else {              X=ay;        Y=AW-ax;     ang=90;  }
+    doc.text(it.t, X, Y, {align:al, angle:ang, baseline:"alphabetic"});
   }
   return doc;
 }
@@ -387,9 +412,9 @@ function openSettings(){
       <label class="fld"><span class="lt">Footer line 2</span><input class="inp" id="s-t2" value="${esc(s.tag2||"")}"></label>
       <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px">
         <span class="lt" style="display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">Print rotation</span>
-        <div class="hint" style="margin:0 0 9px">The page is always 4 × 6 inch portrait. If the text comes out the wrong way up on the sticker, switch to the other option.</div>
+        <div class="hint" style="margin:0 0 9px">The page is always 4 × 6 inch portrait. If your printer turns the label sideways, pick a <b>Sideways</b> option — it rotates the text to cancel that out. Try each until it lands right.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${[[0,"Normal","Text reads upright"],[180,"Upside-down","Rotate 180°"]]
+          ${[[0,"Normal","Text upright"],[180,"Upside-down","Rotate 180°"],[270,"Sideways ↺","If printer turns it"],[90,"Sideways ↻","If printer turns it"]]
             .map(([deg,t,sub])=>`<button type="button" class="rotbtn" data-rot="${deg}" style="text-align:left;border:2px solid ${s.rot===deg?"var(--green)":"var(--line-strong)"};background:${s.rot===deg?"var(--green-soft)":"#fff"};border-radius:10px;padding:9px 11px">
               <div style="font-weight:700;font-size:13px;color:${s.rot===deg?"var(--green)":"var(--ink)"}">${t}</div>
               <div style="font-size:11.5px;color:var(--muted)">${sub}</div></button>`).join("")}
