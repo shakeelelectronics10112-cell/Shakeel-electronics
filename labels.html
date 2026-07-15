@@ -368,21 +368,40 @@ function buildLabelPDF(a){
     txt(a.phone, AW/2, y, 20*k, "center"); y+=step;
   }
 
-  /* ── FROM ── */
-  const fromY = AH - (sideways ? 1.22 : 1.52)*k;
-  rule(fromY-0.24*k, 0.012);
+  /* ── footer: taglines WRAPPED to a fixed readable size (never a tiny blur) ── */
+  const FS = 9.5*k;
+  const wrap=(t)=>{
+    doc.setFont("helvetica","bold"); doc.setFontSize(FS);
+    const words=(t||"").toUpperCase().split(/\s+/).filter(Boolean);
+    const lines=[]; let cur="";
+    for(const w of words){
+      const test=cur?cur+" "+w:w;
+      if(doc.getTextWidth(test)<=maxW) cur=test;
+      else { if(cur) lines.push(cur); cur=w; }
+    }
+    if(cur) lines.push(cur);
+    return lines;
+  };
+  const foot=[...wrap(s.tag1), ...wrap(s.tag2)];
+  const lineH=0.17*k;
+  const footTop = AH - (foot.length*lineH) - 0.12*k;
+
+  /* ── FROM (sits above the footer, spacing adapts to footer height) ── */
+  const fromY = footTop - (sideways ? 0.66 : 0.74)*k;
+  rule(fromY-0.22*k, 0.012);
   txt("F R O M", M, fromY, 8.5*k, "left");
   txt((s.org||"").toUpperCase(), AW/2, fromY+0.26*k, 14*k, "center");
   txt(((s.person||"")+(s.phone?"  ·  "+s.phone:"")).toUpperCase(), AW/2, fromY+0.47*k, 11.5*k, "center", false);
 
-  /* ── footer: inverted black band (prints crisply on thermal) ── */
-  const fH=0.46*k;
-  blackBox(0, AH-fH, AW, fH);
-  doc.setTextColor(255,255,255);
-  txt((s.tag1||"").toUpperCase(), AW/2, AH-fH+0.18*k, 7.5*k, "center", false);
-  txt((s.tag2||"").toUpperCase(), AW/2, AH-fH+0.35*k, 8*k, "center", false);
+  rule(footTop-0.12*k, 0.022);
   doc.setTextColor(0,0,0);
-
+  let fy=footTop+0.03*k;
+  for(const ln of foot){
+    doc.setFont("helvetica","bold"); doc.setFontSize(FS);
+    const [X,Y]=P(AW/2, fy);
+    doc.text(ln, X, Y, {align:"center", angle:ANG, baseline:"alphabetic"});
+    fy+=lineH;
+  }
   return doc;
 }
 
