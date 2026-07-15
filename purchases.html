@@ -206,6 +206,10 @@
     background:linear-gradient(150deg,rgba(14,79,68,.22),rgba(176,138,62,.18) 60%,transparent);
     -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
     -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:1}
+
+  .ship-stat{background:none;border:none;padding:0;cursor:pointer}
+  .ship-stat .st{cursor:pointer;transition:transform .15s var(--spring)}
+  .ship-stat:active .st{transform:scale(.94)}
 </style>
 </head>
 <body>
@@ -358,8 +362,40 @@ function sPos(){ return State.pos.filter(p=>p.shipment===curShip()); }
 function sTracking(){ return State.tracking.filter(p=>p.shipment===curShip()); }
 function shipObj(no){ return State.shipments.find(s=>s.no===no); }
 function shipLabel(no){ const s=shipObj(no); return (s&&s.name&&s.name.trim()) ? s.name.trim() : ("INVOICE NO "+no); }
+function ensureShip(no){ let s=shipObj(no); if(!s){ s={id:uid(),no,openedAt:Date.now(),closedAt:null,status:"Open"}; State.shipments.push(s); } return s; }
 function shipNos(){ return State.shipments.map(s=>s.no).sort((a,b)=>b-a); }
 function shipRows(no){ return State.purchases.filter(p=>p.shipment===no); }
+const SHIP_STAGES=["Open","Ordered","Paid","Shipped","Arrived","Closed"];
+function shipStatusOf(no){ const s=shipObj(no); if(s&&s.status) return s.status;
+  return no===State.settings.currentShipment ? "Open" : "Closed"; }
+function shipStatusColor(st){
+  return {Open:["#E6F0EC","#0E4F44"],Ordered:["#FBF3E2","#8A6A2A"],Paid:["#E4F1EA","#2E7D5B"],
+          Shipped:["#E4F0F4","#1F6F8B"],Arrived:["#E6F0EC","#0E4F44"],Closed:["#EEEFEC","#6B7975"]}[st]||["#EEEFEC","#6B7975"];
+}
+function shipStatusPill(no){
+  const st=shipStatusOf(no); const c=shipStatusColor(st);
+  return `<span class="st" style="background:${c[0]};color:${c[1]};font-weight:700">${st.toUpperCase()} ▾</span>`;
+}
+function setShipStatus(no){
+  const cur=shipStatusOf(no);
+  openScrim(`<div class="m-head"><h2>Invoice status — ${esc(shipLabel(no))}</h2>
+      <button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="hint" style="margin-top:0">Set where this invoice is in the process. Each invoice keeps its own status.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${SHIP_STAGES.map(st=>{ const c=shipStatusColor(st);
+          return `<button class="btn" data-ship-st="${st}" style="justify-content:flex-start;gap:9px;${cur===st?`border-color:${c[1]};background:${c[0]}`:""}">
+            <span style="width:10px;height:10px;border-radius:50%;background:${c[1]};flex:none"></span>${st}</button>`;}).join("")}
+      </div>
+    </div>`);
+  scrim.querySelectorAll("[data-ship-st]").forEach(b=>b.onclick=()=>{
+    let s=shipObj(no);
+    if(!s){ s={id:uid(),no,openedAt:Date.now(),closedAt:null}; State.shipments.push(s); }
+    s.status=b.dataset.shipSt;
+    if(b.dataset.shipSt==="Closed") s.closedAt=Date.now(); else s.closedAt=null;
+    persist(); render(); closeScrim(); toast("Status: "+b.dataset.shipSt);
+  });
+}
 function shipBarHTML(){
   const nos=shipNos(); const sel=ui.shipView;
   const isOpen = sel===State.settings.currentShipment;
@@ -368,7 +404,7 @@ function shipBarHTML(){
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Shipment</span>
       <select class="inp" id="shipSel" style="width:auto;padding:6px 10px;font-weight:700">${nos.map(n=>`<option value="${n}" ${n===sel?"selected":""}>${esc(shipLabel(n))}</option>`).join("")}</select>
-      ${isOpen?`<span class="st Ordered" style="background:var(--green-soft);color:var(--green)">OPEN</span>`:`<span class="st">CLOSED</span>`}
+      <button class="ship-stat" id="shipStat">${shipStatusPill(sel)}</button>
     </div>
     <span style="font-size:12.5px;color:var(--muted)">${rows.length} items · <b class="mono" style="color:var(--green)">${C()} ${money(tot)}</b></span>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
@@ -452,6 +488,7 @@ function renderPurchases(){
   const fb=document.getElementById("finishShip"); if(fb) fb.onclick=finishShipment;
   const ab2=document.getElementById("arrivalBtn"); if(ab2) ab2.onclick=()=>arrivalPreview(ui.shipView);
   const smg=document.getElementById("shipManage"); if(smg) smg.onclick=()=>manageShipment(ui.shipView);
+  const sst=document.getElementById("shipStat"); if(sst) sst.onclick=()=>setShipStatus(ui.shipView);
   const sb=document.getElementById("sumBtn"); if(sb) sb.onclick=()=>purchaseSummaryPDF(ui.shipView);
   const xb=document.getElementById("xlsBtn"); if(xb) xb.onclick=()=>invoiceCSV(ui.shipView);
   wireGrid();
