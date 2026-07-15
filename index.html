@@ -203,6 +203,158 @@
   @keyframes pop{from{transform:scale(.82);opacity:0}to{transform:none;opacity:1}}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+
+  /* ═══════ PREMIUM MOTION ═══════ */
+  :root{
+    --spring:cubic-bezier(.34,1.4,.44,1);      /* gentle overshoot */
+    --glide:cubic-bezier(.22,.61,.36,1);
+    --swift:cubic-bezier(.4,0,.2,1);
+  }
+
+  /* staggered entrance — dashboard rises into place */
+  @keyframes rise{ from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+  .pane#home .hello   {animation:rise .5s var(--glide) both}
+  .pane#home .kpis    {animation:rise .55s var(--glide) .06s both}
+  .pane#home .kpi:nth-child(1){animation:rise .5s var(--glide) .10s both}
+  .pane#home .kpi:nth-child(2){animation:rise .5s var(--glide) .16s both}
+  .pane#home .kpi:nth-child(3){animation:rise .5s var(--glide) .22s both}
+  .pane#home .kpi:nth-child(4){animation:rise .5s var(--glide) .28s both}
+  .pane#home .sect    {animation:rise .5s var(--glide) .30s both}
+  .pane#home .card    {animation:rise .55s var(--glide) .34s both}
+  .pane#home .apps .app:nth-child(1){animation:rise .5s var(--glide) .38s both}
+  .pane#home .apps .app:nth-child(2){animation:rise .5s var(--glide) .43s both}
+  .pane#home .apps .app:nth-child(3){animation:rise .5s var(--glide) .48s both}
+  .pane#home .apps .app:nth-child(4){animation:rise .5s var(--glide) .53s both}
+  .pane#home .apps .app:nth-child(5){animation:rise .5s var(--glide) .58s both}
+
+  /* KPI cards: layered depth + press */
+  .kpi{transition:transform .28s var(--spring), box-shadow .28s var(--glide), border-color .2s}
+  .kpi:hover{transform:translateY(-3px);box-shadow:0 3px 6px rgba(15,25,23,.05),0 16px 38px rgba(15,25,23,.11);
+             border-color:var(--line-2)}
+  .kpi:active{transform:translateY(-1px) scale(.985);transition-duration:.1s}
+  .kpi .val{transition:color .2s}
+
+  /* value refresh shimmer — numbers glide in when data updates */
+  @keyframes valIn{ from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .val-in{animation:valIn .45s var(--glide)}
+
+  /* app cards: lift + icon nudge */
+  .app{transition:transform .3s var(--spring), box-shadow .3s var(--glide), border-color .2s}
+  .app .ic{transition:transform .3s var(--spring)}
+  .app:hover .ic{transform:scale(1.1) rotate(-4deg)}
+  .app:active{transform:scale(.98);transition-duration:.1s}
+
+  /* attention rows: slide hint on hover */
+  .row{transition:background .18s, transform .22s var(--glide)}
+  .row:hover{background:#F7FAF7;transform:translateX(3px)}
+
+  /* nav: springy active indicator + icon pop */
+  nav button{transition:color .2s var(--glide)}
+  nav button svg{transition:transform .3s var(--spring)}
+  nav button.on svg{transform:translateY(-1.5px) scale(1.08)}
+  nav button:active svg{transform:scale(.88);transition-duration:.08s}
+  nav button::before{transition:width .3s var(--spring)}
+  nav button:not(.on)::before{width:0}
+
+  /* iframes: cinematic cross-fade + micro-zoom */
+  .stage iframe{transition:opacity .32s var(--glide), transform .32s var(--glide);transform:scale(.995)}
+  .stage iframe.on{transform:scale(1)}
+  .pane{animation:none}
+  .pane.on{animation:paneIn .3s var(--glide)}
+  @keyframes paneIn{ from{opacity:.4} to{opacity:1} }
+
+  /* top bar: subtle sheen sweep on load */
+  .topbar{position:relative;overflow:hidden}
+  .topbar::after{content:"";position:absolute;top:0;left:-40%;width:36%;height:100%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.07),transparent);
+    animation:sheen 1.4s var(--glide) .5s 1;pointer-events:none}
+  @keyframes sheen{ to{left:120%} }
+
+  /* buttons everywhere: tactile press */
+  .iconbtn{transition:background .18s, transform .18s var(--spring)}
+  .iconbtn:active{transform:scale(.9)}
+  .install{transition:background .18s, transform .2s var(--spring), box-shadow .2s}
+  .install:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(176,138,62,.35)}
+  .install:active{transform:scale(.96)}
+
+  /* login card: settle in */
+  .gbox,.lbox{animation:gateIn .55s var(--spring) both}
+  @keyframes gateIn{ from{opacity:0;transform:translateY(18px) scale(.97)} to{opacity:1;transform:none} }
+
+  /* skeleton: softer breathing shimmer */
+  .kpi .skel{animation:sh 1.6s ease-in-out infinite}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+
+  /* ═══════════ SHAKEEL ELECTRONICS — SIGNATURE LOOK ═══════════ */
+
+  /* ── hero greeting: brand banner ── */
+  .hello{position:relative;margin:2px 0 18px;padding:22px 20px 20px;border-radius:18px;
+         background:linear-gradient(135deg,#115C4E 0%,#0E4F44 45%,#072A24 100%);
+         box-shadow:0 12px 34px rgba(14,79,68,.28);overflow:hidden}
+  .hello::before{content:"";position:absolute;right:-46px;top:-46px;width:190px;height:190px;
+                 border:1.5px solid rgba(176,138,62,.35);border-radius:50%}
+  .hello::after{content:"";position:absolute;right:14px;top:58px;width:86px;height:86px;
+                border:1.5px solid rgba(255,255,255,.12);border-radius:50%}
+  .hello h1{color:#fff;font-size:23px;position:relative;z-index:1}
+  .hello p{color:#9FC4B9;position:relative;z-index:1}
+  .hello p::before{content:"SHAKEEL ELECTRONICS";display:block;font-family:"JetBrains Mono",monospace;
+                   font-size:9.5px;font-weight:700;letter-spacing:.22em;color:#D9BC72;margin-bottom:4px}
+  #staffTag{position:relative;z-index:1;background:rgba(255,255,255,.14)!important;color:#fff!important}
+
+  /* ── KPI cards: each with its own colour identity ── */
+  .kpi{border:none;color:#fff;overflow:hidden;position:relative}
+  .kpi::after{content:"";position:absolute;right:-22px;bottom:-30px;width:104px;height:104px;
+              border-radius:50%;background:rgba(255,255,255,.08)}
+  .kpi .lb{color:rgba(255,255,255,.75)}
+  .kpi .sub{color:rgba(255,255,255,.65)}
+  .kpi .val{color:#fff!important}
+  .kpi .ic{background:rgba(255,255,255,.16)!important}
+  .kpi .ic svg{stroke:#fff!important}
+  .kpi.owed {background:linear-gradient(135deg,#2E8F68,#19624B);box-shadow:0 10px 26px rgba(46,125,91,.32)}
+  .kpi.owe  {background:linear-gradient(135deg,#C25B37,#8F3A20);box-shadow:0 10px 26px rgba(176,73,44,.30)}
+  .kpi.ship {background:linear-gradient(135deg,#2E86A8,#1B5D77);box-shadow:0 10px 26px rgba(31,111,139,.30)}
+  .kpi.stock{background:linear-gradient(135deg,#C89B4B,#96702B);box-shadow:0 10px 26px rgba(176,138,62,.32)}
+  .kpi .skel{background:linear-gradient(90deg,rgba(255,255,255,.18),rgba(255,255,255,.32),rgba(255,255,255,.18));
+             background-size:200% 100%}
+
+  /* ── section labels: gold tick ── */
+  .sect{display:flex;align-items:center;gap:8px;color:var(--ink-2)}
+  .sect::before{content:"";width:16px;height:3px;border-radius:2px;background:var(--gold)}
+
+  /* ── app cards: colourful icon tiles + gradient edge ── */
+  .app{position:relative;border:none;box-shadow:0 1px 2px rgba(15,25,23,.05),0 8px 24px rgba(15,25,23,.07)}
+  .app::before{content:"";position:absolute;inset:0;border-radius:var(--r);padding:1.5px;
+    background:linear-gradient(140deg,rgba(14,79,68,.35),rgba(176,138,62,.3) 55%,transparent);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+  .app .ic{width:40px;height:40px;border-radius:12px}
+  .app .ic svg{width:20px;height:20px;stroke:#fff!important}
+  .i-ledger{background:linear-gradient(135deg,#2E8F68,#19624B)!important}
+  .i-buy   {background:linear-gradient(135deg,#C25B37,#8F3A20)!important}
+  .i-label {background:linear-gradient(135deg,#2E86A8,#1B5D77)!important}
+  .i-stock {background:linear-gradient(135deg,#C89B4B,#96702B)!important}
+  .i-order {background:linear-gradient(135deg,#115C4E,#072A24)!important}
+  .app .t{color:var(--brand-ink)}
+
+  /* ── attention card: gold spine ── */
+  #attention{border-left:3px solid var(--gold)}
+  .row .av{background:linear-gradient(135deg,var(--brand-soft),#DCEAE3);color:var(--brand)}
+  .row .a{color:var(--warn)}
+
+  /* ── top bar: deeper gradient + gold thread ── */
+  .topbar{background:linear-gradient(160deg,#12594B 0%,#0E4F44 40%,#093A31 100%);
+          border-bottom:2px solid var(--gold)}
+  .btag{color:#D9BC72}
+
+  /* ── bottom nav: brand pill ── */
+  nav button.on{color:var(--brand)}
+  nav button.on::before{background:linear-gradient(90deg,var(--brand),var(--gold));height:3px;width:30px}
+
+  /* ── login: gold-trimmed ── */
+  .gbox,.lbox{border-top:4px solid var(--gold)}
 </style>
 </head>
 <body>
@@ -338,7 +490,7 @@
 </nav>
 
 <script>
-var V = "35";  // cache-buster: bump when you upload new app files
+var V = "38";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -490,7 +642,14 @@ if("serviceWorker" in navigator){
     return ((n || "").trim().split(/\s+/).map(function(w){ return w[0] || ""; })
             .slice(0,2).join("") || "?").toUpperCase();
   };
-  var set = function(id, html){ var e = document.getElementById(id); if(e) e.innerHTML = html; };
+  var set = function(id, html){
+    var e = document.getElementById(id); if(!e) return;
+    if(e.innerHTML === html) return;               // unchanged — no flicker
+    e.innerHTML = html;
+    e.classList.remove("val-in");
+    void e.offsetWidth;                            // restart the animation
+    e.classList.add("val-in");
+  };
   var syncline = document.getElementById("syncline");
 
   var data = { ledger:null, purchases:null };
