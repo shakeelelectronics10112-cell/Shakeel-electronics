@@ -1,6 +1,6 @@
 /* Shakeel Electronics — offline service worker */
 const CACHE = "shakeel-v5";
-const ASSETS = ["./","./index.html","./ledger.html","./stockbox.html","./orderbook.html","./purchases.html","./labels.html"];
+const ASSETS = ["./","./index.html","./ledger.html","./stockbox.html","./orderbook.html","./purchases.html","./labels.html","./quotes.html"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quotes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#0F1917;--muted:#6B7975;--faint:#9AA6A2;--line:#E4E8E4;--line-2:#D2D8D3;
+    --paper:#F5F6F3;--panel:#FFF;
+    --brand:#0E4F44;--brand-2:#0A3E35;--brand-soft:#E6F0EC;
+    --gold:#B08A3E;--gold-soft:#FBF3E2;
+    --good:#2E7D5B;--good-soft:#E4F1EA;
+    --warn:#B0492C;--warn-soft:#F8EAE4;
+    --info:#1F6F8B;--info-soft:#E4F0F4;
+    --r:15px;--sh:0 1px 2px rgba(15,25,23,.04),0 8px 26px rgba(15,25,23,.06);
+    --spring:cubic-bezier(.34,1.4,.44,1);--glide:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer}
+  .mono{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+  .grot{font-family:"Space Grotesk",sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:0 15px 100px}
+
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(160deg,#12594B,#093A31);
+         border-bottom:2px solid var(--gold)}
+  .hin{max-width:900px;margin:0 auto;padding:13px 15px;display:flex;align-items:center;gap:10px}
+  .ttl{font-family:"Space Grotesk";font-weight:700;font-size:18px;color:#fff;margin-right:auto;letter-spacing:-.01em}
+  .ttl b{color:var(--gold)}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:9px 13px;
+       border-radius:10px;border:1px solid var(--line-2);background:var(--panel);transition:.16s var(--spring);white-space:nowrap}
+  .btn:active{transform:scale(.96)}
+  .btn.pri{background:linear-gradient(135deg,#115C4E,#0A3E35);color:#fff;border:none;box-shadow:0 4px 12px rgba(14,79,68,.25)}
+  .btn.wa{background:#25D366;color:#fff;border:none}
+  .btn.gh{border-color:transparent;background:transparent;color:var(--muted)}
+  .btn.dn{color:var(--warn);border-color:transparent}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn.hd{background:rgba(255,255,255,.14);color:#fff;border:none}
+  .btn.hd:hover{background:rgba(255,255,255,.22)}
+
+  .tabs{display:flex;gap:4px;background:#E4EAE5;padding:4px;border-radius:12px;margin:14px 0}
+  .tabs button{flex:1;font-size:13px;font-weight:600;color:var(--muted);padding:9px 4px;border-radius:9px;transition:.2s var(--glide)}
+  .tabs button.on{background:linear-gradient(135deg,#115C4E,#0A3E35);color:#fff;box-shadow:0 4px 12px rgba(14,79,68,.28)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  #view>*{animation:rise .45s var(--glide) .05s both}
+
+  .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+  .kpi{border:none;color:#fff;position:relative;overflow:hidden;border-radius:15px;padding:13px 14px;box-shadow:var(--sh)}
+  .kpi::after{content:"";position:absolute;right:-20px;bottom:-26px;width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.08)}
+  .kpi .l{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.75)}
+  .kpi .v{font-family:"JetBrains Mono";font-size:19px;font-weight:700;margin-top:5px}
+  .kpi .s{font-size:11px;color:rgba(255,255,255,.65);margin-top:2px}
+  .kpi.a{background:linear-gradient(135deg,#C89B4B,#96702B)}
+  .kpi.b{background:linear-gradient(135deg,#2E8F68,#19624B)}
+  .kpi.c{background:linear-gradient(135deg,#115C4E,#072A24)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+  .sect{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 2px 9px;display:flex;align-items:center;gap:8px}
+  .sect::before{content:"";width:16px;height:3px;border-radius:2px;background:var(--gold)}
+
+  .qrow{display:flex;align-items:center;gap:12px;padding:14px 15px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s,transform .2s var(--glide)}
+  .qrow:last-child{border-bottom:none}
+  .qrow:hover{background:#FAFBF9;transform:translateX(3px)}
+  .qav{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+       font-family:"Space Grotesk";font-weight:700;font-size:13px;background:linear-gradient(135deg,var(--brand-soft),#D8E8E1);color:var(--brand)}
+  .qm{flex:1;min-width:0}
+  .qn{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+  .qs{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .qa{text-align:right;flex:0 0 auto}
+  .qa .amt{font-family:"JetBrains Mono";font-weight:700;font-size:14px}
+  .qa .n{font-size:10.5px;color:var(--faint);margin-top:1px}
+  .pill{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em}
+  .pill.new{background:var(--gold-soft);color:#8A6A2A}
+  .pill.quoted{background:var(--info-soft);color:var(--info)}
+  .pill.won{background:var(--good-soft);color:var(--good)}
+  .pill.lost{background:var(--warn-soft);color:var(--warn)}
+
+  .empty{padding:50px 20px;text-align:center;color:var(--muted)}
+  .empty .b{font-family:"Space Grotesk";font-size:17px;color:var(--ink);font-weight:600;margin-bottom:6px}
+  .empty p{max-width:320px;margin:0 auto 4px;font-size:13.5px;line-height:1.5}
+
+  .search{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:0 12px;margin-bottom:12px}
+  .search svg{width:16px;height:16px;stroke:var(--faint);fill:none;stroke-width:2;flex:0 0 auto}
+  .search input{border:none;outline:none;background:none;font-family:inherit;font-size:14px;padding:11px 0;width:100%}
+
+  .fab{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;
+       background:linear-gradient(135deg,#115C4E,#0A3E35);color:#fff;font-weight:700;font-size:14px;
+       padding:14px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(14,79,68,.35);
+       display:flex;align-items:center;gap:7px;border-bottom:3px solid var(--gold);transition:transform .22s var(--spring)}
+  .fab:active{transform:scale(.94)}
+
+  .scrim{position:fixed;inset:0;background:rgba(15,25,23,.45);backdrop-filter:blur(3px);z-index:40;display:flex;opacity:0;pointer-events:none;transition:opacity .25s}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .modal{background:var(--panel);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);width:min(520px,calc(100% - 24px));margin:auto;max-height:93vh;overflow:auto;
+         transform:translateY(16px) scale(.97);opacity:0;transition:.3s var(--spring)}
+  .scrim.show .modal{transform:none;opacity:1}
+  .mh{padding:16px 18px;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#115C4E,#0A3E35);border-bottom:2px solid var(--gold)}
+  .mh h2{font-family:"Space Grotesk";font-size:16.5px;font-weight:700;margin:0;color:#fff}
+  .mh .btn.gh{color:rgba(255,255,255,.85)}
+  .mb{padding:16px 18px}
+  .mf{padding:13px 18px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;background:#FCFDFB;flex-wrap:wrap}
+  label.f{display:block;margin-bottom:12px}
+  label.f .lt{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em}
+  .inp{width:100%;font-family:inherit;font-size:14.5px;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:10px;background:#fff}
+  .inp:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .hint{font-size:11.5px;color:var(--faint);margin:-4px 0 11px;line-height:1.5}
+
+  /* line-item editor */
+  .lit{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .lit:last-child{border-bottom:none}
+  .lit .li-name{flex:1;min-width:0;border:none;background:none;font-family:inherit;font-size:14px;font-weight:500;outline:none;padding:4px 0}
+  .lit .li-qty{width:44px;text-align:center;border:1px solid var(--line);border-radius:7px;font-family:"JetBrains Mono";font-size:13px;padding:6px 2px;background:#fff}
+  .lit .li-price{width:88px;text-align:right;border:1px solid var(--line);border-radius:7px;font-family:"JetBrains Mono";font-size:13px;padding:6px 8px;background:#fff}
+  .lit .li-price.done{border-color:var(--good);background:var(--good-soft)}
+  .lit .li-x{color:var(--faint);padding:4px 6px;border-radius:6px;flex:0 0 auto}
+  .lit .li-x:hover{background:var(--warn-soft);color:var(--warn)}
+  .li-head{display:flex;gap:8px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .li-head .h-name{flex:1}.li-head .h-qty{width:44px;text-align:center}.li-head .h-price{width:88px;text-align:right}.li-head .h-sp{width:26px}
+
+  .qtot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 14px;background:var(--brand-soft);border-radius:11px}
+  .qtot .l{font-size:12px;font-weight:600;color:var(--brand)}
+  .qtot .v{font-family:"JetBrains Mono";font-size:19px;font-weight:700;color:var(--brand)}
+
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .seg button{font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;border:1px solid var(--line-2);background:#fff;color:var(--muted);transition:.15s}
+  .seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(18px);background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 17px;border-radius:11px;z-index:60;opacity:0;transition:.25s;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .foot{display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap;font-size:11.5px;color:var(--faint)}
+  .foot .r{display:flex;gap:7px;flex-wrap:wrap}
+  @media(max-width:520px){.kpis{grid-template-columns:1fr 1fr}.kpi:last-child{grid-column:1/-1}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hin">
+    <span class="ttl grot">Quo<b>tes</b></span>
+    <button class="btn hd sm" id="pasteBtn">📋 Paste list</button>
+    <button class="btn hd sm" id="newBtn">＋ Quote</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <button data-t="open" class="on">To answer</button>
+    <button data-t="quoted">Sent</button>
+    <button data-t="all">All</button>
+  </div>
+  <div id="view"></div>
+  <div class="foot">
+    <span id="note"></span>
+    <div class="r">
+      <button class="btn gh sm" id="setBtn">Settings</button>
+      <button class="btn gh sm" id="expBtn">Backup</button>
+      <button class="btn gh sm" id="impBtn">Import</button>
+      <input type="file" id="impFile" accept="application/json" style="display:none">
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fab">＋ New quote</button>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   QUOTES — customers ask for parts, you fill in prices, send back
+   ============================================================ */
+const KEY="quotes:data:v1";
+const State={
+  settings:{ org:"Shakeel Electronics", currency:"Rs", countryCode:"92",
+    validity:"7 days", updatedAt:0,
+    accounts:[
+      {id:"a1",provider:"Easypaisa",number:"0328-0995780",title:"Husnain Ali"},
+      {id:"a2",provider:"JazzCash",number:"0310-1666888",title:"Husnain Ali"},
+      {id:"a3",provider:"Meezan Bank",number:"04820104330529",title:"Shakeel Ashraf"},
+      {id:"a4",provider:"UBL",number:"1940313671528",title:"Husnain Ali"}
+    ]},
+  quotes:[]   // {id,customer,phone,note,status:new|quoted|won|lost,items:[{name,qty,price}],createdAt,quotedAt}
+};
+let ui={ tab:"open", q:"" };
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const C=()=>State.settings.currency;
+const money=n=>{const x=Math.round(Math.abs(n||0)).toLocaleString();return (n<0?"-":"")+x;};
+const todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
+const initials=n=>((n||"").trim().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("")||"?").toUpperCase();
+
+/* ---------- storage ---------- */
+async function load(){
+  let d=null;
+  try{ const s=localStorage.getItem(KEY); if(s) d=JSON.parse(s); }catch(e){}
+  if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.quotes=d.quotes||[]; }
+}
+function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return true; }catch(e){ return false; } }
+let tmr=null;
+function persist(){ State.settings.updatedAt=Date.now(); clearTimeout(tmr); tmr=setTimeout(lsSave,120); }
+function applyLoaded(d){ if(!d) return;
+  State.settings=Object.assign(State.settings,d.settings||{});
+  if(Array.isArray(d.quotes)) State.quotes=d.quotes;
+}
+
+/* ---------- helpers ---------- */
+function qTotal(q){ return (q.items||[]).reduce((s,i)=>s+(i.price||0)*(i.qty||1),0); }
+function allPriced(q){ return (q.items||[]).length>0 && (q.items||[]).every(i=>i.price>0); }
+function statusOf(q){
+  if(q.status==="won") return {k:"won",label:"Won"};
+  if(q.status==="lost") return {k:"lost",label:"Lost"};
+  if(q.status==="quoted"||allPriced(q)&&q.quotedAt) return {k:"quoted",label:"Sent"};
+  return {k:"new",label:"To answer"};
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===ui.tab));
+  const v=document.getElementById("view");
+  const cur=C();
+  const open=State.quotes.filter(q=>statusOf(q).k==="new");
+  const sent=State.quotes.filter(q=>statusOf(q).k==="quoted");
+  const wonSum=State.quotes.filter(q=>statusOf(q).k==="won").reduce((s,q)=>s+qTotal(q),0);
+
+  let list=State.quotes.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(ui.tab==="open") list=list.filter(q=>statusOf(q).k==="new");
+  else if(ui.tab==="quoted") list=list.filter(q=>statusOf(q).k==="quoted");
+  const qq=ui.q.trim().toLowerCase();
+  if(qq) list=list.filter(q=>((q.customer||"")+" "+(q.phone||"")+" "+(q.items||[]).map(i=>i.name).join(" ")).toLowerCase().includes(qq));
+
+  let h=`<div class="kpis">
+    <div class="kpi a"><div class="l">To answer</div><div class="v">${open.length}</div><div class="s">waiting for a price</div></div>
+    <div class="kpi b"><div class="l">Sent</div><div class="v">${sent.length}</div><div class="s">awaiting reply</div></div>
+    <div class="kpi c"><div class="l">Won value</div><div class="v">${cur} ${money(wonSum)}</div><div class="s">accepted quotes</div></div>
+  </div>`;
+
+  if(ui.tab==="all"){
+    h+=`<div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="q" placeholder="Search customer or part" value="${esc(ui.q)}" autocomplete="off"></div>`;
+  }
+
+  if(!list.length){
+    const msg = ui.tab==="open" ? ["Nothing to answer 🎉","New price requests show here. Tap ＋ New quote, or paste a customer's list."]
+              : ui.tab==="quoted" ? ["No sent quotes yet","Quotes you've priced and sent appear here."]
+              : ["No quotes yet","Tap ＋ New quote to answer your first customer."];
+    h+=`<div class="card"><div class="empty"><div class="b grot">${msg[0]}</div><p>${msg[1]}</p></div></div>`;
+  } else {
+    h+=`<div class="card">`+list.map(q=>{
+      const st=statusOf(q); const t=qTotal(q); const n=(q.items||[]).length;
+      const priced=(q.items||[]).filter(i=>i.price>0).length;
+      return `<div class="qrow" data-open="${q.id}">
+        <div class="qav">${esc(initials(q.customer))}</div>
+        <div class="qm">
+          <div class="qn">${esc(q.customer||"No name")} <span class="pill ${st.k}">${st.label}</span></div>
+          <div class="qs">${n} item${n===1?"":"s"}${st.k==="new"&&priced<n?` · ${priced}/${n} priced`:""}${q.phone?` · ${esc(q.phone)}`:""}</div>
+        </div>
+        <div class="qa">
+          <div class="amt">${t>0?cur+" "+money(t):"—"}</div>
+          <div class="n">${new Date(q.createdAt).toLocaleDateString()}</div>
+        </div>
+      </div>`;
+    }).join("")+`</div>`;
+  }
+  v.innerHTML=h;
+  v.querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>openQuote(el.dataset.open));
+  const qi=document.getElementById("q");
+  if(qi) qi.oninput=e=>{ ui.q=e.target.value; const p=e.target.selectionStart; render();
+    const n=document.getElementById("q"); if(n){n.focus(); try{n.setSelectionRange(p,p);}catch(_){}}};
+}
+
+/* ---------- quote editor ---------- */
+function openQuote(id){
+  const q=State.quotes.find(x=>x.id===id); if(!q) return;
+  const cur=C(); const st=statusOf(q);
+  q.items=q.items||[];
+  openScrim(`
+    <div class="mh"><h2>${esc(q.customer||"Quote")}</h2>
+      <button class="btn gh" data-close style="margin-left:auto">✕</button></div>
+    <div class="mb">
+      <div class="two">
+        <label class="f"><span class="lt">Customer</span><input class="inp" id="q-cust" value="${esc(q.customer||"")}"></label>
+        <label class="f"><span class="lt">Phone</span><input class="inp" id="q-phone" value="${esc(q.phone||"")}"></label>
+      </div>
+
+      <div class="sect" style="margin-top:4px">Parts &amp; prices</div>
+      <div class="li-head"><span class="h-name">Item / part</span><span class="h-qty">Qty</span><span class="h-price">Price ${esc(cur)}</span><span class="h-sp"></span></div>
+      <div id="lines"></div>
+      <button class="btn sm" id="addLine" style="margin-top:10px">＋ Add item</button>
+
+      <div class="qtot"><span class="l">Quote total</span><span class="v" id="qtot">${cur} ${money(qTotal(q))}</span></div>
+
+      <label class="f" style="margin-top:14px"><span class="lt">Note (optional)</span><input class="inp" id="q-note" value="${esc(q.note||"")}" placeholder="Delivery, validity, etc."></label>
+
+      <div class="seg" style="margin-top:4px">
+        ${[["new","To answer"],["quoted","Sent"],["won","Won"],["lost","Lost"]].map(([k,l])=>
+          `<button data-st="${k}" class="${st.k===k?"on":""}">${l}</button>`).join("")}
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn dn" id="q-del" style="margin-right:auto">Delete</button>
+      ${q.phone?`<button class="btn wa" id="q-wa">Send price on WhatsApp</button>`:""}
+      <button class="btn" id="q-pdf">PDF</button>
+      <button class="btn pri" id="q-save">Save</button>
+    </div>`);
+
+  const linesEl=document.getElementById("lines");
+  function drawLines(){
+    linesEl.innerHTML = q.items.map((it,i)=>`
+      <div class="lit">
+        <input class="li-name" data-i="${i}" data-f="name" value="${esc(it.name||"")}" placeholder="e.g. TCON 6870C-0532A">
+        <input class="li-qty mono" data-i="${i}" data-f="qty" inputmode="numeric" value="${it.qty||1}">
+        <input class="li-price mono ${it.price>0?"done":""}" data-i="${i}" data-f="price" inputmode="decimal" value="${it.price||""}" placeholder="0">
+        <button class="li-x" data-del="${i}">✕</button>
+      </div>`).join("") || `<div class="hint" style="margin:8px 0">No items yet — tap "Add item".</div>`;
+    linesEl.querySelectorAll("input").forEach(inp=>{
+      inp.oninput=()=>{
+        const i=+inp.dataset.i, f=inp.dataset.f;
+        if(f==="qty") q.items[i].qty=parseInt(inp.value,10)||1;
+        else if(f==="price"){ q.items[i].price=parseFloat(inp.value)||0; inp.classList.toggle("done",q.items[i].price>0); }
+        else q.items[i].name=inp.value;
+        document.getElementById("qtot").textContent=cur+" "+money(qTotal(q));
+      };
+    });
+    linesEl.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ q.items.splice(+b.dataset.del,1); drawLines(); document.getElementById("qtot").textContent=cur+" "+money(qTotal(q)); });
+  }
+  drawLines();
+  document.getElementById("addLine").onclick=()=>{ q.items.push({name:"",qty:1,price:0}); drawLines();
+    const last=linesEl.querySelector(".lit:last-child .li-name"); if(last) last.focus(); };
+
+  let pickSt=st.k;
+  scrim.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{
+    pickSt=b.dataset.st;
+    scrim.querySelectorAll("[data-st]").forEach(x=>x.classList.toggle("on",x.dataset.st===pickSt));
+  });
+
+  const grab=()=>{ q.customer=document.getElementById("q-cust").value.trim();
+    q.phone=document.getElementById("q-phone").value.trim();
+    q.note=document.getElementById("q-note").value.trim();
+    q.status=pickSt;
+    if(pickSt==="quoted"&&!q.quotedAt) q.quotedAt=Date.now();
+  };
+  document.getElementById("q-save").onclick=()=>{ grab(); persist(); render(); closeScrim(); toast("Quote saved"); };
+  document.getElementById("q-del").onclick=()=>{ if(confirm("Delete this quote?")){ State.quotes=State.quotes.filter(x=>x.id!==q.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  document.getElementById("q-pdf").onclick=()=>{ grab(); persist(); quotePDF(q); };
+  if(document.getElementById("q-wa")) document.getElementById("q-wa").onclick=()=>{
+    grab(); if(!allPriced(q)){ if(!confirm("Some items have no price. Send anyway?")) return; }
+    if(pickSt==="new"){ pickSt="quoted"; q.status="quoted"; q.quotedAt=Date.now(); }
+    persist(); render(); sendWhatsApp(q);
+  };
+}
+
+/* ---------- new / paste ---------- */
+function newQuote(prefill){
+  const q={ id:uid(), customer:"", phone:"", note:"", status:"new",
+    items:prefill&&prefill.length?prefill:[{name:"",qty:1,price:0}], createdAt:Date.now() };
+  State.quotes.unshift(q); persist(); render(); openQuote(q.id);
+}
+function pasteList(){
+  openScrim(`<div class="mh"><h2>Paste customer's list</h2><button class="btn gh" data-close style="margin-left:auto">✕</button></div>
+    <div class="mb">
+      <label class="f"><span class="lt">Customer name</span><input class="inp" id="p-cust" placeholder="Optional"></label>
+      <label class="f"><span class="lt">Phone</span><input class="inp" id="p-phone" placeholder="Optional"></label>
+      <label class="f"><span class="lt">Paste the parts they asked for — one per line</span>
+        <textarea class="inp" id="p-text" rows="7" placeholder="TCON 6870C-0532A&#10;COF for 43 inch&#10;5x ACF tape&#10;2 LVDS cable"></textarea></label>
+      <div class="hint">Each line becomes an item. Start a line with a number (e.g. "5x ...") to set quantity. You'll add prices next.</div>
+    </div>
+    <div class="mf"><button class="btn" data-close>Cancel</button><button class="btn pri" id="p-go">Create quote</button></div>`);
+  document.getElementById("p-go").onclick=()=>{
+    const txt=document.getElementById("p-text").value.trim();
+    if(!txt){ flash("Paste at least one item"); return; }
+    const items=txt.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
+      let qty=1, name=l;
+      const m=l.match(/^(\d{1,4})\s*[x×*.)-]?\s+(.+)/i);
+      if(m){ qty=parseInt(m[1],10)||1; name=m[2].trim(); }
+      return { name, qty, price:0 };
+    });
+    const q={ id:uid(), customer:document.getElementById("p-cust").value.trim(),
+      phone:document.getElementById("p-phone").value.trim(), note:"", status:"new", items, createdAt:Date.now() };
+    State.quotes.unshift(q); persist(); closeScrim(); render(); openQuote(q.id);
+  };
+}
+
+/* ---------- WhatsApp ---------- */
+function waNum(p){
+  if(!p) return "";
+  let d=String(p).replace(/[^\d+]/g,"");
+  const cc=(State.settings.countryCode||"92").replace(/\D/g,"");
+  if(d.startsWith("+")) d=d.slice(1);
+  else if(d.startsWith("00")) d=d.slice(2);
+  else if(d.startsWith("0")) d=cc+d.slice(1);
+  else if(!d.startsWith(cc)&&d.length<=10) d=cc+d;
+  return d;
+}
+function quoteText(q){
+  const cur=C();
+  let m=`*${State.settings.org}*\n_Price quote_\n\n`;
+  if(q.customer) m+=`For: ${q.customer}\n\n`;
+  q.items.forEach(it=>{
+    const line = `• ${it.name}${it.qty>1?` ×${it.qty}`:""}`;
+    const price = it.price>0 ? ` — *${cur} ${money(it.price*(it.qty||1))}*` : ` — _price on request_`;
+    m+=line+price+"\n";
+  });
+  const tot=qTotal(q);
+  if(tot>0) m+=`\n*Total: ${cur} ${money(tot)}*\n`;
+  if(q.note) m+=`\n${q.note}\n`;
+  m+=`\nValid for ${State.settings.validity}. Prices may change with the market.\n`;
+  const accs=(State.settings.accounts||[]).slice(0,2).map(a=>`• ${a.provider}: ${a.number}`).join("\n");
+  if(accs) m+=`\n*Payment:*\n${accs}`;
+  return m;
+}
+function sendWhatsApp(q){
+  const url=`https://wa.me/${waNum(q.phone)}?text=${encodeURIComponent(quoteText(q))}`;
+  const a=document.createElement("a"); a.href=url; a.target="_blank"; a.rel="noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+  toast("Opening WhatsApp…");
+}
+
+/* ---------- PDF quote ---------- */
+function quotePDF(q){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
+  const { jsPDF }=window.jspdf; const cur=C();
+  const doc=new jsPDF({unit:"pt",format:"a4"});
+  const L=45,R=550,W=R-L, G=[14,79,68], GOLD=[176,138,62];
+  const no="QT-"+new Date().getFullYear()+"-"+String((State.quotes.indexOf(q)+1)).padStart(4,"0");
+  doc.setFillColor(...G); doc.rect(0,0,595,84,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(19); doc.setTextColor(255,255,255);
+  doc.text(State.settings.org,L,38);
+  doc.setFontSize(11); doc.setTextColor(226,214,180); doc.text("PRICE QUOTE",L,58);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(200,220,213);
+  doc.text(no,R,38,{align:"right"}); doc.text(new Date().toLocaleDateString(),R,54,{align:"right"});
+  doc.setFillColor(...GOLD); doc.rect(0,84,595,3,"F");
+  let y=116;
+  doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(110,118,115);
+  doc.text("QUOTE FOR",L,y); y+=15;
+  doc.setFontSize(13); doc.setTextColor(20,26,24); doc.text(q.customer||"—",L,y);
+  if(q.phone){ y+=14; doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90,96,93); doc.text(q.phone,L,y); }
+  y+=26;
+  doc.setFillColor(...G); doc.rect(L,y-13,W,20,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(255,255,255);
+  doc.text("ITEM / PART",L+6,y); doc.text("QTY",R-150,y,{align:"right"}); doc.text("UNIT",R-80,y,{align:"right"}); doc.text("AMOUNT",R-4,y,{align:"right"});
+  y+=18;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(20,26,24);
+  let i=0;
+  for(const it of q.items){
+    if(y>770){ doc.addPage(); y=55; }
+    if(i%2===1){ doc.setFillColor(246,248,246); doc.rect(L,y-11,W,17,"F"); }
+    doc.setTextColor(20,26,24); doc.text(String(it.name||"").slice(0,46),L+6,y);
+    doc.text(String(it.qty||1),R-150,y,{align:"right"});
+    doc.text(it.price>0?money(it.price):"—",R-80,y,{align:"right"});
+    doc.setFont("helvetica","bold"); doc.text(it.price>0?money(it.price*(it.qty||1)):"—",R-4,y,{align:"right"});
+    doc.setFont("helvetica","normal"); y+=17; i++;
+  }
+  y+=8; doc.setDrawColor(200,206,203); doc.line(L,y-12,R,y-12);
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...G);
+  doc.text("TOTAL",R-120,y+4); doc.setFontSize(15); doc.text(`${cur} ${money(qTotal(q))}`,R-4,y+4,{align:"right"});
+  y+=34;
+  if(q.note){ doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(60,66,64);
+    doc.text(doc.splitTextToSize(q.note,W),L,y); y+=28; }
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(120,126,123);
+  doc.text(`Valid for ${State.settings.validity}. Prices subject to market change.`,L,y); y+=20;
+  doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(110,118,115);
+  doc.text("PAYMENT DETAILS",L,y); y+=14;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(40,46,44);
+  for(const a of (State.settings.accounts||[])){ if(y>800) break; doc.text(`${a.provider}: ${a.number}  (${a.title})`,L,y); y+=13; }
+  doc.setDrawColor(...GOLD); doc.line(L,805,R,805);
+  doc.setFontSize(8); doc.setTextColor(140,146,143); doc.text(`${State.settings.org} · Price quote ${no}`,L,817);
+  doc.save(`${no}${q.customer?"-"+q.customer.replace(/[^\w]+/g,"-"):""}.pdf`);
+  toast("Quote PDF saved");
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const s=State.settings;
+  openScrim(`<div class="mh"><h2>Settings</h2><button class="btn gh" data-close style="margin-left:auto">✕</button></div>
+    <div class="mb">
+      <label class="f"><span class="lt">Business name</span><input class="inp" id="s-o" value="${esc(s.org)}"></label>
+      <label class="f"><span class="lt">Quote validity</span><input class="inp" id="s-v" value="${esc(s.validity)}"></label>
+      <div class="hint">Shown on every quote, e.g. "7 days".</div>
+    </div>
+    <div class="mf"><button class="btn pri" id="s-save">Save</button></div>`);
+  document.getElementById("s-save").onclick=()=>{ s.org=document.getElementById("s-o").value.trim()||s.org;
+    s.validity=document.getElementById("s-v").value.trim()||s.validity; persist(); render(); closeScrim(); toast("Saved"); };
+}
+function backup(){ const b=new Blob([JSON.stringify(State,null,2)],{type:"application/json"});
+  const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`quotes-backup-${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800); toast("Backup downloaded"); }
+function restore(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result);
+  if(!Array.isArray(d.quotes)) throw 0; if(!confirm("Replace all quotes with this backup?")) return;
+  applyLoaded(d); persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Quotes backup"); } }; r.readAsText(file); }
+
+/* ---------- modal / toast ---------- */
+const scrim=document.getElementById("scrim");
+function openScrim(html){ scrim.innerHTML=`<div class="modal">${html}</div>`;
+  requestAnimationFrame(()=>scrim.classList.add("show"));
+  scrim.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeScrim); }
+function closeScrim(){ scrim.classList.remove("show"); setTimeout(()=>{ if(!scrim.classList.contains("show")) scrim.innerHTML=""; },240); }
+scrim.addEventListener("click",e=>{ if(e.target===scrim) closeScrim(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeScrim(); });
+let tt=null;
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.style.background="var(--ink)"; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),1900); }
+function flash(m){ const t=document.getElementById("toast"); t.textContent=m; t.style.background="var(--warn)"; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2300); }
+
+/* ---------- wire ---------- */
+document.getElementById("tabs").addEventListener("click",e=>{ const b=e.target.closest("[data-t]"); if(!b) return; ui.tab=b.dataset.t; ui.q=""; render(); });
+document.getElementById("newBtn").onclick=()=>newQuote();
+document.getElementById("fab").onclick=()=>newQuote();
+document.getElementById("pasteBtn").onclick=pasteList;
+document.getElementById("setBtn").onclick=openSettings;
+document.getElementById("expBtn").onclick=backup;
+document.getElementById("impBtn").onclick=()=>document.getElementById("impFile").click();
+document.getElementById("impFile").addEventListener("change",e=>{ if(e.target.files[0]) restore(e.target.files[0]); e.target.value=""; });
+
+(async function init(){ await load(); render(); })();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",
+          projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
+          messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
+  var APP_KEY="quotes", SHOP="main";
+  var db=null, ready=false, pt=null, cloudHadData=false;
+  function note(t){ var e=document.getElementById("note"); if(e) e.innerHTML=t; }
+  if(typeof firebase==="undefined") return;
+  try{ firebase.initializeApp(FB); db=firebase.firestore();
+    firebase.auth().onAuthStateChanged(function(u){ if(u && !u.isAnonymous) start();
+      else note('<span style="color:var(--warn)">Not signed in — open from the main app.</span>'); });
+  }catch(e){ return; }
+  function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
+  function start(){
+    window.__cloudActive=true; note("☁ Connecting…");
+    var _p=persist; persist=function(){ _p(); if(ready){ clearTimeout(pt); pt=setTimeout(push,400); } };
+    ref().onSnapshot(function(s){
+      if(s.exists){ var d=s.data()&&s.data().state;
+        if(d){
+          try{ if(Array.isArray(d.quotes)&&d.quotes.length) cloudHadData=true; }catch(_){}
+          var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
+          var localEmpty=!(State.quotes||[]).length, cloudHas=Array.isArray(d.quotes)&&d.quotes.length;
+          if(rt>lt || (localEmpty&&cloudHas)){ applyLoaded(d);
+            if(localEmpty&&cloudHas&&!(rt>lt)) State.settings.updatedAt=rt||Date.now();
+            render(); try{lsSave();}catch(_){} } }
+        ready=true; note("☁ Synced across your devices"); }
+      else { ready=true; push(); }
+    }, function(){ note("☁ Offline — saved on this device"); });
+  }
+  function push(){ if(!db) return; if(!ready) return;
+    try{ if(cloudHadData && Array.isArray(State.quotes) && !State.quotes.length){ note('<span style="color:var(--warn)">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
+    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      ref().set({state:State,ts:Date.now()}).then(function(){ note("☁ Synced across your devices"); })
+        .catch(function(){ note("☁ Cloud save failed — saved on this device"); }); }catch(e){}
+  }
+})();
+</script>
+<script>
+if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
+</script>
+</body>
+</html>
