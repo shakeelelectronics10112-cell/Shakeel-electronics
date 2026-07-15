@@ -154,6 +154,58 @@
            box-shadow:1px 0 0 var(--line)}
   .grid th:nth-child(2){background:var(--green)}
   .sheet-tip{font-size:11.5px;color:var(--muted);margin:0 0 9px;display:flex;align-items:center;gap:6px}
+
+  /* ═══════ PREMIUM MOTION ═══════ */
+  :root{ --spring:cubic-bezier(.34,1.4,.44,1); --glide:cubic-bezier(.22,.61,.36,1); }
+  @keyframes rise{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+  #view > *{animation:rise .45s var(--glide) .08s both}
+  .btn{transition:border-color .16s, background .16s, transform .18s var(--spring)}
+  .btn:active{transform:scale(.96)}
+  .prow, .vrow{transition:background .16s, transform .2s var(--glide)}
+  .prow:hover, .vrow:hover{transform:translateX(3px)}
+  .tabs button{transition:color .18s, background .22s var(--glide), box-shadow .22s}
+  .scrim .modal{transition:.34s var(--spring)}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* ═══════════ SIGNATURE LOOK — PURCHASES ═══════════ */
+
+  header{border-bottom:2px solid var(--gold)}
+  .brand .mark b{color:var(--gold)}
+
+  /* stat cards: colour identities */
+  .stat{border:none;color:#fff;position:relative;overflow:hidden;border-radius:15px}
+  .stat::after{content:"";position:absolute;right:-20px;bottom:-28px;width:92px;height:92px;
+               border-radius:50%;background:rgba(255,255,255,.08)}
+  .stat .lab{color:rgba(255,255,255,.75)}
+  .stat .sub{color:rgba(255,255,255,.65)}
+  .stat .val{color:#fff!important}
+  .stat{background:linear-gradient(135deg,#115C4E,#072A24);box-shadow:0 10px 24px rgba(14,79,68,.28)}
+  .stat.accent{background:linear-gradient(135deg,#C89B4B,#96702B);box-shadow:0 10px 24px rgba(176,138,62,.30)}
+  .stat:nth-child(2){background:linear-gradient(135deg,#2E8F68,#19624B);box-shadow:0 10px 24px rgba(46,125,91,.28)}
+  .stat:nth-child(3){background:linear-gradient(135deg,#C25B37,#8F3A20);box-shadow:0 10px 24px rgba(176,73,44,.28)}
+
+  /* tabs */
+  .tabs button.on{background:linear-gradient(135deg,#115C4E,#0A3E35);color:#fff;
+                  box-shadow:0 4px 12px rgba(14,79,68,.28)}
+
+  /* primary buttons + grid header */
+  .btn.primary{background:linear-gradient(135deg,#115C4E,#0A3E35);border:none;
+               box-shadow:0 4px 12px rgba(14,79,68,.25)}
+  .grid thead th{background:linear-gradient(135deg,#115C4E,#0A3E35)!important}
+  .grid th:first-child, .grid th:nth-child(2){background:linear-gradient(135deg,#115C4E,#0A3E35)!important}
+
+  /* modal header brand band */
+  .m-head{background:linear-gradient(135deg,#115C4E,#0A3E35);border-bottom:2px solid var(--gold)}
+  .m-head h2{color:#fff}
+  .m-head .btn.ghost{color:rgba(255,255,255,.85)}
+  .m-head .btn.ghost:hover{background:rgba(255,255,255,.12)}
+
+  /* cards: gradient edge */
+  .card{position:relative;border:none;box-shadow:0 1px 2px rgba(15,25,23,.05),0 8px 24px rgba(15,25,23,.07)}
+  .card::before{content:"";position:absolute;inset:0;border-radius:var(--radius);padding:1px;
+    background:linear-gradient(150deg,rgba(14,79,68,.22),rgba(176,138,62,.18) 60%,transparent);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:1}
 </style>
 </head>
 <body>

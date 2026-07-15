@@ -150,6 +150,95 @@
         font-size:11.5px;color:var(--faint)}
   .foot .r{display:flex;gap:7px;flex-wrap:wrap}
   @media(max-width:520px){ .kpis{grid-template-columns:1fr 1fr} .kpi:last-child{grid-column:1/-1} }
+
+  /* ═══════ PREMIUM MOTION ═══════ */
+  :root{ --spring:cubic-bezier(.34,1.4,.44,1); --glide:cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes rise{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+  .kpis{animation:rise .5s var(--glide) both}
+  .kpi:nth-child(1){animation:rise .45s var(--glide) .05s both}
+  .kpi:nth-child(2){animation:rise .45s var(--glide) .11s both}
+  .kpi:nth-child(3){animation:rise .45s var(--glide) .17s both}
+  #view > .card, #view > .sect, #view > .search, #view > div{animation:rise .45s var(--glide) .12s both}
+
+  .kpi{transition:transform .26s var(--spring), box-shadow .26s var(--glide)}
+  .kpi:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(15,25,23,.05),0 14px 32px rgba(15,25,23,.10)}
+
+  .row{transition:background .16s, transform .2s var(--glide)}
+  .row:hover{transform:translateX(3px)}
+  .row .av{transition:transform .25s var(--spring)}
+  .row:hover .av{transform:scale(1.08)}
+
+  .tabs button{transition:color .18s, background .22s var(--glide), box-shadow .22s}
+  .btn{transition:border-color .16s, background .16s, transform .18s var(--spring)}
+  .btn:active{transform:scale(.96)}
+  .btn.wa:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(37,211,102,.3)}
+  .fab{transition:background .18s, transform .22s var(--spring), box-shadow .22s}
+  .fab:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(14,79,68,.4)}
+  .fab:active{transform:scale(.94)}
+
+  .scrim .modal{transition:.34s var(--spring)}
+  .age i{transition:width .7s var(--glide)}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+  }
+
+  /* ═══════════ SIGNATURE LOOK — LEDGER ═══════════ */
+
+  /* header: brand thread */
+  header{border-bottom:2px solid var(--gold)}
+  .ttl b{color:var(--gold)}
+
+  /* KPI cards: colour identities */
+  .kpi{border:none;color:#fff;position:relative;overflow:hidden}
+  .kpi::after{content:"";position:absolute;right:-20px;bottom:-28px;width:92px;height:92px;
+              border-radius:50%;background:rgba(255,255,255,.08)}
+  .kpi .l{color:rgba(255,255,255,.75)}
+  .kpi .s{color:rgba(255,255,255,.65)}
+  .kpi .v{color:#fff!important}
+  .kpi.a{background:linear-gradient(135deg,#115C4E,#072A24);box-shadow:0 10px 24px rgba(14,79,68,.30)}
+  .kpi.b{background:linear-gradient(135deg,#C25B37,#8F3A20);box-shadow:0 10px 24px rgba(176,73,44,.28)}
+  .kpi.c{background:linear-gradient(135deg,#2E8F68,#19624B);box-shadow:0 10px 24px rgba(46,125,91,.30)}
+
+  /* tabs: brand pill */
+  .tabs{background:#E4EAE5}
+  .tabs button.on{background:linear-gradient(135deg,#115C4E,#0A3E35);color:#fff;
+                  box-shadow:0 4px 12px rgba(14,79,68,.28)}
+
+  /* section labels: gold tick */
+  .sect{display:flex;align-items:center;gap:8px}
+  .sect::before{content:"";width:16px;height:3px;border-radius:2px;background:var(--gold)}
+
+  /* customer avatars: richer chips */
+  .av{border-radius:12px}
+  .av.ok{background:linear-gradient(135deg,#E4F1EA,#CFE6DA);color:#19624B}
+  .av.due{background:linear-gradient(135deg,#FBF3E2,#F0DFB4);color:#8A6A2A}
+  .av.late{background:linear-gradient(135deg,#F8EAE4,#F0CFC0);color:#8F3A20}
+  .av.hot{background:linear-gradient(135deg,#F3DCD6,#E8B8AA);color:#7A2413}
+
+  /* primary actions: gradient + glow */
+  .btn.pri{background:linear-gradient(135deg,#115C4E,#0A3E35);border:none;
+           box-shadow:0 4px 12px rgba(14,79,68,.25)}
+  .btn.pri:hover{box-shadow:0 6px 18px rgba(14,79,68,.35)}
+  .fab{background:linear-gradient(135deg,#115C4E,#0A3E35);border-bottom:3px solid var(--gold)}
+
+  /* ageing bar: thicker, rounded segments */
+  .age{height:10px;gap:3px}
+  .age i{border-radius:5px}
+
+  /* cards: soft gradient edge */
+  .card{border:none;box-shadow:0 1px 2px rgba(15,25,23,.05),0 8px 24px rgba(15,25,23,.07);position:relative}
+  .card::before{content:"";position:absolute;inset:0;border-radius:var(--r);padding:1px;
+    background:linear-gradient(150deg,rgba(14,79,68,.22),rgba(176,138,62,.18) 60%,transparent);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+  /* modal header: brand band */
+  .mh{background:linear-gradient(135deg,#115C4E,#0A3E35);border-bottom:2px solid var(--gold)}
+  .mh h2{color:#fff}
+  .mh .btn.gh{color:rgba(255,255,255,.85)}
+  .mh .btn.gh:hover{background:rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
