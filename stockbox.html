@@ -77,7 +77,24 @@
   .segmented button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
   .seg-count{font-size:10.5px;opacity:.7;margin-left:5px}
 
-  /* breadcrumb */
+  /* breadcrumb jump dropdown */
+  .crumb-jump{position:relative;display:inline-flex}
+  .crumb-jump>button{display:inline-flex;align-items:center;gap:3px;color:var(--green);background:var(--green-soft);
+    border:none;cursor:pointer;padding:4px 7px;border-radius:8px;font-weight:700;font-size:13.5px;transition:.12s}
+  .crumb-jump>button:hover{background:var(--green);color:#fff}
+  .crumb-jump>button svg{width:13px;height:13px}
+  .cj-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 14px 40px rgba(22,33,31,.22);min-width:190px;max-height:280px;overflow:auto;padding:6px;display:none}
+  .cj-menu.on{display:block}
+  .cj-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:13.5px;margin-bottom:6px;outline:none}
+  .cj-search:focus{border-color:var(--green)}
+  .cj-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink)}
+  .cj-item:hover{background:var(--green-soft)}
+  .cj-item.cur{background:var(--green-soft);color:var(--green)}
+  .cj-item .cnt{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500;font-family:"JetBrains Mono",monospace}
+  .cj-empty{padding:12px 10px;color:var(--muted);font-size:13px;text-align:center}
+
+  /* breadcrumb
   .crumbs{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:14px;font-size:13.5px}
   .crumbs a{color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:8px;font-weight:600;transition:.12s}
   .crumbs a:hover{background:var(--line);color:var(--ink)}
@@ -347,11 +364,63 @@ function renderMain(){
 function renderCrumbs(){
   const path=ui.currentLoc?pathOf(ui.currentLoc):[];
   let html=`<div class="crumbs"><a data-loc="root" class="${!ui.currentLoc?"here":""}">🏠 All boxes</a>`;
-  path.forEach((l,i)=>{ html+=`<span class="sep">›</span><a data-loc="${l.id}" class="${i===path.length-1?"here":""}">${esc(l.name)}</a>`; });
+  path.forEach((l,i)=>{
+    const last=(i===path.length-1);
+    const sibs=childrenOf(l.parentId||null);
+    // last crumb + has siblings → make it a jump dropdown to switch quickly
+    if(last && sibs.length>1){
+      html+=`<span class="sep">›</span><span class="crumb-jump">
+        <button data-jump="${l.id}">${esc(l.name)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cj-menu" id="cjMenu"></div>
+      </span>`;
+    } else {
+      html+=`<span class="sep">›</span><a data-loc="${l.id}" class="${last?"here":""}">${esc(l.name)}</a>`;
+    }
+  });
   html+=`</div>`;
   const w=document.getElementById("crumbsWrap"); w.innerHTML=html;
   w.querySelectorAll("[data-loc]").forEach(a=>a.onclick=()=>{ ui.currentLoc=a.dataset.loc==="root"?null:a.dataset.loc; renderMain(); });
+  const jb=w.querySelector("[data-jump]");
+  if(jb) jb.onclick=(e)=>{ e.stopPropagation(); openCrumbJump(jb.dataset.jump); };
 }
+
+function openCrumbJump(curId){
+  const menu=document.getElementById("cjMenu"); if(!menu) return;
+  const cur=locById(curId); if(!cur) return;
+  const sibs=childrenOf(cur.parentId||null);
+  const parentName=cur.parentId?locPathText(cur.parentId):"All boxes";
+  function draw(filter){
+    const f=(filter||"").toLowerCase().trim();
+    const list=sibs.filter(s=>!f || s.name.toLowerCase().includes(f));
+    let inner=`<input class="cj-search" id="cjSearch" placeholder="Type sub-box no…" autocomplete="off">`;
+    if(!list.length){ inner+=`<div class="cj-empty">No match</div>`; }
+    else inner+=list.map(s=>{
+      const cnt=countIn(s.id);
+      return `<div class="cj-item ${s.id===curId?"cur":""}" data-go="${s.id}">${esc(s.name)}<span class="cnt">${cnt.lines?cnt.lines+" item"+(cnt.lines===1?"":"s"):"empty"}</span></div>`;
+    }).join("");
+    menu.innerHTML=inner;
+    const si=document.getElementById("cjSearch");
+    si.oninput=()=>draw(si.value);
+    si.onclick=(e)=>e.stopPropagation();
+    // keep focus & caret
+    si.focus(); si.value=filter||""; si.setSelectionRange(si.value.length,si.value.length);
+    menu.querySelectorAll("[data-go]").forEach(el=>el.onclick=(e)=>{
+      e.stopPropagation(); ui.currentLoc=el.dataset.go; closeCrumbJump(); renderMain();
+    });
+  }
+  draw("");
+  menu.classList.add("on");
+  // close on outside click / Esc
+  setTimeout(()=>{ document.addEventListener("click",cjOutside); document.addEventListener("keydown",cjEsc); },0);
+}
+function closeCrumbJump(){ const m=document.getElementById("cjMenu"); if(m) m.classList.remove("on"); document.removeEventListener("click",cjOutside); document.removeEventListener("keydown",cjEsc); }
+function cjOutside(e){ if(!e.target.closest(".crumb-jump")) closeCrumbJump(); }
+function cjEsc(e){ if(e.key==="Escape") closeCrumbJump(); }
+
+/* pieces+lines directly inside a location (for the dropdown count) */
+function countIn(locId){ let lines=0,pieces=0; for(const it of State.items){ if(it.locationId===locId){ lines++; pieces+=it.qty; } } return {lines,pieces}; }
 
 function renderExplorer(){
   const board=document.getElementById("board");
