@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Store Admin — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#05130F;--lacquer:#0A2A22;--lacquer-hi:#0E3B30;--board:#0E4F44;
+    --gold:#CBA54B;--gold-hi:#E7CD85;--cream:#F3EFE4;--cream-dim:#A7B8AF;
+    --line:rgba(203,165,75,.16);--line-2:rgba(243,239,228,.14);
+    --good:#3F9E6E;--warn:#C25B37;
+    --display:"Space Grotesk",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--mono:"IBM Plex Mono",monospace;
+    --spring:cubic-bezier(.34,1.4,.44,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--void);color:var(--cream);font-family:var(--body);-webkit-font-smoothing:antialiased;line-height:1.55}
+  button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+  img{display:block;max-width:100%}
+  .mono{font-family:var(--mono)}
+  .wrap{max-width:920px;margin:0 auto;padding:0 18px 80px}
+
+  header{background:linear-gradient(90deg,#0A2A22,#0E4F44,#0A2A22);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:20}
+  .hin{max-width:920px;margin:0 auto;padding:15px 18px;display:flex;align-items:center;gap:12px}
+  .hin .t{font-family:var(--display);font-weight:700;font-size:18px;margin-right:auto}
+  .hin .t span{color:var(--gold)}
+  .who{font-family:var(--mono);font-size:11px;color:var(--cream-dim)}
+  .btn{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px;padding:10px 15px;border-radius:9px;transition:.16s var(--spring)}
+  .btn:active{transform:scale(.96)}
+  .btn.gold{background:linear-gradient(135deg,var(--gold-hi),var(--gold));color:#1c1503}
+  .btn.ghost{border:1px solid var(--line-2);color:var(--cream)}
+  .btn.small{padding:7px 11px;font-size:12px}
+  .btn.danger{color:#ff9d7a}
+
+  /* sign-in gate */
+  .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .gbox{background:linear-gradient(150deg,var(--lacquer-hi),var(--lacquer));border:1px solid var(--line);border-radius:18px;padding:30px;width:min(400px,100%);border-top:4px solid var(--gold)}
+  .gbox h1{font-family:var(--display);font-size:21px;font-weight:700;margin-bottom:6px}
+  .gbox p{color:var(--cream-dim);font-size:13.5px;margin-bottom:20px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:6px}
+  .inp{width:100%;font-family:inherit;font-size:15px;padding:12px 13px;border-radius:10px;background:var(--void);border:1.5px solid var(--line-2);color:var(--cream);outline:none;transition:border-color .2s,box-shadow .2s}
+  .inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(203,165,75,.14)}
+  select.inp{appearance:none}
+  .err{color:#ff9d7a;font-size:12.5px;margin-top:8px;min-height:16px}
+
+  /* app body */
+  .app{display:none}
+  .app.on{display:block}
+  .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:18px 0}
+  .kpi{background:var(--lacquer);border:1px solid var(--line);border-radius:13px;padding:14px}
+  .kpi .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+  .kpi .v{font-family:var(--display);font-size:22px;font-weight:700;margin-top:4px}
+
+  .panel{background:var(--lacquer);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .panel h2{font-family:var(--display);font-size:16px;font-weight:600;margin-bottom:4px}
+  .panel .hint{font-size:12.5px;color:var(--cream-dim);margin-bottom:16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){ .two{grid-template-columns:1fr} .kpis{grid-template-columns:1fr 1fr} }
+
+  .drop{border:1.5px dashed var(--line-2);border-radius:12px;padding:16px;text-align:center;color:var(--cream-dim);font-size:13px;cursor:pointer;transition:border-color .2s,background .2s}
+  .drop:hover{border-color:var(--gold);background:rgba(203,165,75,.05)}
+  .drop.has{border-style:solid;border-color:var(--gold);padding:8px}
+  .drop img{border-radius:8px;max-height:150px;margin:0 auto}
+  .drop .rm{margin-top:8px;color:#ff9d7a;font-size:12px}
+
+  .list{margin-top:6px}
+  .prod{display:flex;align-items:center;gap:13px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:9px;background:var(--void)}
+  .prod .pic{width:52px;height:52px;border-radius:9px;object-fit:cover;flex:none;background:var(--lacquer-hi);display:grid;place-items:center;color:var(--cream-dim);font-size:10px;font-family:var(--mono)}
+  .prod .m{flex:1;min-width:0}
+  .prod .nm{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prod .meta{font-size:12px;color:var(--cream-dim);margin-top:2px}
+  .prod .cat{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;background:rgba(203,165,75,.14);color:var(--gold);padding:2px 7px;border-radius:20px;margin-right:6px}
+  .prod .pr{font-family:var(--mono);font-weight:600;color:var(--gold-hi)}
+  .prod .acts{display:flex;gap:6px;flex:none}
+  .empty{padding:36px 16px;text-align:center;color:var(--cream-dim);font-size:14px}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#0A2A22;border:1px solid var(--gold);color:var(--cream);font-size:13.5px;font-weight:500;padding:11px 18px;border-radius:11px;z-index:60;opacity:0;transition:.25s;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .status{font-family:var(--mono);font-size:11px;color:var(--cream-dim);text-align:center;margin-top:14px}
+</style>
+</head>
+<body>
+
+<!-- ── SIGN-IN GATE ── -->
+<div class="gate" id="gate">
+  <div class="gbox">
+    <h1>Store Admin</h1>
+    <p>Owner sign-in. This panel adds products to your public website.</p>
+    <div class="field"><label>Email</label><input class="inp" id="g-email" type="email" autocomplete="username" placeholder="you@gmail.com"></div>
+    <div class="field"><label>Password</label><input class="inp" id="g-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn gold" id="g-go" style="width:100%;justify-content:center;margin-top:6px">Sign in</button>
+    <div class="err" id="g-err"></div>
+  </div>
+</div>
+
+<!-- ── ADMIN APP ── -->
+<div class="app" id="app">
+  <header><div class="hin">
+    <div class="t">Store <span>Admin</span></div>
+    <div class="who" id="who"></div>
+    <button class="btn ghost small" id="out">Sign out</button>
+  </div></header>
+
+  <div class="wrap">
+    <div class="kpis">
+      <div class="kpi"><div class="l">Products</div><div class="v" id="k-count">0</div></div>
+      <div class="kpi"><div class="l">Categories</div><div class="v" id="k-cats">0</div></div>
+      <div class="kpi"><div class="l">With photo</div><div class="v" id="k-pics">0</div></div>
+    </div>
+
+    <div class="panel">
+      <h2 id="formTitle">Add a product</h2>
+      <div class="hint">It appears on your website for all customers as soon as you save.</div>
+      <div class="two">
+        <div class="field"><label>Product name *</label><input class="inp" id="f-name" placeholder="e.g. TCON 6870C-0532A"></div>
+        <div class="field"><label>Price (Rs) *</label><input class="inp mono" id="f-price" inputmode="numeric" placeholder="e.g. 1800"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label>Category *</label>
+          <select class="inp" id="f-cat">
+            <option value="T-CON boards">T-CON boards</option>
+            <option value="COF / TAB IC">COF / TAB IC</option>
+            <option value="Scaler / Mainboard">Scaler / Mainboard</option>
+            <option value="LVDS / FFC Cables">LVDS / FFC Cables</option>
+            <option value="ACF Tape">ACF Tape</option>
+            <option value="Bonding machines">Bonding machines</option>
+            <option value="Panel PCBs">Panel PCBs</option>
+            <option value="Other parts">Other parts</option>
+          </select>
+        </div>
+        <div class="field"><label>Note (optional)</label><input class="inp" id="f-note" placeholder="e.g. original, 43 inch"></div>
+      </div>
+      <div class="field">
+        <label>Picture (optional)</label>
+        <div class="drop" id="drop">
+          <div id="dropText">Tap to add a photo — or leave empty</div>
+          <input type="file" id="f-file" accept="image/*" style="display:none">
+        </div>
+      </div>
+      <div style="display:flex;gap:9px;margin-top:6px">
+        <button class="btn gold" id="save">Add product</button>
+        <button class="btn ghost" id="cancel" style="display:none">Cancel edit</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Your products <span class="mono" style="color:var(--cream-dim);font-size:13px" id="listCount"></span></h2>
+      <div class="hint">Tap edit to change price or details. Delete removes it from the website.</div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="status" id="status">Connecting…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+/* ===== Firebase (same project as your app) ===== */
+var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",
+        projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
+        messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
+/* Only these emails may manage products (owner). */
+var OWNER_EMAILS=["shakeelelectronics10112@gmail.com"];
+
+firebase.initializeApp(FB);
+var auth=firebase.auth(), db=firebase.firestore();
+/* products live in one public document the website reads */
+function docRef(){ return db.collection("shops").doc("main").collection("apps").doc("store"); }
+
+var gate=document.getElementById("gate"), app=document.getElementById("app");
+var products=[], editingId=null, pendingImg="";
+
+/* ---------- toast ---------- */
+var tt=null;
+function toast(m){ var t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(function(){t.classList.remove("show");},2000); }
+function status(m){ var s=document.getElementById("status"); if(s) s.textContent=m; }
+
+/* ---------- auth ---------- */
+document.getElementById("g-go").onclick=signIn;
+document.getElementById("g-pass").addEventListener("keydown",function(e){ if(e.key==="Enter") signIn(); });
+function signIn(){
+  var em=document.getElementById("g-email").value.trim().toLowerCase();
+  var pw=document.getElementById("g-pass").value;
+  document.getElementById("g-err").textContent="";
+  if(OWNER_EMAILS.indexOf(em)<0){ document.getElementById("g-err").textContent="This account is not the store owner."; return; }
+  auth.signInWithEmailAndPassword(em,pw).catch(function(e){
+    document.getElementById("g-err").textContent = (e && e.code==="auth/wrong-password") ? "Wrong password." :
+      (e && e.code==="auth/user-not-found") ? "No such account." : "Sign-in failed. Check email and password.";
+  });
+}
+document.getElementById("out").onclick=function(){ auth.signOut(); };
+
+auth.onAuthStateChanged(function(u){
+  if(u && OWNER_EMAILS.indexOf((u.email||"").toLowerCase())>=0){
+    gate.style.display="none"; app.classList.add("on");
+    document.getElementById("who").textContent=u.email;
+    watch();
+  } else {
+    if(u) auth.signOut();
+    app.classList.remove("on"); gate.style.display="flex";
+  }
+});
+
+/* ---------- live products ---------- */
+function watch(){
+  status("Connecting…");
+  docRef().onSnapshot(function(s){
+    var d=s.exists ? s.data() : null;
+    products = (d && Array.isArray(d.products)) ? d.products : [];
+    render();
+    status("☁ Live — synced to your website");
+  }, function(){ status("☁ Offline — check your connection"); });
+}
+
+function save(){
+  status("Saving…");
+  return docRef().set({products:products, updatedAt:Date.now()}, {merge:true});
+}
+
+/* ---------- image picker ---------- */
+var drop=document.getElementById("drop"), fileInp=document.getElementById("f-file");
+drop.onclick=function(){ fileInp.click(); };
+fileInp.addEventListener("change",function(e){
+  var f=e.target.files[0]; if(!f) return;
+  compress(f, function(dataUrl){ pendingImg=dataUrl; showDrop(); });
+});
+function showDrop(){
+  if(pendingImg){
+    drop.classList.add("has");
+    drop.innerHTML='<img src="'+pendingImg+'"><div class="rm" id="rmImg">Remove photo</div>';
+    document.getElementById("rmImg").onclick=function(ev){ ev.stopPropagation(); pendingImg=""; resetDrop(); };
+  } else resetDrop();
+}
+function resetDrop(){
+  drop.classList.remove("has");
+  drop.innerHTML='<div id="dropText">Tap to add a photo — or leave empty</div><input type="file" id="f-file" accept="image/*" style="display:none">';
+  fileInp=drop.querySelector("#f-file");
+  fileInp.addEventListener("change",function(e){ var f=e.target.files[0]; if(!f) return; compress(f,function(u){ pendingImg=u; showDrop(); }); });
+}
+/* shrink to <=900px, JPEG ~0.7, so it stays small in the cloud doc */
+function compress(file, cb){
+  var img=new Image(), url=URL.createObjectURL(file);
+  img.onload=function(){
+    var max=900, w=img.width, h=img.height;
+    if(w>h && w>max){ h=Math.round(h*max/w); w=max; }
+    else if(h>=w && h>max){ w=Math.round(w*max/h); h=max; }
+    var cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    cb(cv.toDataURL("image/jpeg",0.7));
+  };
+  img.onerror=function(){ toast("Couldn't read that image"); };
+  img.src=url;
+}
+
+/* ---------- add / edit ---------- */
+document.getElementById("save").onclick=function(){
+  var name=document.getElementById("f-name").value.trim();
+  var price=parseInt((document.getElementById("f-price").value||"").replace(/[^\d]/g,""),10);
+  var cat=document.getElementById("f-cat").value;
+  var note=document.getElementById("f-note").value.trim();
+  if(!name){ toast("Enter a product name"); return; }
+  if(!(price>0)){ toast("Enter a price"); return; }
+
+  if(editingId){
+    var p=products.find(function(x){return x.id===editingId;});
+    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.img=pendingImg; }
+  } else {
+    products.unshift({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      name:name, price:price, cat:cat, note:note, img:pendingImg, createdAt:Date.now() });
+  }
+  save().then(function(){ toast(editingId?"Product updated":"Product added — live on your site"); clearForm(); })
+        .catch(function(){ toast("Save failed — try again"); status("Save failed"); });
+};
+document.getElementById("cancel").onclick=clearForm;
+function clearForm(){
+  editingId=null; pendingImg="";
+  document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
+  document.getElementById("f-note").value=""; document.getElementById("f-cat").selectedIndex=0;
+  resetDrop();
+  document.getElementById("formTitle").textContent="Add a product";
+  document.getElementById("save").textContent="Add product";
+  document.getElementById("cancel").style.display="none";
+}
+function edit(id){
+  var p=products.find(function(x){return x.id===id;}); if(!p) return;
+  editingId=id; pendingImg=p.img||"";
+  document.getElementById("f-name").value=p.name||"";
+  document.getElementById("f-price").value=p.price||"";
+  document.getElementById("f-note").value=p.note||"";
+  document.getElementById("f-cat").value=p.cat||"Other parts";
+  showDrop();
+  document.getElementById("formTitle").textContent="Edit product";
+  document.getElementById("save").textContent="Save changes";
+  document.getElementById("cancel").style.display="";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function del(id){
+  var p=products.find(function(x){return x.id===id;}); if(!p) return;
+  if(!confirm('Remove "'+p.name+'" from the website?')) return;
+  products=products.filter(function(x){return x.id!==id;});
+  save().then(function(){ toast("Removed"); if(editingId===id) clearForm(); })
+        .catch(function(){ toast("Delete failed"); });
+}
+
+/* ---------- render list ---------- */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function render(){
+  document.getElementById("k-count").textContent=products.length;
+  document.getElementById("k-cats").textContent=new Set(products.map(function(p){return p.cat;})).size;
+  document.getElementById("k-pics").textContent=products.filter(function(p){return p.img;}).length;
+  document.getElementById("listCount").textContent=products.length?("· "+products.length):"";
+  var el=document.getElementById("list");
+  if(!products.length){ el.innerHTML='<div class="empty">No products yet. Add your first one above — it shows on your website instantly.</div>'; return; }
+  el.innerHTML=products.map(function(p){
+    return '<div class="prod">'
+      + (p.img ? '<img class="pic" src="'+p.img+'" alt="">' : '<div class="pic">no photo</div>')
+      + '<div class="m"><div class="nm">'+esc(p.name)+'</div>'
+      + '<div class="meta"><span class="cat">'+esc(p.cat)+'</span>'+(p.note?esc(p.note)+' · ':'')+'<span class="pr">Rs '+Number(p.price).toLocaleString()+'</span></div></div>'
+      + '<div class="acts"><button class="btn ghost small" data-edit="'+p.id+'">Edit</button>'
+      + '<button class="btn small danger" data-del="'+p.id+'">Delete</button></div></div>';
+  }).join("");
+  el.querySelectorAll("[data-edit]").forEach(function(b){ b.onclick=function(){ edit(b.dataset.edit); }; });
+  el.querySelectorAll("[data-del]").forEach(function(b){ b.onclick=function(){ del(b.dataset.del); }; });
+}
+</script>
+</body>
+</html>
