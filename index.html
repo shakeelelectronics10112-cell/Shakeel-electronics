@@ -411,6 +411,7 @@
     <div class="btag">Faisalabad</div>
   </div>
   <div class="tb-actions">
+    <button class="install" id="webBtn" title="Open my public website" style="background:linear-gradient(135deg,#12594B,#0A3E35)">🌐 Website</button>
     <button class="install" id="installBtn">⬇ Install</button>
     <button class="iconbtn" id="outBtn" title="Sign out">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -532,7 +533,7 @@
 </nav>
 
 <script>
-var V = "43";  // cache-buster: bump when you upload new app files
+var V = "44";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -559,6 +560,8 @@ document.getElementById("nav").addEventListener("click", function(e){
 });
 var _os=document.getElementById("openStore");
 if(_os) _os.addEventListener("click",function(){ window.open("store.html","_blank","noopener"); });
+var _wb=document.getElementById("webBtn");
+if(_wb) _wb.addEventListener("click",function(){ window.open("store.html","_blank","noopener"); });
 document.querySelectorAll("[data-go]").forEach(function(el){
   el.addEventListener("click", function(){
     var t = el.dataset.go;

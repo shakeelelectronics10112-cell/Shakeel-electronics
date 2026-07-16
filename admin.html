@@ -112,6 +112,30 @@
     </div>
 
     <div class="panel">
+      <h2>Daily offer banner</h2>
+      <div class="hint">Shows a coloured strip at the top of your website. Leave text empty to hide it.</div>
+      <div class="field"><label>Offer text</label><input class="inp" id="o-text" placeholder="e.g. 🔥 SATURDAY OFFER — 10% off all ACF tape today!"></div>
+      <div class="two">
+        <div class="field"><label>Show only on</label>
+          <select class="inp" id="o-day">
+            <option value="all">Every day (until I change it)</option>
+            <option value="6">Saturday only</option>
+            <option value="0">Sunday only</option>
+            <option value="1">Monday only</option>
+            <option value="2">Tuesday only</option>
+            <option value="3">Wednesday only</option>
+            <option value="4">Thursday only</option>
+            <option value="5">Friday only</option>
+          </select>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <button class="btn gold" id="o-save" style="width:100%;justify-content:center">Save offer</button>
+        </div>
+      </div>
+      <div class="hint" id="o-status" style="margin-top:2px"></div>
+    </div>
+
+    <div class="panel">
       <h2 id="formTitle">Add a product</h2>
       <div class="hint">It appears on your website for all customers as soon as you save.</div>
       <div class="two">
@@ -131,8 +155,9 @@
             <option value="Other parts">Other parts</option>
           </select>
         </div>
-        <div class="field"><label>Note (optional)</label><input class="inp" id="f-note" placeholder="e.g. original, 43 inch"></div>
+        <div class="field"><label>MOQ — min order qty (optional)</label><input class="inp mono" id="f-moq" inputmode="numeric" placeholder="e.g. 10"></div>
       </div>
+      <div class="field"><label>Note (optional)</label><input class="inp" id="f-note" placeholder="e.g. original, 43 inch"></div>
       <div class="field">
         <label>Picture (optional)</label>
         <div class="drop" id="drop">
@@ -214,6 +239,11 @@ function watch(){
   docRef().onSnapshot(function(s){
     var d=s.exists ? s.data() : null;
     products = (d && Array.isArray(d.products)) ? d.products : [];
+    var off=(d&&d.offer)?d.offer:{text:"",day:"all"};
+    if(document.activeElement!==document.getElementById("o-text")){
+      document.getElementById("o-text").value=off.text||"";
+      document.getElementById("o-day").value=off.day||"all";
+    }
     render();
     status("☁ Live — synced to your website");
   }, function(){ status("☁ Offline — check your connection"); });
@@ -223,6 +253,14 @@ function save(){
   status("Saving…");
   return docRef().set({products:products, updatedAt:Date.now()}, {merge:true});
 }
+
+document.getElementById("o-save").onclick=function(){
+  var text=document.getElementById("o-text").value.trim();
+  var day=document.getElementById("o-day").value;
+  docRef().set({offer:{text:text,day:day,updatedAt:Date.now()}},{merge:true})
+    .then(function(){ document.getElementById("o-status").textContent=text?"✓ Offer is live on your website":"Offer hidden"; toast("Offer saved"); })
+    .catch(function(){ toast("Save failed — try again"); });
+};
 
 /* ---------- image picker ---------- */
 var drop=document.getElementById("drop"), fileInp=document.getElementById("f-file");
@@ -266,15 +304,16 @@ document.getElementById("save").onclick=function(){
   var price=parseInt((document.getElementById("f-price").value||"").replace(/[^\d]/g,""),10);
   var cat=document.getElementById("f-cat").value;
   var note=document.getElementById("f-note").value.trim();
+  var moq=parseInt((document.getElementById("f-moq").value||"").replace(/[^\d]/g,""),10)||0;
   if(!name){ toast("Enter a product name"); return; }
   if(!(price>0)){ toast("Enter a price"); return; }
 
   if(editingId){
     var p=products.find(function(x){return x.id===editingId;});
-    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.img=pendingImg; }
+    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=pendingImg; }
   } else {
     products.unshift({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      name:name, price:price, cat:cat, note:note, img:pendingImg, createdAt:Date.now() });
+      name:name, price:price, cat:cat, note:note, moq:moq, img:pendingImg, createdAt:Date.now() });
   }
   save().then(function(){ toast(editingId?"Product updated":"Product added — live on your site"); clearForm(); })
         .catch(function(){ toast("Save failed — try again"); status("Save failed"); });
@@ -283,7 +322,7 @@ document.getElementById("cancel").onclick=clearForm;
 function clearForm(){
   editingId=null; pendingImg="";
   document.getElementById("f-name").value=""; document.getElementById("f-price").value="";
-  document.getElementById("f-note").value=""; document.getElementById("f-cat").selectedIndex=0;
+  document.getElementById("f-note").value=""; document.getElementById("f-moq").value=""; document.getElementById("f-cat").selectedIndex=0;
   resetDrop();
   document.getElementById("formTitle").textContent="Add a product";
   document.getElementById("save").textContent="Add product";
@@ -295,6 +334,7 @@ function edit(id){
   document.getElementById("f-name").value=p.name||"";
   document.getElementById("f-price").value=p.price||"";
   document.getElementById("f-note").value=p.note||"";
+  document.getElementById("f-moq").value=p.moq||"";
   document.getElementById("f-cat").value=p.cat||"Other parts";
   showDrop();
   document.getElementById("formTitle").textContent="Edit product";
@@ -323,7 +363,7 @@ function render(){
     return '<div class="prod">'
       + (p.img ? '<img class="pic" src="'+p.img+'" alt="">' : '<div class="pic">no photo</div>')
       + '<div class="m"><div class="nm">'+esc(p.name)+'</div>'
-      + '<div class="meta"><span class="cat">'+esc(p.cat)+'</span>'+(p.note?esc(p.note)+' · ':'')+'<span class="pr">Rs '+Number(p.price).toLocaleString()+'</span></div></div>'
+      + '<div class="meta"><span class="cat">'+esc(p.cat)+'</span>'+(p.note?esc(p.note)+' · ':'')+(p.moq?'MOQ '+p.moq+' · ':'')+'<span class="pr">Rs '+Number(p.price).toLocaleString()+'</span></div></div>'
       + '<div class="acts"><button class="btn ghost small" data-edit="'+p.id+'">Edit</button>'
       + '<button class="btn small danger" data-del="'+p.id+'">Delete</button></div></div>';
   }).join("");

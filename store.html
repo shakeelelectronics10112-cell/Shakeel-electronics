@@ -54,6 +54,16 @@
   .eyebrow::before{content:"";width:26px;height:1px;background:var(--gold);opacity:.6}
 
 
+  /* ═══ DAILY OFFER BANNER ═══ */
+  .offer-bar{display:none;position:relative;z-index:80;background:linear-gradient(90deg,#C25B37,#E7CD85,#C25B37);
+    background-size:200% 100%;animation:offerShine 6s linear infinite;color:#1c1503;text-align:center;
+    font-weight:700;font-size:13.5px;letter-spacing:.01em;padding:9px 40px;line-height:1.35}
+  .offer-bar.on{display:block}
+  .offer-bar .x{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;cursor:pointer;opacity:.7;color:#1c1503}
+  .offer-bar .x:hover{opacity:1}
+  @keyframes offerShine{0%{background-position:0 0}100%{background-position:200% 0}}
+  @media(prefers-reduced-motion:reduce){ .offer-bar{animation:none} }
+
   /* ═══ STOCK TICKER — runs across the very top ═══ */
   .ticker{position:relative;z-index:70;background:linear-gradient(90deg,#0A2A22,#0E4F44,#0A2A22);
     border-bottom:1px solid var(--hair);overflow:hidden;height:38px;display:flex;align-items:center}
@@ -276,6 +286,37 @@
   .cat-filter button.on{background:var(--gold);color:#1c1503;border-color:var(--gold);font-weight:600}
   .cat-empty{padding:40px 16px;text-align:center;color:var(--cream-dim);font-size:14.5px;border:1px dashed var(--hair);border-radius:14px}
 
+  /* ═══ PRODUCT MODAL (full picture + price + WhatsApp) ═══ */
+  .pm-scrim{position:fixed;inset:0;z-index:200;background:rgba(2,10,8,.82);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:18px;opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+  .pm-scrim.on{opacity:1;pointer-events:auto}
+  .pm{background:var(--lacquer);border:1px solid var(--hair);border-radius:20px;overflow:hidden;
+    width:min(560px,100%);max-height:92vh;overflow-y:auto;transform:translateY(16px) scale(.97);opacity:0;
+    transition:transform .32s var(--ease),opacity .32s var(--ease);box-shadow:0 40px 100px rgba(0,0,0,.6)}
+  .pm-scrim.on .pm{transform:none;opacity:1}
+  .pm-img{width:100%;aspect-ratio:4/3;background:var(--lacquer-hi);position:relative;display:grid;place-items:center}
+  .pm-img img{width:100%;height:100%;object-fit:contain;background:#0b241d}
+  .pm-img.none svg{width:64px;height:64px;stroke:var(--hair);fill:none;stroke-width:1.2}
+  .pm-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;
+    background:rgba(5,19,15,.7);backdrop-filter:blur(6px);border:1px solid var(--hair);color:var(--cream);
+    display:grid;place-items:center;font-size:20px;z-index:3;transition:background .2s}
+  .pm-close:hover{background:rgba(5,19,15,.95)}
+  .pm-cat{position:absolute;top:12px;left:12px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+    text-transform:uppercase;background:rgba(5,19,15,.72);color:var(--gold);padding:5px 11px;border-radius:20px;backdrop-filter:blur(4px)}
+  .pm-body{padding:22px 24px 24px}
+  .pm-body h3{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.15;letter-spacing:-.01em}
+  .pm-note{color:var(--cream-dim);font-size:14.5px;margin-top:8px}
+  .pm-facts{display:flex;gap:26px;margin-top:20px;padding-top:18px;border-top:1px solid var(--hair);flex-wrap:wrap}
+  .pm-fact .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+  .pm-fact .v{font-family:var(--display);font-weight:700;font-size:24px;margin-top:4px}
+  .pm-fact .v.price{color:var(--gold-hi)}
+  .pm-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:24px;
+    background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-weight:700;font-size:16px;
+    padding:16px;border-radius:12px;transition:transform .2s var(--ease),box-shadow .2s;box-shadow:0 10px 26px rgba(18,140,126,.34)}
+  .pm-wa:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(18,140,126,.46)}
+  .pm-wa svg{width:22px;height:22px;fill:currentColor}
+  .pcard{cursor:pointer}
+
   /* process — a real sequence */
   #how{background:var(--void)}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--hair);border-radius:16px;overflow:hidden}
@@ -321,6 +362,7 @@
 </style>
 </head>
 <body>
+<div class="offer-bar" id="offerBar"><span id="offerText"></span><span class="x" id="offerX">×</span></div>
 <div class="ticker" aria-label="In-stock parts">
   <span class="tag">In stock</span>
   <div class="ticker-track"><span class="ticker-item">15Y-65-FU11</span><span class="ticker-item">2056 25*2.0</span><span class="ticker-item">32T21-C06 DIRECT PLUG IN</span><span class="ticker-item">32T21-C06 SOFT INTERFACE</span><span class="ticker-item">37T03-C01</span><span class="ticker-item">43T01-C09 ORIGNAL</span><span class="ticker-item">46T03-C09 40"</span><span class="ticker-item">4K 60HZ TO 120 HZ</span><span class="ticker-item">4K SONY CRACK</span><span class="ticker-item">5253-BCBS1</span><span class="ticker-item">55T23-C08 55"</span><span class="ticker-item">55T23-S1D</span><span class="ticker-item">55T32-C0F 43" 4K</span><span class="ticker-item">6870-0442B</span><span class="ticker-item">6870-0532b 55"</span><span class="ticker-item">6870-0805A</span><span class="ticker-item">6870C-0452A</span><span class="ticker-item">BC205</span><span class="ticker-item">BC562 CUT</span><span class="ticker-item">BN41-02111 40"</span><span class="ticker-item">C024BA/OFP</span><span class="ticker-item">C028CA</span><span class="ticker-item">C02R9A</span><span class="ticker-item">C02U8A</span><span class="ticker-item">C0845A/FL12XR</span><span class="ticker-item">C320AN02S4LV0.1</span><span class="ticker-item">C5202A</span><span class="ticker-item">C6596A</span><span class="ticker-item">C6811A</span><span class="ticker-item">CC430PV2D</span><span class="ticker-item">CC500PV6D 2K</span><span class="ticker-item">CSC02-1 (ST6451D03-1)</span><span class="ticker-item">CV315PW07</span><span class="ticker-item">CV500U2-L02 4K</span><span class="ticker-item">CV500U5-T02</span><span class="ticker-item">DCBDP-C260A-07</span><span class="ticker-item">EK77527-L170B</span><span class="ticker-item">EQ0E5</span><span class="ticker-item">F04</span><span class="ticker-item">FL15X</span><span class="ticker-item">GSD-A-0013</span><span class="ticker-item">HC502</span><span class="ticker-item">HI3221V300R305</span><span class="ticker-item">HV430FHB-F20</span><span class="ticker-item">HV550FHB-N20 2K</span><span class="ticker-item">HV550QUB-F1L 4K</span><span class="ticker-item">I070A</span><span class="ticker-item">InX IN8908A</span><span class="ticker-item">JE415D3HA0L</span><span class="ticker-item">L112B</span><span class="ticker-item">L166A</span><span class="ticker-item">MI 4K MOTHERBOARD</span><span class="ticker-item">MI REMOTE CONTROL</span><span class="ticker-item">MT3214B-VC</span><span class="ticker-item">MT3725VB</span><span class="ticker-item">ODB</span><span class="ticker-item">PANDA385</span><span class="ticker-item">PT320AT01-1-XC-3 V1.9</span><span class="ticker-item">PT320AT02-2-XC-1</span><span class="ticker-item">PT320CT01-1</span><span class="ticker-item">PT430ct02-7</span><span class="ticker-item">PT500GT01-1-XR-3</span><span class="ticker-item">QK-51PIN-A2 20CM</span><span class="ticker-item">QK-60PIN-B</span><span class="ticker-item">QK-68P-D 10CM</span><span class="ticker-item">QK-80PIN-B 10CM</span><span class="ticker-item">QK4KTO2K</span><span class="ticker-item">QK6OPIN- F 10CM</span><span class="ticker-item">QUARTZ GLASS</span><span class="ticker-item">RDJSPKF1</span><span class="ticker-item">S085A</span><span class="ticker-item">S100FAPC2LV0.3</span><span class="ticker-item">S6c27A9-58</span><span class="ticker-item">SHARP TCON 10 COF</span><span class="ticker-item">SONY TAPE 1.5*25</span><span class="ticker-item">ST5461D13-2</span><span class="ticker-item">St645Ad12-1</span><span class="ticker-item">Sw98109-C3L CUT</span><span class="ticker-item">T-0008</span><span class="ticker-item">TAPE9312-01-1A</span><span class="ticker-item">TCL 200MM CABEL</span><span class="ticker-item">Td-0006 (St5461d12-5)</span><span class="ticker-item">TD-000L (ST4251D02-1)</span><span class="ticker-item">TT4851B01-5-C-1</span><span class="ticker-item">V315B3-C04</span><span class="ticker-item">V400DJ5-QS1-C1 SX</span><span class="ticker-item">V400HJ6-PE1-C3 CHINA</span><span class="ticker-item">V400HJ9-PE1-C4</span><span class="ticker-item">V580DK2-PS1 V3.4</span><span class="ticker-item">15Y-65-FU11</span><span class="ticker-item">2056 25*2.0</span><span class="ticker-item">32T21-C06 DIRECT PLUG IN</span><span class="ticker-item">32T21-C06 SOFT INTERFACE</span><span class="ticker-item">37T03-C01</span><span class="ticker-item">43T01-C09 ORIGNAL</span><span class="ticker-item">46T03-C09 40"</span><span class="ticker-item">4K 60HZ TO 120 HZ</span><span class="ticker-item">4K SONY CRACK</span><span class="ticker-item">5253-BCBS1</span><span class="ticker-item">55T23-C08 55"</span><span class="ticker-item">55T23-S1D</span><span class="ticker-item">55T32-C0F 43" 4K</span><span class="ticker-item">6870-0442B</span><span class="ticker-item">6870-0532b 55"</span><span class="ticker-item">6870-0805A</span><span class="ticker-item">6870C-0452A</span><span class="ticker-item">BC205</span><span class="ticker-item">BC562 CUT</span><span class="ticker-item">BN41-02111 40"</span><span class="ticker-item">C024BA/OFP</span><span class="ticker-item">C028CA</span><span class="ticker-item">C02R9A</span><span class="ticker-item">C02U8A</span><span class="ticker-item">C0845A/FL12XR</span><span class="ticker-item">C320AN02S4LV0.1</span><span class="ticker-item">C5202A</span><span class="ticker-item">C6596A</span><span class="ticker-item">C6811A</span><span class="ticker-item">CC430PV2D</span><span class="ticker-item">CC500PV6D 2K</span><span class="ticker-item">CSC02-1 (ST6451D03-1)</span><span class="ticker-item">CV315PW07</span><span class="ticker-item">CV500U2-L02 4K</span><span class="ticker-item">CV500U5-T02</span><span class="ticker-item">DCBDP-C260A-07</span><span class="ticker-item">EK77527-L170B</span><span class="ticker-item">EQ0E5</span><span class="ticker-item">F04</span><span class="ticker-item">FL15X</span><span class="ticker-item">GSD-A-0013</span><span class="ticker-item">HC502</span><span class="ticker-item">HI3221V300R305</span><span class="ticker-item">HV430FHB-F20</span><span class="ticker-item">HV550FHB-N20 2K</span><span class="ticker-item">HV550QUB-F1L 4K</span><span class="ticker-item">I070A</span><span class="ticker-item">InX IN8908A</span><span class="ticker-item">JE415D3HA0L</span><span class="ticker-item">L112B</span><span class="ticker-item">L166A</span><span class="ticker-item">MI 4K MOTHERBOARD</span><span class="ticker-item">MI REMOTE CONTROL</span><span class="ticker-item">MT3214B-VC</span><span class="ticker-item">MT3725VB</span><span class="ticker-item">ODB</span><span class="ticker-item">PANDA385</span><span class="ticker-item">PT320AT01-1-XC-3 V1.9</span><span class="ticker-item">PT320AT02-2-XC-1</span><span class="ticker-item">PT320CT01-1</span><span class="ticker-item">PT430ct02-7</span><span class="ticker-item">PT500GT01-1-XR-3</span><span class="ticker-item">QK-51PIN-A2 20CM</span><span class="ticker-item">QK-60PIN-B</span><span class="ticker-item">QK-68P-D 10CM</span><span class="ticker-item">QK-80PIN-B 10CM</span><span class="ticker-item">QK4KTO2K</span><span class="ticker-item">QK6OPIN- F 10CM</span><span class="ticker-item">QUARTZ GLASS</span><span class="ticker-item">RDJSPKF1</span><span class="ticker-item">S085A</span><span class="ticker-item">S100FAPC2LV0.3</span><span class="ticker-item">S6c27A9-58</span><span class="ticker-item">SHARP TCON 10 COF</span><span class="ticker-item">SONY TAPE 1.5*25</span><span class="ticker-item">ST5461D13-2</span><span class="ticker-item">St645Ad12-1</span><span class="ticker-item">Sw98109-C3L CUT</span><span class="ticker-item">T-0008</span><span class="ticker-item">TAPE9312-01-1A</span><span class="ticker-item">TCL 200MM CABEL</span><span class="ticker-item">Td-0006 (St5461d12-5)</span><span class="ticker-item">TD-000L (ST4251D02-1)</span><span class="ticker-item">TT4851B01-5-C-1</span><span class="ticker-item">V315B3-C04</span><span class="ticker-item">V400DJ5-QS1-C1 SX</span><span class="ticker-item">V400HJ6-PE1-C3 CHINA</span><span class="ticker-item">V400HJ9-PE1-C4</span><span class="ticker-item">V580DK2-PS1 V3.4</span></div>
@@ -488,6 +530,24 @@
       </div>
     </div>
   </section>
+
+  <!-- PRODUCT MODAL -->
+  <div class="pm-scrim" id="pmScrim">
+    <div class="pm" id="pmCard" role="dialog" aria-modal="true">
+      <div class="pm-img" id="pmImg">
+        <button class="pm-close" id="pmClose" aria-label="Close">×</button>
+      </div>
+      <div class="pm-body">
+        <h3 id="pmName"></h3>
+        <div class="pm-note" id="pmNote"></div>
+        <div class="pm-facts" id="pmFacts"></div>
+        <a class="pm-wa" id="pmWa" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.2 0 4.27.86 5.82 2.42a8.19 8.19 0 0 1 2.42 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 9.85c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.51.11-.11.25-.29.37-.44.13-.14.17-.24.25-.41.09-.16.04-.3-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.55-.42-.14 0-.3-.02-.47-.02-.16 0-.43.06-.66.3-.22.25-.86.85-.86 2.07 0 1.21.89 2.39 1.01 2.55.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.47-.28"/></svg>
+          <span>Order on WhatsApp</span>
+        </a>
+      </div>
+    </div>
+  </div>
 </main>
 
 <footer>
@@ -550,10 +610,13 @@ function search(){
   const hits=PARTS.filter(p=>(p.name+" "+p.ref+" "+p.keys).toLowerCase().includes(t));
   let html="";
   if(live.length){
-    html += live.map(p=>`<button class="hit" data-ask="${esc(p.name)} (Rs ${Number(p.price).toLocaleString()})">
+    html += live.map((p)=>{
+      const gi=(window.LIVE_PRODUCTS||[]).indexOf(p);
+      return `<button class="hit" data-openlive="${gi}">
         <span class="code" style="color:var(--gold-hi)">Rs</span>
-        <span class="nm">${esc(p.name)}<small>${esc(p.cat||"")}${p.note?" · "+esc(p.note):""} · Rs ${Number(p.price).toLocaleString()}</small></span>
-        <span class="go">→</span></button>`).join("");
+        <span class="nm">${esc(p.name)}<small>${esc(p.cat||"")}${p.note?" · "+esc(p.note):""}${p.moq?" · MOQ "+p.moq:""} · Rs ${Number(p.price).toLocaleString()}</small></span>
+        <span class="go">→</span></button>`;
+    }).join("");
   }
   if(hits.length){
     html += hits.map(p=>`<button class="hit" data-ask="${esc(p.name)}"><span class="code">${esc(p.ref)}</span>
@@ -567,6 +630,7 @@ function search(){
   res.innerHTML=html;
   res.classList.add("on");
   res.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>ask(b.dataset.ask));
+  res.querySelectorAll("[data-openlive]").forEach(b=>b.onclick=()=>{ const gi=+b.dataset.openlive; const p=(window.LIVE_PRODUCTS||[])[gi]; if(p&&window.openProduct) window.openProduct(p); });
 }
 window.refreshHeroSearch=function(){ if(q.value.trim()) search(); };
 q.addEventListener("input",search);
@@ -723,12 +787,54 @@ const PHOTOS = [
   var all=[], activeCat="All";
 
   var escp=function(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); };
-  var waMsg=function(p){ return "https://wa.me/"+WA+"?text="+encodeURIComponent("Assalam o Alaikum — I want this part: "+p.name+" (listed Rs "+Number(p.price).toLocaleString()+"). Is it available?"); };
+  var waMsg=function(p){ var m="Assalam o Alaikum — I want this part: "+p.name+" (listed Rs "+Number(p.price).toLocaleString()+")"; if(p.moq) m+=", MOQ "+p.moq+" pcs"; m+=". Is it available?"; return "https://wa.me/"+WA+"?text="+encodeURIComponent(m); };
 
-  db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
+  // ----- product modal -----
+  var scrim=document.getElementById("pmScrim");
+  window.openProduct=function(p){
+    if(!p) return;
+    var imgWrap=document.getElementById("pmImg");
+    var closeBtn='<button class="pm-close" id="pmClose" aria-label="Close">×</button>';
+    var catTag='<span class="pm-cat">'+escp(p.cat||"Part")+'</span>';
+    if(p.img){
+      imgWrap.className="pm-img";
+      imgWrap.innerHTML=closeBtn+catTag+'<img src="'+p.img+'" alt="'+escp(p.name)+'">';
+    } else {
+      imgWrap.className="pm-img none";
+      imgWrap.innerHTML=closeBtn+catTag+'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg>';
+    }
+    document.getElementById("pmName").textContent=p.name||"";
+    var noteEl=document.getElementById("pmNote");
+    noteEl.textContent=p.note||""; noteEl.style.display=p.note?"":"none";
+    var facts='<div class="pm-fact"><div class="k">Price</div><div class="v price">Rs '+Number(p.price).toLocaleString()+'</div></div>';
+    if(p.moq) facts+='<div class="pm-fact"><div class="k">Min order</div><div class="v">'+p.moq+' pcs</div></div>';
+    facts+='<div class="pm-fact"><div class="k">Category</div><div class="v" style="font-size:16px">'+escp(p.cat||"Part")+'</div></div>';
+    document.getElementById("pmFacts").innerHTML=facts;
+    document.getElementById("pmWa").href=waMsg(p);
+    scrim.classList.add("on");
+    document.body.style.overflow="hidden";
+    document.getElementById("pmClose").onclick=closeProduct;
+  };
+  function closeProduct(){ scrim.classList.remove("on"); document.body.style.overflow=""; }
+  scrim.addEventListener("click",function(e){ if(e.target===scrim) closeProduct(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeProduct(); });
+
+    db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
     var d=s.exists?s.data():null;
     all=(d&&Array.isArray(d.products))?d.products:[];
     window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
+    // daily offer banner
+    var off=(d&&d.offer)?d.offer:null;
+    var bar=document.getElementById("offerBar"), ot=document.getElementById("offerText");
+    if(bar&&ot){
+      var show=false;
+      if(off&&off.text){
+        var today=new Date().getDay(); // 0=Sun..6=Sat
+        show = (off.day==="all") || (String(off.day)===String(today));
+      }
+      if(show){ ot.textContent=off.text; bar.classList.add("on"); }
+      else { bar.classList.remove("on"); }
+    }
     // hide the whole section until there's at least one product
     section.style.display = all.length ? "" : "none";
     buildFilter(); renderGrid();
@@ -747,17 +853,25 @@ const PHOTOS = [
       var pic = p.img
         ? '<div class="ph"><img src="'+p.img+'" alt="'+escp(p.name)+'" loading="lazy"></div>'
         : '<div class="ph none"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg></div>';
-      return '<div class="pcard">'+pic
+      var moqLine = p.moq ? '<div class="note" style="color:var(--gold);font-family:var(--mono);font-size:11.5px">MOQ '+p.moq+' pcs</div>' : '';
+      return '<div class="pcard" data-open="'+i+'">'+pic
         + (isNew?'<span class="new-badge">New</span>':'')
         + '<span class="cat-tag">'+escp(p.cat||"Part")+'</span>'
         + '<div class="body"><div class="nm">'+escp(p.name)+'</div>'
         + (p.note?'<div class="note">'+escp(p.note)+'</div>':'<div class="note"></div>')
+        + moqLine
         + '<div class="row"><span class="price">Rs '+Number(p.price).toLocaleString()+'</span>'
-        + '<a class="ask" href="'+waMsg(p)+'" target="_blank" rel="noopener">Ask on WhatsApp</a></div>'
+        + '<span class="ask">View</span></div>'
         + '</div></div>';
     }).join("");
+    grid.querySelectorAll("[data-open]").forEach(function(c){
+      c.onclick=function(){ var idx=+c.dataset.open; openProduct(list[idx]); };
+    });
   }
 })();
+</script>
+<script>
+(function(){ var x=document.getElementById("offerX"); if(x) x.onclick=function(){ var b=document.getElementById("offerBar"); if(b) b.classList.remove("on"); }; })();
 </script>
 </body>
 </html>
