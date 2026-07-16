@@ -192,6 +192,7 @@
   .reconnect-bar .as-dot.warn{background:var(--gold)}
   .reconnect-bar:hover{background:#0d1917}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -443,6 +444,9 @@ function itemRowHTML(it, showPath){
       <button data-inc="${it.id}" title="Add one">+</button>
     </div>
     <div class="row-tools">
+      <button class="btn ghost sm" data-sticker="${it.id}" title="Print location sticker">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+      </button>
       <button class="btn ghost sm" data-move="${it.id}" title="Move to another box">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
       </button>
@@ -462,6 +466,101 @@ function wireBoard(){
   board.querySelectorAll("[data-dec]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); adjustQty(b.dataset.dec,-1); });
   board.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openItemForm(State.items.find(i=>i.id===b.dataset.edit)); });
   board.querySelectorAll("[data-move]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openMoveItem(b.dataset.move); });
+  board.querySelectorAll("[data-sticker]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); printLocationSticker(b.dataset.sticker); });
+}
+
+/* ===== 3in x 1in location sticker (TLP 2844-Z thermal, pure black & white) ===== */
+function printLocationSticker(itemId){
+  const it=State.items.find(x=>x.id===itemId); if(!it){ flash("Item not found"); return; }
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("Print engine still loading — try again"); return; }
+  // Box number = the item's box/sub-box name; item code = code, else name
+  const box=locById(it.locationId);
+  const boxNo=box?String(box.name).trim():"—";
+  const code=(it.code&&it.code.trim())?it.code.trim():it.name.trim();
+  makeStickerPDF([{boxNo:boxNo, code:code}]);
+}
+
+/* build a 3in x 1in portrait-safe sticker; large NO + code, pure black on white */
+function makeStickerPDF(rows){
+  const jsPDF=window.jspdf.jsPDF;
+  // Page is 3in wide x 1in tall. We keep it that exact size; printer feed handles the rest.
+  const W=3, H=1; // inches
+  const doc=new jsPDF({orientation:"landscape",unit:"in",format:[W,H]});
+  rows.forEach((r,idx)=>{
+    if(idx>0) doc.addPage([W,H],"landscape");
+    drawSticker(doc,r,W,H);
+  });
+  const blob=doc.output("blob");
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(!w) flash("Allow pop-ups to print the sticker");
+  toast("Sticker ready — print at 3×1 in");
+}
+
+function drawSticker(doc,r,W,H){
+  doc.setTextColor(0,0,0);
+  const pad=0.08;
+  // thin border so you can see the sticker edge (optional, pure black)
+  doc.setLineWidth(0.012); doc.setDrawColor(0,0,0);
+  doc.rect(pad*0.5,pad*0.5,W-pad,H-pad);
+
+  // "NO" small label + big box number on the left
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(11);
+  doc.text("NO", pad+0.05, pad+0.18);
+  // big box number
+  let noSize=46;
+  doc.setFontSize(noSize);
+  let noStr=String(r.boxNo);
+  // shrink if too wide for left ~1.15in column
+  let maxNoW=1.15;
+  while(doc.getTextWidth(noStr)>maxNoW && noSize>16){ noSize-=2; doc.setFontSize(noSize); }
+  doc.text(noStr, pad+0.05, H-pad-0.14);
+
+  // vertical divider
+  const divX=pad+0.05+Math.max(maxNoW,doc.getTextWidth(noStr))+0.12;
+  doc.setLineWidth(0.02);
+  doc.line(divX, pad+0.12, divX, H-pad-0.12);
+
+  // item code on the right, large, wrapped/auto-fit
+  const rightX=divX+0.12;
+  const rightW=W-pad-rightX-0.02;
+  doc.setFont("helvetica","bold");
+  let codeSize=34;
+  doc.setFontSize(codeSize);
+  let code=String(r.code);
+  // auto-fit the code onto up to 2 lines
+  function fitLines(txt,size){
+    doc.setFontSize(size);
+    const words=txt.split(/\s+/);
+    let lines=[],cur="";
+    for(const wd of words){
+      const t=cur?cur+" "+wd:wd;
+      if(doc.getTextWidth(t)<=rightW){ cur=t; }
+      else { if(cur) lines.push(cur); cur=wd; }
+    }
+    if(cur) lines.push(cur);
+    // if a single word is too long, hard-break it
+    let out=[];
+    for(const ln of lines){
+      if(doc.getTextWidth(ln)<=rightW){ out.push(ln); continue; }
+      let s=ln;
+      while(doc.getTextWidth(s)>rightW && s.length>1){ 
+        let cut=s.length-1;
+        while(cut>1 && doc.getTextWidth(s.slice(0,cut))>rightW) cut--;
+        out.push(s.slice(0,cut)); s=s.slice(cut);
+      }
+      if(s) out.push(s);
+    }
+    return out;
+  }
+  let lines=fitLines(code,codeSize);
+  while(lines.length>2 && codeSize>12){ codeSize-=2; lines=fitLines(code,codeSize); }
+  doc.setFontSize(codeSize);
+  const lineH=codeSize/72*1.02;
+  const blockH=lineH*lines.length;
+  let cy=(H-blockH)/2 + lineH*0.75;
+  lines.forEach(ln=>{ doc.text(ln, rightX, cy); cy+=lineH; });
 }
 
 function adjustQty(id, delta){
@@ -794,7 +893,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
         }
         ready=true; note("\u2601 Synced across your devices.");
       }else{ ready=true; pushNow(); }
-    }, function(){ note('\u2601 Offline \u2014 saved on this device.'); });
+    }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
   function pushNow(){
