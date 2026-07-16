@@ -259,6 +259,7 @@
   .pcard:hover .ph img{transform:scale(1.05)}
   .pcard .ph.none{display:grid;place-items:center;color:var(--cream-dim)}
   .pcard .ph.none svg{width:44px;height:44px;stroke:var(--hair);fill:none;stroke-width:1.4}
+  .pcard .new-badge{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,var(--gold-hi),var(--gold));color:#1c1503;font-weight:700;padding:4px 9px;border-radius:20px;z-index:2;box-shadow:0 4px 12px rgba(203,165,75,.4)}
   .pcard .cat-tag{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;
     text-transform:uppercase;background:rgba(5,19,15,.72);color:var(--gold);padding:4px 9px;border-radius:20px;backdrop-filter:blur(4px)}
   .pcard .body{padding:14px 15px 15px;display:flex;flex-direction:column;flex:1}
@@ -387,6 +388,19 @@
     <div class="cue"><span>SCROLL</span><span class="ln"></span></div>
   </section>
 
+  <!-- ═══ LIVE PRODUCTS ═══ -->
+  <section id="catalog">
+    <div class="wrap">
+      <div class="shead reveal">
+        <span class="eyebrow">In stock now · with prices</span>
+        <h2>Current <span class="it">stock &amp; prices.</span></h2>
+        <p>Live from the shop. Tap any part to ask about it on WhatsApp.</p>
+      </div>
+      <div class="cat-filter reveal" id="catFilter"></div>
+      <div class="prod-grid reveal" id="prodGrid"></div>
+    </div>
+  </section>
+
   <!-- ═══ INVENTORY ═══ -->
   <section id="parts">
     <div class="wrap">
@@ -434,19 +448,6 @@
         </div>
         <div class="track-note">Shows your live status instantly · works with TCS and other couriers</div>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══ LIVE PRODUCTS ═══ -->
-  <section id="catalog">
-    <div class="wrap">
-      <div class="shead reveal">
-        <span class="eyebrow">In stock now · with prices</span>
-        <h2>Current <span class="it">stock &amp; prices.</span></h2>
-        <p>Live from the shop. Tap any part to ask about it on WhatsApp.</p>
-      </div>
-      <div class="cat-filter reveal" id="catFilter"></div>
-      <div class="prod-grid reveal" id="prodGrid"></div>
     </div>
   </section>
 
@@ -543,16 +544,31 @@ function search(){
   const term=q.value.trim();
   if(!term){ res.classList.remove("on"); res.innerHTML=""; return; }
   const t=term.toLowerCase();
+  // 1) live products you added in the admin panel (shown first, with price)
+  const live=(window.LIVE_PRODUCTS||[]).filter(p=>((p.name||"")+" "+(p.cat||"")+" "+(p.note||"")).toLowerCase().includes(t));
+  // 2) the built-in category list
   const hits=PARTS.filter(p=>(p.name+" "+p.ref+" "+p.keys).toLowerCase().includes(t));
-  res.innerHTML = hits.length
-    ? hits.map(p=>`<button class="hit" data-ask="${esc(p.name)}"><span class="code">${esc(p.ref)}</span>
-        <span class="nm">${esc(p.name)}<small>${esc(p.blurb)}</small></span><span class="go">→</span></button>`).join("")
-    : `<div class="no-hit">No category matches <b>${esc(term)}</b> — but if that's a part number, send it straight to us and we'll look it up.</div>
+  let html="";
+  if(live.length){
+    html += live.map(p=>`<button class="hit" data-ask="${esc(p.name)} (Rs ${Number(p.price).toLocaleString()})">
+        <span class="code" style="color:var(--gold-hi)">Rs</span>
+        <span class="nm">${esc(p.name)}<small>${esc(p.cat||"")}${p.note?" · "+esc(p.note):""} · Rs ${Number(p.price).toLocaleString()}</small></span>
+        <span class="go">→</span></button>`).join("");
+  }
+  if(hits.length){
+    html += hits.map(p=>`<button class="hit" data-ask="${esc(p.name)}"><span class="code">${esc(p.ref)}</span>
+        <span class="nm">${esc(p.name)}<small>${esc(p.blurb)}</small></span><span class="go">→</span></button>`).join("");
+  }
+  if(!html){
+    html = `<div class="no-hit">No match for <b>${esc(term)}</b> — but if that's a part number, send it straight to us and we'll look it up.</div>
        <button class="hit" data-ask="${esc(term)}"><span class="code">SEND</span>
          <span class="nm">Ask about “${esc(term)}”<small>Opens WhatsApp with your part number ready</small></span><span class="go">→</span></button>`;
+  }
+  res.innerHTML=html;
   res.classList.add("on");
   res.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>ask(b.dataset.ask));
 }
+window.refreshHeroSearch=function(){ if(q.value.trim()) search(); };
 q.addEventListener("input",search);
 q.addEventListener("keydown",e=>{ if(e.key==="Enter") go.click(); });
 go.addEventListener("click",()=>ask(q.value.trim()||"an LED TV spare part"));
@@ -712,6 +728,7 @@ const PHOTOS = [
   db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
     var d=s.exists?s.data():null;
     all=(d&&Array.isArray(d.products))?d.products:[];
+    window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
     // hide the whole section until there's at least one product
     section.style.display = all.length ? "" : "none";
     buildFilter(); renderGrid();
@@ -725,11 +742,13 @@ const PHOTOS = [
   function renderGrid(){
     var list = activeCat==="All" ? all : all.filter(function(p){ return (p.cat||"Other parts")===activeCat; });
     if(!list.length){ grid.innerHTML='<div class="cat-empty">Nothing in this category yet.</div>'; return; }
-    grid.innerHTML=list.map(function(p){
+    grid.innerHTML=list.map(function(p,i){
+      var isNew = (activeCat==="All" && i<3);
       var pic = p.img
         ? '<div class="ph"><img src="'+p.img+'" alt="'+escp(p.name)+'" loading="lazy"></div>'
         : '<div class="ph none"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg></div>';
       return '<div class="pcard">'+pic
+        + (isNew?'<span class="new-badge">New</span>':'')
         + '<span class="cat-tag">'+escp(p.cat||"Part")+'</span>'
         + '<div class="body"><div class="nm">'+escp(p.name)+'</div>'
         + (p.note?'<div class="note">'+escp(p.note)+'</div>':'<div class="note"></div>')
