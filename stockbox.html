@@ -78,6 +78,12 @@
   .seg-count{font-size:10.5px;opacity:.7;margin-left:5px}
 
   /* breadcrumb jump dropdown */
+  .crumb-nav{display:inline-flex;align-items:center;gap:2px}
+  .crumb-nav .arrow{width:28px;height:28px;display:grid;place-items:center;border:none;cursor:pointer;
+    color:var(--green);background:var(--green-soft);border-radius:8px;transition:.12s}
+  .crumb-nav .arrow:hover:not(:disabled){background:var(--green);color:#fff}
+  .crumb-nav .arrow:disabled{opacity:.32;cursor:default}
+  .crumb-nav .arrow svg{width:15px;height:15px}
   .crumb-jump{position:relative;display:inline-flex}
   .crumb-jump>button{display:inline-flex;align-items:center;gap:3px;color:var(--green);background:var(--green-soft);
     border:none;cursor:pointer;padding:4px 7px;border-radius:8px;font-weight:700;font-size:13.5px;transition:.12s}
@@ -369,11 +375,22 @@ function renderCrumbs(){
     const sibs=childrenOf(l.parentId||null);
     // last crumb + has siblings → make it a jump dropdown to switch quickly
     if(last && sibs.length>1){
-      html+=`<span class="sep">›</span><span class="crumb-jump">
-        <button data-jump="${l.id}">${esc(l.name)}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      const idx=sibs.findIndex(s=>s.id===l.id);
+      const prevId=idx>0?sibs[idx-1].id:"";
+      const nextId=idx<sibs.length-1?sibs[idx+1].id:"";
+      html+=`<span class="sep">›</span><span class="crumb-nav">
+        <button class="arrow" data-step="${prevId}" ${prevId?"":"disabled"} title="Previous sub-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div class="cj-menu" id="cjMenu"></div>
+        <span class="crumb-jump">
+          <button data-jump="${l.id}">${esc(l.name)}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="cj-menu" id="cjMenu"></div>
+        </span>
+        <button class="arrow" data-step="${nextId}" ${nextId?"":"disabled"} title="Next sub-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </span>`;
     } else {
       html+=`<span class="sep">›</span><a data-loc="${l.id}" class="${last?"here":""}">${esc(l.name)}</a>`;
@@ -384,6 +401,9 @@ function renderCrumbs(){
   w.querySelectorAll("[data-loc]").forEach(a=>a.onclick=()=>{ ui.currentLoc=a.dataset.loc==="root"?null:a.dataset.loc; renderMain(); });
   const jb=w.querySelector("[data-jump]");
   if(jb) jb.onclick=(e)=>{ e.stopPropagation(); openCrumbJump(jb.dataset.jump); };
+  w.querySelectorAll("[data-step]").forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation(); const id=b.dataset.step; if(!id) return; ui.currentLoc=id; renderMain();
+  });
 }
 
 function openCrumbJump(curId){
