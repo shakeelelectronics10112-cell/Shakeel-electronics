@@ -309,6 +309,16 @@
 
   /* ═══════════ SHAKEEL ELECTRONICS — SIGNATURE LOOK ═══════════ */
 
+  /* ── QuickBooks-style live count badges on tiles ── */
+  .app{position:relative}
+  .app .badge{position:absolute;top:-7px;right:-7px;min-width:24px;height:24px;padding:0 7px;border-radius:20px;
+    background:linear-gradient(135deg,#E45B43,#C23D28);color:#fff;font-family:"JetBrains Mono",monospace;
+    font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;
+    box-shadow:0 4px 12px rgba(196,61,40,.5);border:2px solid var(--bg,#F4F6F4);z-index:3}
+  .app .badge.on{display:flex;animation:badgePop .4s cubic-bezier(.34,1.4,.44,1)}
+  .app .badge.gold{background:linear-gradient(135deg,#C89B4B,#96702B);box-shadow:0 4px 12px rgba(176,138,62,.5)}
+  @keyframes badgePop{0%{transform:scale(.3)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+
   /* ── hero greeting: brand banner ── */
   .hello{position:relative;margin:2px 0 18px;padding:22px 20px 20px;border-radius:18px;
          background:linear-gradient(135deg,#115C4E 0%,#0E4F44 45%,#072A24 100%);
@@ -467,6 +477,11 @@
 
     <div class="sect">Your apps</div>
     <div class="apps">
+      <button class="app" data-go="sales">
+        <span class="badge gold" id="bg-holds">0</span>
+        <div class="ic i-ledger" style="background:linear-gradient(135deg,#2E7D5B,#1D5A40)!important"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h2"/><circle cx="16.5" cy="13.5" r="2.5"/><path d="M12 6V4h8v2"/></svg></div>
+        <div><div class="t">Sale Counter</div><div class="d">Fast billing, receipts &amp; daily profit</div></div>
+      </button>
       <button class="app" data-go="ledger">
         <div class="ic i-ledger"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <div><div class="t">Ledger</div><div class="d">Customer dues, payments & reminders</div></div>
@@ -480,14 +495,17 @@
         <div><div class="t">Labels</div><div class="d">Saved addresses, one-tap stickers</div></div>
       </button>
       <button class="app" data-go="stockbox">
+        <span class="badge" id="bg-lowstock">0</span>
         <div class="ic i-stock"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
         <div><div class="t">StockBox</div><div class="d">Where every part is stored</div></div>
       </button>
       <button class="app" data-go="quotes">
+        <span class="badge" id="bg-quotes">0</span>
         <div class="ic i-order" style="background:linear-gradient(135deg,#C89B4B,#96702B)!important"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg></div>
         <div><div class="t">Quotes</div><div class="d">Answer price requests, send on WhatsApp</div></div>
       </button>
       <button class="app" data-go="orderbook">
+        <span class="badge" id="bg-orders">0</span>
         <div class="ic i-order"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg></div>
         <div><div class="t">Order Book</div><div class="d">Customer orders from request to delivery</div></div>
       </button>
@@ -515,6 +533,9 @@
   <button data-tab="purchases" data-src="purchases.html">
     <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Buy</span>
   </button>
+  <button data-tab="sales" data-src="sales.html">
+    <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h2"/><circle cx="16.5" cy="13.5" r="2.5"/><path d="M12 6V4h8v2"/></svg><span>Sell</span>
+  </button>
   <button data-tab="labels" data-src="labels.html">
     <svg viewBox="0 0 24 24"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg><span>Labels</span>
   </button>
@@ -533,7 +554,7 @@
 </nav>
 
 <script>
-var V = "46";  // cache-buster: bump when you upload new app files
+var V = "48";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -577,7 +598,7 @@ function applyRole(){
   document.body.classList.toggle("staff", staff);
   if(!staff) return;
   // hide the money apps everywhere
-  ["ledger","purchases"].forEach(function(t){
+  ["ledger","purchases","sales"].forEach(function(t){
     document.querySelectorAll('#nav button[data-tab="'+t+'"], .app[data-go="'+t+'"], .kpi[data-go="'+t+'"]')
       .forEach(function(el){ el.style.display = "none"; });
   });
@@ -757,14 +778,45 @@ if("serviceWorker" in navigator){
   }catch(e){ return; }
 
   function watch(db){
-    ["ledger","purchases"].forEach(function(key){
+    ["ledger","purchases","sales","orderbook","quotes","stockbox"].forEach(function(key){
       db.collection("shops").doc("main").collection("apps").doc(key)
         .onSnapshot(function(snap){
           data[key] = (snap.exists && snap.data() && snap.data().state) || null;
           paint();
+          paintBadges();
           syncline.textContent = "☁ Synced · " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
         }, function(){ syncline.textContent = "Offline — showing saved data"; });
     });
+  }
+
+  function setBadge(id,n,gold){
+    var el=document.getElementById(id); if(!el) return;
+    el.textContent = n>99?"99+":n;
+    el.classList.toggle("on", n>0);
+    if(gold) el.classList.add("gold");
+  }
+  function paintBadges(){
+    /* held sales */
+    var S=data.sales;
+    setBadge("bg-holds", (S&&Array.isArray(S.holds))?S.holds.length:0, true);
+    /* low stock in Sale Counter products (<=5) */
+    var low=0;
+    if(S&&Array.isArray(S.products)) S.products.forEach(function(p){ if(typeof p.stock==="number"&&p.stock<=5) low++; });
+    setBadge("bg-lowstock", low, false);
+    /* open orders (not delivered/done/cancelled) */
+    var O=data.orderbook, oc=0;
+    if(O&&Array.isArray(O.orders)) O.orders.forEach(function(o){
+      var st=(o.status||"").toLowerCase();
+      if(st.indexOf("deliver")<0 && st.indexOf("done")<0 && st.indexOf("complete")<0 && st.indexOf("cancel")<0) oc++;
+    });
+    setBadge("bg-orders", oc, false);
+    /* quotes still to answer (status new / to answer) */
+    var Q=data.quotes, qc=0;
+    if(Q&&Array.isArray(Q.quotes)) Q.quotes.forEach(function(q){
+      var st=(q.status||"new").toLowerCase();
+      if(st==="new"||st==="to answer"||st==="") qc++;
+    });
+    setBadge("bg-quotes", qc, false);
   }
 
   function paint(){
