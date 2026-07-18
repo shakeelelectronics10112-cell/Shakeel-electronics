@@ -421,18 +421,57 @@ var sq=document.getElementById("sq"), hits=document.getElementById("hits");
 sq.addEventListener("input",function(){
   var t=sq.value.trim().toLowerCase();
   if(!t){ hits.innerHTML=""; return; }
+  var html="";
+  // A) your priced products
   var m=State.products.filter(function(p){ return p.name.toLowerCase().indexOf(t)>=0; }).slice(0,6);
-  var html=m.map(function(p){
+  html+=m.map(function(p){
     return '<div class="hit" data-add="'+p.id+'"><span class="n">'+esc(p.name)+stockTag(p)+'</span><span class="p">'+fmt(p.price)+'</span></div>';
   }).join("");
+  // B) items straight from StockBox (so anything you add there is sellable here)
+  var sbItems=(window.LINK&&window.LINK.stockItems)||[];
+  var already={}; State.products.forEach(function(p){ already[p.name.toLowerCase().trim()]=true; });
+  var sbM=sbItems.filter(function(it){
+    var n=(it.name||"").toLowerCase(), c=(it.code||"").toLowerCase();
+    return (n.indexOf(t)>=0 || c.indexOf(t)>=0);
+  }).slice(0,6);
+  if(sbM.length){
+    html+='<div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;padding:8px 4px 4px">FROM STOCKBOX</div>';
+    html+=sbM.map(function(it){
+      var where=locPathText(it.locationId);
+      var known=State.products.find(function(p){ return p.name.toLowerCase().trim()===(it.name||"").toLowerCase().trim(); });
+      var price=known?known.price:0;
+      return '<div class="hit" data-sb="'+it.id+'"><span class="n">'+esc(it.name)+(it.code?' <small class="mono" style="color:var(--muted)">'+esc(it.code)+'</small>':'')+'<small style="display:block;color:var(--muted);font-family:var(--mono);font-size:11px">📦 '+esc(where||"—")+' · '+(it.qty||0)+' pcs</small></span><span class="p">'+(price?fmt(price):"set price")+'</span></div>';
+    }).join("");
+  }
   html+='<div class="hit newp" data-new="1"><span class="n">+ New product “'+esc(sq.value.trim())+'”</span></div>';
   hits.innerHTML=html;
   hits.querySelectorAll("[data-add]").forEach(function(el){
     el.onclick=function(){ addLine(el.dataset.add); sq.value=""; hits.innerHTML=""; sq.focus(); };
   });
+  hits.querySelectorAll("[data-sb]").forEach(function(el){
+    el.onclick=function(){ addStockItem(el.dataset.sb); sq.value=""; hits.innerHTML=""; sq.focus(); };
+  });
   var np=hits.querySelector("[data-new]");
   if(np) np.onclick=function(){ openProd(null, sq.value.trim(), true); };
 });
+// add a StockBox item to the cart (links to its stock so selling deducts it)
+function stockIdForName(name){
+  var items=(window.LINK&&window.LINK.stockItems)||[]; var t=(name||"").toLowerCase().trim();
+  var hit=items.find(function(it){ return (it.name||"").toLowerCase().trim()===t || (it.code||"").toLowerCase().trim()===t; });
+  return hit?hit.id:null;
+}
+function addStockItem(stockId){
+  var sb=((window.LINK&&window.LINK.stockItems)||[]).find(function(x){return x.id===stockId;});
+  if(!sb) return;
+  // find matching priced product for price+cost, else price 0 (editable in the line)
+  var known=State.products.find(function(p){ return p.name.toLowerCase().trim()===(sb.name||"").toLowerCase().trim(); });
+  var ex=cart.find(function(l){return l.stockId===stockId;});
+  if(ex){ ex.qty++; }
+  else cart.push({pid:known?known.id:null, stockId:stockId, name:sb.name, qty:1,
+    price:known?num(known.price):0, cost:known?num(known.cost):0});
+  renderCart();
+  if(!known) toast("Set the price in the line (tap the price box)");
+}
 function addLine(pid){
   var p=State.products.find(function(x){return x.id===pid;}); if(!p) return;
   var ex=cart.find(function(l){return l.pid===pid;});
@@ -475,7 +514,7 @@ document.getElementById("doneBtn").onclick=function(){
   var no=String(State.settings.seq).padStart(2,"0");
   var sale={id:uid(),no:no,date:Date.now(),customer:document.getElementById("cust").value.trim(),
     customerId:(chosenCustomer?chosenCustomer.id:null),
-    items:cart.map(function(l){return {pid:l.pid,name:l.name,qty:l.qty,price:num(l.price),cost:num(l.cost)};}),
+    items:cart.map(function(l){return {pid:l.pid,stockId:(l.stockId||stockIdForName(l.name)),name:l.name,qty:l.qty,price:num(l.price),cost:num(l.cost)};}),
     discount:d,total:sub-d,pay:pay};
   State.sales.unshift(sale);
   // credit (udhaar) → post to customer's Ledger automatically
@@ -488,6 +527,9 @@ document.getElementById("doneBtn").onclick=function(){
     }
   }
   sale.items.forEach(function(it){ if(!it.pid) return; var p=State.products.find(function(x){return x.id===it.pid;}); if(p && typeof p.stock==="number") p.stock-=it.qty; });
+  // deduct from StockBox (single source of stock)
+  var sbChanges=sale.items.filter(function(it){return it.stockId;}).map(function(it){return {stockId:it.stockId, delta:-it.qty};});
+  if(sbChanges.length && window.adjustStockBox){ window.adjustStockBox(sbChanges); }
   persist(); 
   cart=[]; document.getElementById("cust").value=""; document.getElementById("disc").value=""; chosenCustomer=null; updateCustTag();
   renderCart(); render();
@@ -943,9 +985,19 @@ function commitReturn(mode){
     customer:retSale.customer||"",refund:refund,profitReversed:profitBack,
     items:items.map(function(l){return {idx:l.idx,name:l.name,pid:l.pid,qty:l.qty,price:l.price,cost:l.cost};})};
   State.returns.unshift(rec);
-  // good returns go back to stock; damaged do NOT
+  // good returns go back to stock (local product stock AND StockBox); damaged do NOT
   if(mode==="stock"){
     items.forEach(function(l){ if(!l.pid) return; var p=State.products.find(function(x){return x.id===l.pid;}); if(p && typeof p.stock==="number") p.stock+=l.qty; });
+    var sbBack=items.map(function(l){ return {stockId:(l.stockId||stockIdForName(l.name)), delta:l.qty}; }).filter(function(c){return c.stockId;});
+    if(sbBack.length && window.adjustStockBox){ window.adjustStockBox(sbBack); }
+  }
+  // if the original sale was on credit to a linked Ledger customer, reverse the charge
+  var wasCredit = retSale && retSale.customerId && ((retSale.pay||"").toLowerCase().indexOf("credit")>=0 || (retSale.pay||"").toLowerCase().indexOf("udhaar")>=0);
+  if(wasCredit){
+    if(window.reverseLedgerCharge){
+      window.reverseLedgerCharge(retSale.customerId, refund, "Return on sale "+retSale.no)
+        .then(function(ok){ if(ok) toast("Rs "+Math.round(refund).toLocaleString()+" credited back to "+(retSale.customer||"customer")); });
+    }
   }
   persist(); closeReturn(); closeSale(); render();
   toast(mode==="damaged"?"Return recorded — items written off":"Return recorded — stock restored");
@@ -1073,6 +1125,39 @@ render();
       if(window.refreshProductsView) window.refreshProductsView();
     }, function(){});
   }
+  // adjust StockBox item quantities (delta<0 = sold, delta>0 = returned) and save
+  window.adjustStockBox=function(changes){
+    // changes: [{stockId, delta}]
+    if(!db || !changes || !changes.length) return Promise.resolve(false);
+    var sref=appRef("stockbox");
+    return sref.get().then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.items)) return false;
+      var touched=false;
+      changes.forEach(function(c){
+        var it=st.items.find(function(x){return x.id===c.stockId;});
+        if(it){ it.qty=Math.max(0,(it.qty||0)+c.delta); it.updatedAt=Date.now(); touched=true; }
+      });
+      if(!touched) return false;
+      return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ return false; });
+  };
+  // reverse (credit back) a charge on the customer's Ledger when items are returned
+  window.reverseLedgerCharge=function(memberId, amount, desc){
+    if(!db || !memberId || !(amount>0)) return Promise.resolve(false);
+    var lref=appRef("ledger");
+    return lref.get().then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state) || {members:[],transactions:[],settings:{}};
+      if(!Array.isArray(st.transactions)) st.transactions=[];
+      var _d=new Date(); var _iso=_d.getFullYear()+"-"+String(_d.getMonth()+1).padStart(2,"0")+"-"+String(_d.getDate()).padStart(2,"0");
+      // a "payment" reduces what the customer owes — exactly what a return should do
+      st.transactions.push({ id:"rt"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+        memberId:memberId, type:"payment", amount:Math.round(amount),
+        description:desc||"Return credit", date:_iso, createdAt:Date.now(), fromReturn:true });
+      if(!st.settings) st.settings={};
+      st.settings.updatedAt=Date.now();
+      return lref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ return false; });
+  };
   // post an udhaar (credit) sale to the customer's Ledger as a charge
   window.postUdhaarToLedger=function(memberId, amount, desc){
     if(!db || !memberId || !(amount>0)) return Promise.resolve(false);
