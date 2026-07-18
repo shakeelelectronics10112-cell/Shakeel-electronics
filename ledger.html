@@ -331,14 +331,26 @@ function balanceOf(id){
   }
   return b;
 }
+function parseTxDate(v){
+  if(v==null||v==="") return NaN;
+  if(typeof v==="number") return v;                 // numeric timestamp
+  if(typeof v==="string"){
+    if(/^\d+$/.test(v)) return parseInt(v,10);       // numeric string
+    var t=new Date(v+"T00:00:00").getTime();
+    if(!isNaN(t)) return t;
+    var t2=new Date(v).getTime();
+    return isNaN(t2)?NaN:t2;
+  }
+  return NaN;
+}
 function dueDateOf(t){
-  if(t.dueDate) return new Date(t.dueDate+"T00:00:00").getTime();
-  const base=t.date?new Date(t.date+"T00:00:00").getTime():(t.createdAt||Date.now());
+  if(t.dueDate){ var dd=parseTxDate(t.dueDate); if(!isNaN(dd)) return dd; }
+  var base=parseTxDate(t.date); if(isNaN(base)) base=(t.createdAt||Date.now());
   return base + (State.settings.termDays||30)*DAY;
 }
 /* FIFO: apply payments to oldest charges, return what's still unpaid */
 function openCharges(id){
-  const tx=txOf(id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"") || (a.createdAt||0)-(b.createdAt||0));
+  const tx=txOf(id).slice().sort((a,b)=>((parseTxDate(a.date)||a.createdAt||0)-(parseTxDate(b.date)||b.createdAt||0)) || (a.createdAt||0)-(b.createdAt||0));
   let pool=tx.filter(t=>t.type==="payment").reduce((s,t)=>s+(t.amount||0),0);
   const open=[];
   for(const t of tx){
@@ -372,12 +384,12 @@ function riskOf(id){
   if(!charges.length) return { score:null, avgLate:0, paidCount:paid.length, tag:"New" };
   // approximate: compare each payment date against the oldest unpaid charge's due at that time
   let lateSum=0, n=0;
-  const sortedC=charges.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
-  const sortedP=paid.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const sortedC=charges.slice().sort((a,b)=>(parseTxDate(a.date)||a.createdAt||0)-(parseTxDate(b.date)||b.createdAt||0));
+  const sortedP=paid.slice().sort((a,b)=>(parseTxDate(a.date)||a.createdAt||0)-(parseTxDate(b.date)||b.createdAt||0));
   let ci=0, carry=0;
   for(const p of sortedP){
     let amt=p.amount||0;
-    const pDate=p.date?new Date(p.date+"T00:00:00").getTime():(p.createdAt||0);
+    const pDate=(function(){var d=parseTxDate(p.date);return isNaN(d)?(p.createdAt||0):d;})();
     while(amt>0 && ci<sortedC.length){
       const c=sortedC[ci];
       const cAmt=(c.amount||0)-carry;
@@ -590,7 +602,7 @@ function moneyRange(){
   return { from:0, to:Date.now(), label:"All time" };
 }
 function payTime(t){
-  if(t.date){ const d=new Date(t.date+"T00:00:00").getTime(); if(!isNaN(d)) return d; }
+  var d=parseTxDate(t.date); if(!isNaN(d)) return d;
   return t.createdAt||0;
 }
 function viewMoney(){
@@ -1393,7 +1405,7 @@ document.getElementById("impFile").addEventListener("change",e=>{
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }
-    }, function(){ note("☁ Offline — saved on this device"); });
+    }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
   function push(){
     if(!db) return;
