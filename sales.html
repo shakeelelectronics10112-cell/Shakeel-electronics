@@ -234,6 +234,7 @@
       <div class="stat"><div class="l">Expenses</div><div class="v neg" id="m-exp">Rs 0</div></div>
       <div class="stat"><div class="l">NET profit</div><div class="v" id="m-net">Rs 0</div></div>
     </div>
+    <div class="stat" style="margin-bottom:12px"><div class="l">Returns / damaged in period</div><div class="v" id="m-returns" style="font-size:16px">Rs 0</div></div>
     <div class="card">
       <h3>Last 7 days — sales</h3>
       <div class="bars" id="bars"></div>
@@ -305,6 +306,9 @@
 <!-- end of day sheet -->
 <div class="scrim" id="eodScrim"><div class="sheet" id="eodSheet"></div></div>
 
+<!-- return sheet -->
+<div class="scrim" id="retScrim"><div class="sheet" id="retSheet"></div></div>
+
 <!-- sale view sheet -->
 <div class="scrim" id="saleScrim"><div class="sheet" id="saleSheet"></div></div>
 
@@ -314,7 +318,7 @@
 <script>
 /* ================= STATE ================= */
 var KEY="sales:data:v1";
-var State={products:[],sales:[],expenses:[],holds:[],settings:{seq:0,updatedAt:0,footer:"Shukriya! — Shakeel Electronics · 0312-6617887"}};
+var State={products:[],sales:[],expenses:[],holds:[],returns:[],settings:{seq:0,updatedAt:0,footer:"Shukriya! — Shakeel Electronics · 0312-6617887"}};
 function lsSave(){ try{ localStorage.setItem(KEY, JSON.stringify(State)); }catch(e){} }
 function lsLoad(){ try{ var d=JSON.parse(localStorage.getItem(KEY)||"null"); if(d&&d.settings) State=d; }catch(e){} }
 var tmr=null;
@@ -324,6 +328,7 @@ function applyLoaded(d){
   State.sales=Array.isArray(d.sales)?d.sales:[];
   State.expenses=Array.isArray(d.expenses)?d.expenses:[];
   State.holds=Array.isArray(d.holds)?d.holds:[];
+  State.returns=Array.isArray(d.returns)?d.returns:[];
   if(d.settings) State.settings=d.settings;
 }
 lsLoad();
@@ -354,10 +359,16 @@ function monthKey(t){ return dkey(t).slice(0,7); }
 var tt=null;
 function toast(m){ var t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(function(){t.classList.remove("show");},1900); }
 function stockTag(p){ if(typeof p.stock!=="number") return ""; var c=p.stock<=0?"#C25B37":(p.stock<=5?"#B08A3E":"#6E7673"); return ' <small style="font-family:var(--mono);font-weight:600;color:'+c+'">· '+p.stock+' left</small>'; }
+function saleReturns(saleId){ return (State.returns||[]).filter(function(r){return r.saleId===saleId;}); }
+function saleReturnedQty(saleId,idx){ var q=0; saleReturns(saleId).forEach(function(r){ (r.items||[]).forEach(function(it){ if(it.idx===idx) q+=it.qty; }); }); return q; }
 function saleProfit(s){
   var p=0; (s.items||[]).forEach(function(it){ p+=(num(it.price)-num(it.cost))*it.qty; });
-  return p-num(s.discount);
+  p=p-num(s.discount);
+  // subtract profit already reversed by returns
+  saleReturns(s.id).forEach(function(r){ p-=num(r.profitReversed); });
+  return p;
 }
+function saleNetTotal(s){ var t=s.total||0; saleReturns(s.id).forEach(function(r){ t-=num(r.refund); }); return t; }
 
 /* ================= TABS ================= */
 document.querySelectorAll(".tabs button").forEach(function(b){
@@ -461,7 +472,7 @@ document.getElementById("doneBtn").onclick=function(){
   var sub=cart.reduce(function(s,l){return s+l.price*l.qty;},0);
   var d=Math.min(num(document.getElementById("disc").value),sub);
   State.settings.seq=(State.settings.seq||0)+1;
-  var no="S-"+new Date().getFullYear()+"-"+String(State.settings.seq).padStart(4,"0");
+  var no=String(State.settings.seq).padStart(2,"0");
   var sale={id:uid(),no:no,date:Date.now(),customer:document.getElementById("cust").value.trim(),
     customerId:(chosenCustomer?chosenCustomer.id:null),
     items:cart.map(function(l){return {pid:l.pid,name:l.name,qty:l.qty,price:num(l.price),cost:num(l.cost)};}),
@@ -563,7 +574,7 @@ function renderHistory(){
       var pc=s.pay==="Cash"?"cash":(s.pay&&s.pay.indexOf("udhaar")>=0?"credit":"other");
       return '<div class="row" data-sale="'+s.id+'"><div class="m"><div class="t1">'+esc(s.no)+(s.customer?' · '+esc(s.customer):'')+'</div>'
         +'<div class="t2"><span class="pill '+pc+'">'+esc(s.pay)+'</span> · '+(s.items||[]).length+' items · '+new Date(s.date).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+'</div></div>'
-        +'<div class="amt"><div class="a1">'+fmt(s.total)+'</div><div class="a2">+'+fmt(saleProfit(s))+'</div></div></div>';
+        +'<div class="amt"><div class="a1">'+fmt(saleNetTotal(s))+(saleReturns(s.id).length?' <span style="color:var(--warn);font-size:10px">↩</span>':'')+'</div><div class="a2">+'+fmt(saleProfit(s))+'</div></div></div>';
     }).join("");
     return '<div class="datehdr">'+k+' — '+fmt(daySum)+'</div>'+rows;
   }).join("");
@@ -578,12 +589,15 @@ function openSale(id,fresh){
     +(s.discount?'<div class="totrow"><span>Discount</span><span class="mono">− '+fmt(s.discount)+'</span></div>':'')
     +'<div class="totrow big"><span>TOTAL</span><span>'+fmt(s.total)+'</span></div>'
     +'<div class="totrow" style="justify-content:flex-end"><span class="profit">Profit '+fmt(saleProfit(s))+'</span></div>'
+    +(saleReturns(s.id).length?'<div class="totrow" style="justify-content:flex-end"><span class="pill warn">'+saleReturns(s.id).reduce(function(a,r){return a+r.items.reduce(function(x,i){return x+i.qty;},0);},0)+' returned</span></div>':'')
     +'<div class="acts"><button class="btn ghost" id="sv-close">Close</button>'
-    +'<button class="btn danger ghost" id="sv-del" style="flex:0 0 auto">Delete</button>'
-    +'<button class="btn go" id="sv-rcpt" style="margin-top:0">🖨 Receipt</button></div>';
+    +'<button class="btn ghost" id="sv-return" style="flex:0 0 auto">↩ Return</button>'
+    +'<button class="btn go" id="sv-rcpt" style="margin-top:0">🖨 Receipt</button></div>'
+    +'<div style="text-align:center;margin-top:8px"><button class="btn danger" id="sv-del" style="font-size:12px;padding:4px">Delete sale</button></div>';
   document.getElementById("saleScrim").classList.add("on");
   document.getElementById("sv-close").onclick=closeSale;
   document.getElementById("sv-rcpt").onclick=function(){ receiptPDF(s); };
+  document.getElementById("sv-return").onclick=function(){ openReturn(s); };
   document.getElementById("sv-del").onclick=function(){
     if(!confirm("Delete sale "+s.no+"? This also removes its profit.")) return;
     (s.items||[]).forEach(function(it){ if(!it.pid) return; var p=State.products.find(function(x){return x.id===it.pid;}); if(p && typeof p.stock==="number") p.stock+=it.qty; });
@@ -707,7 +721,9 @@ function renderProducts(){
       : '';
     return '<div class="row" data-ep="'+p.id+'"><div class="m"><div class="t1">'+esc(p.name)+'</div>'
       +'<div class="t2">'+st+'Cost '+(num(p.cost)?fmt(p.cost):"—")+' · Sale '+fmt(p.price)+(num(p.cost)?' · margin '+fmt(m):'')
-      +(p.vendor?'<br>Last bought from: <b>'+esc(p.vendor)+'</b>':'')+'</div></div>'
+      +(p.vendor?'<br>Last bought from: <b>'+esc(p.vendor)+'</b>':'')
+      +(function(){ var sb=stockBoxFor(p.name); return sb&&sb.places.length?'<br>📦 In StockBox: <b>'+esc(sb.places.slice(0,2).join(" | "))+'</b>'+(sb.pieces?' ('+sb.pieces+' pcs)':''):''; })()
+      +'</div></div>'
       +'<div class="amt"><div class="a1">'+fmt(p.price)+'</div><button class="btn ghost sm" data-st="'+p.id+'" style="margin-top:5px">+ Stock</button></div></div>';
   }).join("");
   el.querySelectorAll("[data-ep]").forEach(function(r){ r.onclick=function(e){ if(e.target.closest("[data-st]")) return; openProd(r.dataset.ep,"",false); }; });
@@ -774,13 +790,20 @@ function renderMoney(){
   document.getElementById("k-net").textContent=fmt(mGrossFix-mExpFix);
   /* selected-range stats */
   var rSales=0,rGross=0;
-  State.sales.forEach(function(s){ if(inRange(s.date)){ rSales+=s.total; rGross+=saleProfit(s); } });
+  State.sales.forEach(function(s){ if(inRange(s.date)){ rSales+=s.total; } });
+  // subtract refunds that happened in range
+  var rRefunds=0, rDamaged=0;
+  (State.returns||[]).forEach(function(r){ if(inRange(r.date)){ rRefunds+=num(r.refund); if(r.type==="damaged") rDamaged+=r.items.reduce(function(a,i){return a+i.qty*i.cost;},0); } });
+  rSales-=rRefunds;
+  // gross profit in range using net sale profit (already minus returns) — approximate by summing saleProfit for sales in range
+  State.sales.forEach(function(s){ if(inRange(s.date)){ rGross+=saleProfit(s); } });
   var rExp=State.expenses.reduce(function(a,e){ return a+(inRange(e.date)?num(e.amount):0); },0);
   var net=rGross-rExp;
   document.getElementById("m-sales").textContent=fmt(rSales);
   document.getElementById("m-gross").textContent=fmt(rGross);
   document.getElementById("m-exp").textContent=fmt(rExp);
   var mn=document.getElementById("m-net"); mn.textContent=fmt(net); mn.className="v "+(net>=0?"pos":"neg");
+  var mr=document.getElementById("m-returns"); if(mr){ mr.textContent=fmt(rRefunds)+(rDamaged?" · "+fmt(rDamaged)+" damaged cost":""); }
   /* 7-day bars (always last 7 days) */
   var days=[],max=1;
   for(var i=6;i>=0;i--){ var d=new Date(); d.setDate(d.getDate()-i); var k=dkey(d.getTime());
@@ -839,12 +862,94 @@ document.getElementById("e-save").onclick=function(){
   persist(); document.getElementById("expScrim").classList.remove("on"); render(); toast("Expense saved");
 };
 
+/* ---------- StockBox link: where is this part stored? ---------- */
+function locPathText(locId){
+  var locs=(window.LINK&&window.LINK.stockLocs)||[];
+  var byId={}; locs.forEach(function(l){ byId[l.id]=l; });
+  var parts=[], cur=byId[locId], guard=0;
+  while(cur && guard++<12){ parts.unshift(cur.name); cur=cur.parentId?byId[cur.parentId]:null; }
+  return parts.join(" › ");
+}
+function stockBoxFor(name){
+  var items=(window.LINK&&window.LINK.stockItems)||[];
+  var t=(name||"").toLowerCase().trim();
+  if(!t) return null;
+  var matches=items.filter(function(it){
+    var n=(it.name||"").toLowerCase().trim(), c=(it.code||"").toLowerCase().trim();
+    return n===t || c===t || (n&&t.indexOf(n)>=0) || (n&&n.indexOf(t)>=0);
+  });
+  if(!matches.length) return null;
+  var pieces=matches.reduce(function(s,i){return s+(i.qty||0);},0);
+  var places=matches.map(function(i){ return locPathText(i.locationId); }).filter(Boolean);
+  return {pieces:pieces, places:places};
+}
+window.refreshProductsView=function(){ if(document.getElementById("pane-products").classList.contains("on")) renderProducts(); };
+
 /* ---------- vendors linked from Purchases ---------- */
 window.refreshVendorList=function(){
   var dl=document.getElementById("vendorDL"); if(!dl) return;
   var vs=(window.LINK&&window.LINK.vendors)||[];
   dl.innerHTML=vs.map(function(v){ return '<option value="'+esc(v)+'">'; }).join("");
 };
+
+/* ================= RETURNS ================= */
+var retSale=null, retLines=[];
+function openReturn(s){
+  retSale=s;
+  retLines=(s.items||[]).map(function(it,idx){
+    var already=saleReturnedQty(s.id,idx);
+    return {idx:idx,name:it.name,pid:it.pid,price:num(it.price),cost:num(it.cost),max:it.qty-already,qty:0};
+  }).filter(function(l){return l.max>0;});
+  drawReturn("stock");
+  document.getElementById("retScrim").classList.add("on");
+}
+function drawReturn(mode){
+  var sheet=document.getElementById("retSheet");
+  if(!retLines.length){
+    sheet.innerHTML='<h3>Return items</h3><div class="empty" style="padding:24px">All items from this sale are already returned.</div><div class="acts"><button class="btn ghost" id="ret-close2">Close</button></div>';
+    document.getElementById("ret-close2").onclick=closeReturn;
+    return;
+  }
+  var rows=retLines.map(function(l,i){
+    return '<div class="cline"><div class="nm">'+esc(l.name)+'<small>'+fmt(l.price)+' each · max '+l.max+'</small></div>'
+      +'<div class="stp"><button data-rd="'+i+'">−</button><span class="q">'+l.qty+'</span><button data-ri="'+i+'">+</button></div></div>';
+  }).join("");
+  var refund=retLines.reduce(function(s,l){return s+l.qty*l.price;},0);
+  var totQty=retLines.reduce(function(s,l){return s+l.qty;},0);
+  sheet.innerHTML='<h3>Return items — '+esc(retSale.no)+'</h3>'
+    +'<div style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">Set how many of each item is coming back.</div>'
+    +rows
+    +'<div style="margin:12px 0 4px;font-size:11.5px;font-family:var(--mono);color:var(--muted);letter-spacing:.06em">RETURN TYPE</div>'
+    +'<div class="payrow"><button data-rt="stock" class="'+(mode==="stock"?"on":"")+'">↩ Good — back to stock</button>'
+    +'<button data-rt="damaged" class="'+(mode==="damaged"?"on":"")+'">⚠ Damaged — write off</button></div>'
+    +'<div class="totrow big" style="margin-top:12px"><span>Refund</span><span>'+fmt(refund)+'</span></div>'
+    +'<div class="acts"><button class="btn ghost" id="ret-close">Cancel</button>'
+    +'<button class="btn go" id="ret-do" style="margin-top:0"'+(totQty>0?"":" disabled style=\"opacity:.5;margin-top:0\"")+'>Confirm return</button></div>';
+  sheet.querySelectorAll("[data-ri]").forEach(function(b){ b.onclick=function(){ var l=retLines[+b.dataset.ri]; if(l.qty<l.max) l.qty++; drawReturn(mode); }; });
+  sheet.querySelectorAll("[data-rd]").forEach(function(b){ b.onclick=function(){ var l=retLines[+b.dataset.rd]; if(l.qty>0) l.qty--; drawReturn(mode); }; });
+  sheet.querySelectorAll("[data-rt]").forEach(function(b){ b.onclick=function(){ drawReturn(b.dataset.rt); }; });
+  document.getElementById("ret-close").onclick=closeReturn;
+  var doBtn=document.getElementById("ret-do");
+  if(doBtn) doBtn.onclick=function(){ commitReturn(mode); };
+}
+function closeReturn(){ document.getElementById("retScrim").classList.remove("on"); }
+document.getElementById("retScrim").addEventListener("click",function(e){ if(e.target===this) closeReturn(); });
+function commitReturn(mode){
+  var items=retLines.filter(function(l){return l.qty>0;});
+  if(!items.length){ toast("Set a quantity to return"); return; }
+  var refund=items.reduce(function(s,l){return s+l.qty*l.price;},0);
+  var profitBack=items.reduce(function(s,l){return s+l.qty*(l.price-l.cost);},0);
+  var rec={id:uid(),saleId:retSale.id,saleNo:retSale.no,date:Date.now(),type:mode,
+    customer:retSale.customer||"",refund:refund,profitReversed:profitBack,
+    items:items.map(function(l){return {idx:l.idx,name:l.name,pid:l.pid,qty:l.qty,price:l.price,cost:l.cost};})};
+  State.returns.unshift(rec);
+  // good returns go back to stock; damaged do NOT
+  if(mode==="stock"){
+    items.forEach(function(l){ if(!l.pid) return; var p=State.products.find(function(x){return x.id===l.pid;}); if(p && typeof p.stock==="number") p.stock+=l.qty; });
+  }
+  persist(); closeReturn(); closeSale(); render();
+  toast(mode==="damaged"?"Return recorded — items written off":"Return recorded — stock restored");
+}
 
 /* ================= END OF DAY ================= */
 document.getElementById("eodBtn").onclick=function(){ openEOD(); };
@@ -942,7 +1047,7 @@ render();
   }catch(e){ return; }
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function appRef(k){ return db.collection("shops").doc(SHOP).collection("apps").doc(k); }
-  window.LINK={ customers:[], vendors:[], ledgerState:null, db:null, ready:false };
+  window.LINK={ customers:[], vendors:[], stockItems:[], stockLocs:[], ledgerState:null, db:null, ready:false };
   function subscribeLinks(){
     window.LINK.db=db;
     // customers from Ledger
@@ -960,6 +1065,13 @@ render();
       window.LINK.vendors=vs;
       if(window.refreshVendorList) window.refreshVendorList();
     }, function(){});
+    // stock locations from StockBox
+    appRef("stockbox").onSnapshot(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      window.LINK.stockItems=(d&&Array.isArray(d.items))?d.items.slice():[];
+      window.LINK.stockLocs=(d&&Array.isArray(d.locations))?d.locations.slice():[];
+      if(window.refreshProductsView) window.refreshProductsView();
+    }, function(){});
   }
   // post an udhaar (credit) sale to the customer's Ledger as a charge
   window.postUdhaarToLedger=function(memberId, amount, desc){
@@ -968,9 +1080,10 @@ render();
     return lref.get().then(function(s){
       var st=(s.exists&&s.data()&&s.data().state) || {members:[],transactions:[],settings:{}};
       if(!Array.isArray(st.transactions)) st.transactions=[];
+      var _d=new Date(); var _iso=_d.getFullYear()+"-"+String(_d.getMonth()+1).padStart(2,"0")+"-"+String(_d.getDate()).padStart(2,"0");
       st.transactions.push({ id:"sc"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
         memberId:memberId, type:"charge", amount:Math.round(amount),
-        description:desc||"Sale on credit", date:Date.now(), createdAt:Date.now(), fromSale:true });
+        description:desc||"Sale on credit", date:_iso, createdAt:Date.now(), fromSale:true });
       if(!st.settings) st.settings={};
       st.settings.updatedAt=Date.now();
       return lref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
