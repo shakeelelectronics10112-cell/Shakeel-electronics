@@ -360,13 +360,13 @@ function renderSummary(){
 }
 function renderFilters(){
   const low=State.items.filter(i=>isLow(i.qty)).length;
-  const defs=[["all","Browse"],["low",`Low stock`]];
+  const defs=[["all","Browse"],["list","All items"],["low",`Low stock`]];
   document.getElementById("filters").innerHTML=defs.map(([k,l])=>`<button class="${ui.filter===k?"on":""}" data-filter="${k}">${l}${k==="low"?`<span class="seg-count">${low}</span>`:""}</button>`).join("");
 }
 
 function renderMain(){
   const q=ui.search.trim().toLowerCase();
-  if(q || ui.filter==="low"){ document.getElementById("crumbsWrap").innerHTML=""; renderFlat(q); }
+  if(q || ui.filter==="low" || ui.filter==="list"){ document.getElementById("crumbsWrap").innerHTML=""; renderFlat(q); }
   else { renderCrumbs(); renderExplorer(); }
 }
 
@@ -497,15 +497,45 @@ function renderExplorer(){
 
 function renderFlat(q){
   const board=document.getElementById("board");
-  let list;
-  if(ui.filter==="low" && !q){ list=State.items.filter(i=>isLow(i.qty)); }
+  let list, mode = (ui.filter==="list" && !q) ? "list" : (ui.filter==="low" && !q ? "low" : "search");
+  if(mode==="low"){ list=State.items.filter(i=>isLow(i.qty)); }
+  else if(mode==="list"){ list=State.items.slice(); }
   else { list=State.items.filter(i=>{ const h=(i.name+" "+(i.code||"")+" "+locPathText(i.locationId)).toLowerCase(); return h.includes(q); }); }
-  list=list.slice().sort((a,b)=>a.qty-b.qty || a.name.localeCompare(b.name));
 
-  document.getElementById("countNote").textContent=`${list.length} result${list.length===1?"":"s"}`;
+  // list view sorts A->Z by name; others by qty (low first)
+  if(mode==="list") list=list.slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  else list=list.slice().sort((a,b)=>a.qty-b.qty || a.name.localeCompare(b.name));
 
-  const title=ui.filter==="low"&&!q?"Low stock items":`Search results`;
-  let html=`<div class="board-head"><h2>${ui.filter==="low"&&!q?"⚠️":"🔎"} ${title}</h2></div>`;
+  document.getElementById("countNote").textContent=`${list.length} ${mode==="list"?"items":"result"+(list.length===1?"":"s")}`;
+
+  if(mode==="list"){
+    const totPieces=list.reduce((s,i)=>s+(i.qty||0),0);
+    const totVal=list.reduce((s,i)=>s+(i.qty||0)*(i.price||0),0);
+    let html=`<div class="board-head" style="flex-wrap:wrap;gap:8px"><h2>📋 All products</h2>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn ghost sm" id="listPrint">🖨 Print / PDF</button>
+        <button class="btn ghost sm" id="listCsv">📊 Excel</button>
+      </div></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);font-family:var(--mono,monospace);margin:2px 2px 12px">
+        <span><b style="color:var(--ink)">${list.length}</b> products</span>
+        <span><b style="color:var(--ink)">${totPieces.toLocaleString()}</b> total pieces</span>
+        ${totVal>0?`<span>value <b style="color:var(--green)">Rs ${Math.round(totVal).toLocaleString()}</b></span>`:""}
+      </div>`;
+    if(!list.length){ html+=`<div class="empty"><div class="big grot">No products yet</div><p>Add items to your boxes and they'll all show here.</p></div>`; }
+    else {
+      // compact table: name | qty | location
+      html+=`<div class="items" id="listTable">`;
+      for(const it of list) html+=itemRowHTML(it,true);
+      html+=`</div>`;
+    }
+    board.innerHTML=html; wireBoard();
+    const lp=document.getElementById("listPrint"); if(lp) lp.onclick=()=>printAllProducts(list);
+    const lc=document.getElementById("listCsv"); if(lc) lc.onclick=()=>csvAllProducts(list);
+    return;
+  }
+
+  const title=mode==="low"?"Low stock items":`Search results`;
+  let html=`<div class="board-head"><h2>${mode==="low"?"⚠️":"🔎"} ${title}</h2></div>`;
   if(list.length===0){
     html+=`<div class="empty"><div class="big grot">Nothing found</div><p>${q?`No item or box matches “${esc(ui.search)}”.`:"No items are at or below your low-stock level. Nice."}</p></div>`;
   }else{
@@ -514,6 +544,48 @@ function renderFlat(q){
     html+=`</div>`;
   }
   board.innerHTML=html; wireBoard();
+}
+
+/* print all-products master list (thermal-safe A4 PDF via jsPDF) */
+function printAllProducts(list){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ flash&&flash("Print engine loading — try again"); return; }
+  const jsPDF=window.jspdf.jsPDF;
+  const doc=new jsPDF({unit:"pt",format:"a4"});
+  const W=595,M=40; let y=54;
+  doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(14,79,68);
+  doc.text("STOCK LIST — ALL PRODUCTS",M,y); y+=6;
+  doc.setDrawColor(176,138,62); doc.setLineWidth(2); doc.line(M,y,W-M,y); y+=18;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(110,118,115);
+  doc.text("Shakeel Electronics · "+new Date().toLocaleDateString(),M,y);
+  const totP=list.reduce((s,i)=>s+(i.qty||0),0);
+  doc.text(list.length+" products · "+totP.toLocaleString()+" pieces",W-M,y,{align:"right"}); y+=16;
+  // header row
+  doc.setFillColor(14,79,68); doc.rect(M,y-11,W-2*M,18,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(255,255,255);
+  doc.text("PRODUCT",M+6,y+1); doc.text("CODE",270,y+1); doc.text("QTY",370,y+1,{align:"right"}); doc.text("LOCATION",395,y+1); y+=20;
+  doc.setFont("helvetica","normal"); doc.setTextColor(26,33,31); doc.setFontSize(9);
+  let zeb=0;
+  for(const it of list){
+    if(y>800){ doc.addPage(); y=54; }
+    if(zeb%2){ doc.setFillColor(246,248,246); doc.rect(M,y-10,W-2*M,16,"F"); }
+    doc.setTextColor(26,33,31); doc.text(String(it.name).slice(0,34),M+6,y);
+    doc.setTextColor(110,118,115); doc.setFontSize(8.5);
+    doc.text(String(it.code||"—").slice(0,16),270,y);
+    doc.setTextColor(it.qty<=(State.settings.lowStock||0)?194:26, it.qty<=(State.settings.lowStock||0)?91:33, it.qty<=(State.settings.lowStock||0)?55:31);
+    doc.setFont("helvetica","bold"); doc.text(String(it.qty||0),370,y,{align:"right"});
+    doc.setFont("helvetica","normal"); doc.setTextColor(110,118,115); doc.setFontSize(8);
+    doc.text(String(locPathText(it.locationId)||"—").slice(0,42),395,y);
+    doc.setFontSize(9);
+    y+=16; zeb++;
+  }
+  const url=doc.output("bloburl"); window.open(url,"_blank");
+}
+function csvAllProducts(list){
+  let rows=[["Product","Code","Qty","Est price","Stock value","Location"]];
+  list.forEach(it=>rows.push([it.name,it.code||"",it.qty||0,it.price||0,Math.round((it.qty||0)*(it.price||0)),locPathText(it.locationId)]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"}); const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="stock-all-products.csv"; a.click();
 }
 
 function itemRowHTML(it, showPath){
