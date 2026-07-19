@@ -194,8 +194,10 @@
       <div class="payrow" id="payRow"></div>
       <div style="margin-top:12px">
         <div class="totrow"><span>Subtotal</span><span class="mono" id="sub">Rs 0</span></div>
-        <div class="totrow"><span>Discount (Rs)</span><input class="disc-in" id="disc" inputmode="numeric" placeholder="0"></div>
+        <div class="totrow"><span>Discount (Rs or %)</span><input class="disc-in" id="disc" placeholder="0 or 5%"></div>
         <div class="totrow big"><span>TOTAL</span><span id="grand">Rs 0</span></div>
+        <div class="totrow" id="tenderRow" style="display:none"><span>Cash received</span><input class="disc-in" id="tender" inputmode="numeric" placeholder="0"></div>
+        <div class="totrow" id="changeRow" style="display:none"><span style="font-weight:700">Change to return</span><span class="mono" id="changeAmt" style="font-weight:700;color:var(--green)">Rs 0</span></div>
         <div class="totrow" style="justify-content:flex-end"><span class="profit" id="profitPrev"></span></div>
       </div>
       <div style="display:flex;gap:9px;margin-top:12px">
@@ -218,10 +220,11 @@
   <!-- PRODUCTS -->
   <div class="pane" id="pane-products">
     <div class="card">
-      <div class="srch"><input id="pq" placeholder="Search products…"><button class="btn gold sm" id="addProd">+ Add</button></div>
+      <div class="srch"><input id="pq" placeholder="Search products…"><button class="btn gold sm" id="addProd">+ Add</button><button class="btn ghost sm" id="impBuy">⬇ Buy invoice</button></div>
       <div id="prodWarn" style="margin-top:8px"></div>
     </div>
     <div id="prodList"></div>
+    <div id="sbUnpriced"></div>
   </div>
 
   <!-- MONEY -->
@@ -288,6 +291,9 @@
     <button class="btn go" id="e-save" style="margin-top:0">Save</button>
   </div>
 </div></div>
+
+<!-- import from buy sheet -->
+<div class="scrim" id="impScrim"><div class="sheet" id="impSheet"></div></div>
 
 <!-- add stock sheet -->
 <div class="scrim" id="stScrim"><div class="sheet">
@@ -389,7 +395,7 @@ function renderPay(){
     return '<button class="'+(p===pay?"on":"")+'" data-pay="'+esc(p)+'">'+esc(p)+'</button>';
   }).join("");
   document.querySelectorAll("#payRow [data-pay]").forEach(function(b){
-    b.onclick=function(){ pay=b.dataset.pay; renderPay(); };
+    b.onclick=function(){ pay=b.dataset.pay; renderPay(); totals(); };
   });
 }
 /* ---------- linked customer (from Ledger) ---------- */
@@ -430,17 +436,23 @@ sq.addEventListener("input",function(){
   // B) items straight from StockBox (so anything you add there is sellable here)
   var sbItems=(window.LINK&&window.LINK.stockItems)||[];
   var already={}; State.products.forEach(function(p){ already[p.name.toLowerCase().trim()]=true; });
-  var sbM=sbItems.filter(function(it){
+  var groups={};
+  sbItems.forEach(function(it){
     var n=(it.name||"").toLowerCase(), c=(it.code||"").toLowerCase();
-    return (n.indexOf(t)>=0 || c.indexOf(t)>=0);
-  }).slice(0,6);
-  if(sbM.length){
+    if(n.indexOf(t)<0 && c.indexOf(t)<0) return;
+    var k=normName(it.name)||normName(it.code);
+    if(!groups[k]) groups[k]={name:it.name,code:it.code,total:0,boxes:[]};
+    groups[k].total+=(it.qty||0);
+    groups[k].boxes.push((locPathText(it.locationId)||"—")+" ("+(it.qty||0)+")");
+  });
+  var gkeys=Object.keys(groups).slice(0,6);
+  if(gkeys.length){
     html+='<div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;padding:8px 4px 4px">FROM STOCKBOX</div>';
-    html+=sbM.map(function(it){
-      var where=locPathText(it.locationId);
-      var known=State.products.find(function(p){ return p.name.toLowerCase().trim()===(it.name||"").toLowerCase().trim(); });
+    html+=gkeys.map(function(k){
+      var g=groups[k];
+      var known=State.products.find(function(p){ return normName(p.name)===normName(g.name); });
       var price=known?known.price:0;
-      return '<div class="hit" data-sb="'+it.id+'"><span class="n">'+esc(it.name)+(it.code?' <small class="mono" style="color:var(--muted)">'+esc(it.code)+'</small>':'')+'<small style="display:block;color:var(--muted);font-family:var(--mono);font-size:11px">📦 '+esc(where||"—")+' · '+(it.qty||0)+' pcs</small></span><span class="p">'+(price?fmt(price):"set price")+'</span></div>';
+      return '<div class="hit" data-sbn="'+esc(g.name)+'"><span class="n">'+esc(g.name)+(g.code?' <small class="mono" style="color:var(--muted)">'+esc(g.code)+'</small>':'')+'<small style="display:block;color:var(--muted);font-family:var(--mono);font-size:11px">📦 '+g.total+' pcs total · '+esc(g.boxes.slice(0,2).join(" + "))+(g.boxes.length>2?' +'+(g.boxes.length-2)+' more':'')+'</small></span><span class="p">'+(price?fmt(price):"set price")+'</span></div>';
     }).join("");
   }
   html+='<div class="hit newp" data-new="1"><span class="n">+ New product “'+esc(sq.value.trim())+'”</span></div>';
@@ -448,8 +460,8 @@ sq.addEventListener("input",function(){
   hits.querySelectorAll("[data-add]").forEach(function(el){
     el.onclick=function(){ addLine(el.dataset.add); sq.value=""; hits.innerHTML=""; sq.focus(); };
   });
-  hits.querySelectorAll("[data-sb]").forEach(function(el){
-    el.onclick=function(){ addStockItem(el.dataset.sb); sq.value=""; hits.innerHTML=""; sq.focus(); };
+  hits.querySelectorAll("[data-sbn]").forEach(function(el){
+    el.onclick=function(){ addStockByName(el.dataset.sbn); sq.value=""; hits.innerHTML=""; sq.focus(); };
   });
   var np=hits.querySelector("[data-new]");
   if(np) np.onclick=function(){ openProd(null, sq.value.trim(), true); };
@@ -459,6 +471,24 @@ function stockIdForName(name){
   var items=(window.LINK&&window.LINK.stockItems)||[]; var t=(name||"").toLowerCase().trim();
   var hit=items.find(function(it){ return (it.name||"").toLowerCase().trim()===t || (it.code||"").toLowerCase().trim()===t; });
   return hit?hit.id:null;
+}
+function normName(s){ return String(s||"").toLowerCase().trim(); }
+function matchingBoxes(name){ var t=normName(name); if(!t) return [];
+  return (((window.LINK||{}).stockItems)||[]).filter(function(it){ return normName(it.name)===t || normName(it.code)===t; }); }
+function distributeStock(name,qty){
+  var boxes=matchingBoxes(name).slice().sort(function(a,b){ return (a.qty||0)-(b.qty||0); });
+  var out=[], left=qty;
+  boxes.forEach(function(b){ if(left<=0) return; var take=Math.min(left,b.qty||0); if(take>0){ out.push({stockId:b.id,delta:-take}); left-=take; } });
+  if(left>0 && boxes.length){ out.push({stockId:boxes[boxes.length-1].id, delta:-left}); }
+  return out;
+}
+function addStockByName(name){
+  var known=State.products.find(function(p){ return normName(p.name)===normName(name); });
+  var ex=cart.find(function(l){ return normName(l.name)===normName(name); });
+  if(ex){ ex.qty++; }
+  else cart.push({pid:known?known.id:null, name:name, qty:1, price:known?num(known.price):0, cost:known?num(known.cost):0});
+  renderCart();
+  if(!known) toast("Set the price in the line (tap the price box)");
 }
 function addStockItem(stockId){
   var sb=((window.LINK&&window.LINK.stockItems)||[]).find(function(x){return x.id===stockId;});
@@ -496,25 +526,42 @@ function renderCart(){
   el.querySelectorAll("[data-p]").forEach(function(inp){ inp.onchange=function(){ cart[+inp.dataset.p].price=num(inp.value); renderCart(); }; });
   totals();
 }
+function discVal(sub){
+  var raw=(document.getElementById("disc").value||"").trim();
+  if(raw.slice(-1)==="%"){ var p=num(raw); return Math.round(sub*p/100); }
+  return num(raw);
+}
 function totals(){
   var sub=cart.reduce(function(s,l){return s+l.price*l.qty;},0);
-  var d=num(document.getElementById("disc").value);
+  var d=discVal(sub);
   var profit=cart.reduce(function(s,l){return s+(num(l.price)-num(l.cost))*l.qty;},0)-d;
   document.getElementById("sub").textContent=fmt(sub);
-  document.getElementById("grand").textContent=fmt(Math.max(0,sub-d));
+  var g=Math.max(0,sub-d);
+  document.getElementById("grand").textContent=fmt(g);
   document.getElementById("profitPrev").textContent=cart.length?("Profit ≈ "+fmt(profit)):"";
+  var tr=document.getElementById("tenderRow"), cr=document.getElementById("changeRow");
+  if(tr) tr.style.display=(pay==="Cash"&&cart.length)?"flex":"none";
+  var tEl=document.getElementById("tender"); var tv=tEl?num(tEl.value):0;
+  if(cr){
+    var ch=tv-g;
+    cr.style.display=(pay==="Cash"&&tv>0&&cart.length)?"flex":"none";
+    var ca=document.getElementById("changeAmt");
+    if(ca){ ca.textContent = ch>=0 ? "Rs "+Math.round(ch).toLocaleString() : "need Rs "+Math.round(-ch).toLocaleString()+" more";
+            ca.style.color = ch>=0 ? "var(--green)" : "var(--warn)"; }
+  }
 }
 document.getElementById("disc").addEventListener("input",totals);
+document.getElementById("tender").addEventListener("input",totals);
 
 document.getElementById("doneBtn").onclick=function(){
   if(!cart.length){ toast("Add at least one item"); return; }
   var sub=cart.reduce(function(s,l){return s+l.price*l.qty;},0);
-  var d=Math.min(num(document.getElementById("disc").value),sub);
+  var d=Math.min(discVal(sub),sub);
   State.settings.seq=(State.settings.seq||0)+1;
   var no=String(State.settings.seq).padStart(2,"0");
   var sale={id:uid(),no:no,date:Date.now(),customer:document.getElementById("cust").value.trim(),
     customerId:(chosenCustomer?chosenCustomer.id:null),
-    items:cart.map(function(l){return {pid:l.pid,stockId:(l.stockId||stockIdForName(l.name)),name:l.name,qty:l.qty,price:num(l.price),cost:num(l.cost)};}),
+    items:cart.map(function(l){return {pid:l.pid,stockId:(l.stockId||null),name:l.name,qty:l.qty,price:num(l.price),cost:num(l.cost)};}),
     discount:d,total:sub-d,pay:pay};
   State.sales.unshift(sale);
   // credit (udhaar) → post to customer's Ledger automatically
@@ -528,10 +575,19 @@ document.getElementById("doneBtn").onclick=function(){
   }
   sale.items.forEach(function(it){ if(!it.pid) return; var p=State.products.find(function(x){return x.id===it.pid;}); if(p && typeof p.stock==="number") p.stock-=it.qty; });
   // deduct from StockBox (single source of stock)
-  var sbChanges=sale.items.filter(function(it){return it.stockId;}).map(function(it){return {stockId:it.stockId, delta:-it.qty};});
-  if(sbChanges.length && window.adjustStockBox){ window.adjustStockBox(sbChanges); }
+  var sbChanges=[]; var notLinkedCount=0;
+  sale.items.forEach(function(it){
+    if(it.stockId){ sbChanges.push({stockId:it.stockId, delta:-it.qty}); return; }
+    var dist=distributeStock(it.name, it.qty);
+    if(dist.length) dist.forEach(function(c){ sbChanges.push(c); });
+    else notLinkedCount++;
+  });
+  if(sbChanges.length && window.adjustStockBox){
+    window.adjustStockBox(sbChanges).then(function(ok){ if(ok) toast("📦 StockBox updated ("+sbChanges.length+" item"+(sbChanges.length>1?"s":"")+")"); });
+  }
+  if(notLinkedCount && sale.items.length){ setTimeout(function(){ toast(notLinkedCount+" item(s) not in StockBox — stock not changed for those"); }, 1400); }
   persist(); 
-  cart=[]; document.getElementById("cust").value=""; document.getElementById("disc").value=""; chosenCustomer=null; updateCustTag();
+  cart=[]; document.getElementById("cust").value=""; document.getElementById("disc").value=""; var _td=document.getElementById("tender"); if(_td) _td.value=""; chosenCustomer=null; updateCustTag();
   renderCart(); render();
   openSale(sale.id,true);
   toast("Sale "+no+" saved ✓");
@@ -925,7 +981,59 @@ function stockBoxFor(name){
   var places=matches.map(function(i){ return locPathText(i.locationId); }).filter(Boolean);
   return {pieces:pieces, places:places};
 }
-window.refreshProductsView=function(){ if(document.getElementById("pane-products").classList.contains("on")) renderProducts(); };
+window.refreshProductsView=function(){ renderUnpriced(); if(document.getElementById("pane-products").classList.contains("on")) renderProducts(); };
+
+/* ---------- StockBox items not yet priced (auto-show in Sell) ---------- */
+function renderUnpriced(){
+  var el=document.getElementById("sbUnpriced"); if(!el) return;
+  var seen={}, list=[];
+  (((window.LINK||{}).stockItems)||[]).forEach(function(it){
+    var k=normName(it.name); if(!k||seen[k]) return; seen[k]=1;
+    var known=State.products.find(function(p){ return normName(p.name)===k; });
+    if(known) return;
+    var tot=matchingBoxes(it.name).reduce(function(s,b){ return s+(b.qty||0); },0);
+    list.push({name:it.name,tot:tot});
+  });
+  el.innerHTML = list.length
+    ? '<div class="datehdr">📦 In StockBox — set price to sell ('+list.length+')</div>'+list.slice(0,25).map(function(x){
+        return '<div class="row" data-setp="'+esc(x.name)+'"><div class="m"><div class="t1">'+esc(x.name)+'</div><div class="t2">'+x.tot+' pcs in StockBox · no sale price yet</div></div><div class="amt"><span class="btn gold sm">Set price</span></div></div>';
+      }).join("")
+    : "";
+  el.querySelectorAll("[data-setp]").forEach(function(r){ r.onclick=function(){ openProd(null, r.dataset.setp, false); }; });
+}
+
+/* ---------- Import products from a Buy invoice ---------- */
+document.getElementById("impBuy").onclick=function(){
+  var ps=(window.LINK&&window.LINK.purchases)||[];
+  if(!ps.length){ toast("No Buy data yet — open the Buy app once"); return; }
+  var ships={};
+  ps.forEach(function(p){ if(!p.item) return; var k=String(p.shipment!=null?p.shipment:"?"); (ships[k]=ships[k]||[]).push(p); });
+  var keys=Object.keys(ships);
+  var sheet=document.getElementById("impSheet");
+  sheet.innerHTML='<h3>Import from Buy</h3><div style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">Pick an invoice — items come in with EXACT cost (goods + freight) and vendor. Suggested sale price = cost + Rs 200.</div>'
+    + keys.map(function(k){ return '<div class="hit" data-imp="'+esc(k)+'" style="margin-bottom:6px"><span class="n">Invoice / shipment '+esc(k)+'</span><span class="p">'+ships[k].length+' items</span></div>'; }).join("")
+    + '<div class="acts"><button class="btn ghost" id="imp-close">Close</button></div>';
+  document.getElementById("impScrim").classList.add("on");
+  document.getElementById("imp-close").onclick=function(){ document.getElementById("impScrim").classList.remove("on"); };
+  sheet.querySelectorAll("[data-imp]").forEach(function(b){
+    b.onclick=function(){ importShip(ships[b.dataset.imp]); };
+  });
+};
+function importShip(rows){
+  if(!rows||!rows.length){ toast("Nothing to import"); return; }
+  var rate=(window.LINK&&window.LINK.buyRate)||42.75, made=0, upd=0;
+  rows.forEach(function(p){
+    if(!p.item) return;
+    var unit=Math.round((p.priceRMB||0)*(p.rate||rate)+(p.freightPP||0));
+    var ex=State.products.find(function(x){ return normName(x.name)===normName(p.item); });
+    if(ex){ ex.cost=unit; if(p.vendor) ex.vendor=p.vendor; upd++; }
+    else { State.products.unshift({id:uid(),name:p.item,cost:unit,price:unit+200,vendor:p.vendor||""}); made++; }
+  });
+  persist(); render();
+  document.getElementById("impScrim").classList.remove("on");
+  toast(made+" added · "+upd+" updated — check sale prices");
+}
+document.getElementById("impScrim").addEventListener("click",function(e){ if(e.target===this) this.classList.remove("on"); });
 
 /* ---------- vendors linked from Purchases ---------- */
 window.refreshVendorList=function(){
@@ -988,7 +1096,12 @@ function commitReturn(mode){
   // good returns go back to stock (local product stock AND StockBox); damaged do NOT
   if(mode==="stock"){
     items.forEach(function(l){ if(!l.pid) return; var p=State.products.find(function(x){return x.id===l.pid;}); if(p && typeof p.stock==="number") p.stock+=l.qty; });
-    var sbBack=items.map(function(l){ return {stockId:(l.stockId||stockIdForName(l.name)), delta:l.qty}; }).filter(function(c){return c.stockId;});
+    var sbBack=[];
+    items.forEach(function(l){
+      if(l.stockId){ sbBack.push({stockId:l.stockId, delta:l.qty}); return; }
+      var mb=matchingBoxes(l.name);
+      if(mb.length) sbBack.push({stockId:mb[0].id, delta:l.qty});
+    });
     if(sbBack.length && window.adjustStockBox){ window.adjustStockBox(sbBack); }
   }
   // if the original sale was on credit to a linked Ledger customer, reverse the charge
@@ -1067,7 +1180,7 @@ function printEOD(tk,sales,byPay,total,profit,items,expTotal,cashTotal){
 }
 
 /* ================= RENDER ALL ================= */
-function render(){ renderPay(); renderCart(); renderHolds(); renderHistory(); renderProducts(); renderMoney(); }
+function render(){ renderPay(); renderCart(); renderHolds(); renderHistory(); renderProducts(); renderUnpriced(); renderMoney(); }
 render();
 </script>
 
@@ -1115,6 +1228,8 @@ render();
       var d=s.exists&&s.data()&&s.data().state;
       var vs=(d&&d.settings&&Array.isArray(d.settings.vendors))?d.settings.vendors.slice():[];
       window.LINK.vendors=vs;
+      window.LINK.purchases=(d&&Array.isArray(d.purchases))?d.purchases.slice():[];
+      window.LINK.buyRate=(d&&d.settings&&d.settings.rate)||42.75;
       if(window.refreshVendorList) window.refreshVendorList();
     }, function(){});
     // stock locations from StockBox

@@ -477,6 +477,11 @@
 
     <div class="sect">Your apps</div>
     <div class="apps">
+      <button class="app" data-go="sales">
+        <span class="badge gold" id="bg-holds">0</span>
+        <div class="ic i-ledger" style="background:linear-gradient(135deg,#2E7D5B,#1D5A40)!important"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h2"/><circle cx="16.5" cy="13.5" r="2.5"/><path d="M12 6V4h8v2"/></svg></div>
+        <div><div class="t">Sale Counter</div><div class="d">Fast billing — auto-updates stock</div></div>
+      </button>
       <button class="app" data-go="ledger">
         <div class="ic i-ledger"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <div><div class="t">Ledger</div><div class="d">Customer dues, payments & reminders</div></div>
@@ -528,6 +533,9 @@
   <button data-tab="purchases" data-src="purchases.html">
     <svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Buy</span>
   </button>
+  <button data-tab="sales" data-src="sales.html">
+    <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h2"/><circle cx="16.5" cy="13.5" r="2.5"/><path d="M12 6V4h8v2"/></svg><span>Sell</span>
+  </button>
   <button data-tab="labels" data-src="labels.html">
     <svg viewBox="0 0 24 24"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg><span>Labels</span>
   </button>
@@ -546,7 +554,7 @@
 </nav>
 
 <script>
-var V = "50";  // cache-buster: bump when you upload new app files
+var V = "51";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -590,7 +598,7 @@ function applyRole(){
   document.body.classList.toggle("staff", staff);
   if(!staff) return;
   // hide the money apps everywhere
-  ["ledger","purchases"].forEach(function(t){
+  ["ledger","purchases","sales"].forEach(function(t){
     document.querySelectorAll('#nav button[data-tab="'+t+'"], .app[data-go="'+t+'"], .kpi[data-go="'+t+'"]')
       .forEach(function(el){ el.style.display = "none"; });
   });
@@ -770,7 +778,7 @@ if("serviceWorker" in navigator){
   }catch(e){ return; }
 
   function watch(db){
-    ["ledger","purchases","orderbook","quotes","stockbox"].forEach(function(key){
+    ["ledger","purchases","sales","orderbook","quotes","stockbox"].forEach(function(key){
       db.collection("shops").doc("main").collection("apps").doc(key)
         .onSnapshot(function(snap){
           data[key] = (snap.exists && snap.data() && snap.data().state) || null;
