@@ -179,8 +179,9 @@
   <div class="pane on" id="pane-sell">
     <div id="holdRow"></div>
     <div class="card">
-      <div class="srch"><input id="sq" placeholder="Search product to add… (e.g. 6870C)" autocomplete="off"></div>
+      <div class="srch"><input id="sq" placeholder="Search product to add… (e.g. 6870C)" autocomplete="off"><button class="btn ghost sm" id="browseAll">📦 All stock</button></div>
       <div class="hits" id="hits"></div>
+      <div id="allStock"></div>
     </div>
     <div class="card">
       <h3>This sale <span class="mono" id="lineCount" style="color:var(--muted);font-size:12px"></span></h3>
@@ -424,6 +425,7 @@ function updateCustTag(){
 }
 
 var sq=document.getElementById("sq"), hits=document.getElementById("hits");
+document.getElementById("browseAll").onclick=toggleBrowse;
 sq.addEventListener("input",function(){
   var t=sq.value.trim().toLowerCase();
   if(!t){ hits.innerHTML=""; return; }
@@ -473,6 +475,37 @@ function stockIdForName(name){
   return hit?hit.id:null;
 }
 function normName(s){ return String(s||"").toLowerCase().trim(); }
+var browseOpen=false;
+function toggleBrowse(){
+  browseOpen=!browseOpen;
+  var el=document.getElementById("allStock");
+  var btn=document.getElementById("browseAll");
+  if(!browseOpen){ el.innerHTML=""; if(btn) btn.classList.remove("gold"); if(btn){btn.classList.add("ghost");} return; }
+  if(btn){ btn.classList.remove("ghost"); btn.classList.add("gold"); }
+  renderAllStock();
+}
+function renderAllStock(){
+  var el=document.getElementById("allStock"); if(!el||!browseOpen) return;
+  var sbItems=((window.LINK||{}).stockItems)||[];
+  // group by name, sum qty across boxes
+  var groups={};
+  sbItems.forEach(function(it){
+    var k=normName(it.name)||normName(it.code); if(!k) return;
+    if(!groups[k]) groups[k]={name:it.name,code:it.code,total:0,boxes:[]};
+    groups[k].total+=(it.qty||0);
+    groups[k].boxes.push((locPathText(it.locationId)||"—")+" ("+(it.qty||0)+")");
+  });
+  var keys=Object.keys(groups).sort(function(a,b){ return groups[a].name.localeCompare(groups[b].name); });
+  if(!keys.length){ el.innerHTML='<div class="empty" style="padding:20px">No items in StockBox yet. Add them in the Stock app (or receive an invoice).</div>'; return; }
+  el.innerHTML='<div class="datehdr">📦 All StockBox items ('+keys.length+') — tap to add</div>'+keys.map(function(k){
+    var g=groups[k];
+    var known=State.products.find(function(p){ return normName(p.name)===normName(g.name); });
+    var price=known?known.price:0;
+    var lowC = g.total<=0?"var(--warn)":(g.total<=5?"var(--gold)":"var(--muted)");
+    return '<div class="hit" data-sbn="'+esc(g.name)+'"><span class="n">'+esc(g.name)+(g.code?' <small class="mono" style="color:var(--muted)">'+esc(g.code)+'</small>':'')+'<small style="display:block;font-family:var(--mono);font-size:11px;color:'+lowC+'">📦 '+g.total+' pcs · '+esc(g.boxes.slice(0,2).join(" + "))+(g.boxes.length>2?" +"+(g.boxes.length-2):"")+'</small></span><span class="p">'+(price?fmt(price):"set price")+'</span></div>';
+  }).join("");
+  el.querySelectorAll("[data-sbn]").forEach(function(b){ b.onclick=function(){ addStockByName(b.dataset.sbn); }; });
+}
 function matchingBoxes(name){ var t=normName(name); if(!t) return [];
   return (((window.LINK||{}).stockItems)||[]).filter(function(it){ return normName(it.name)===t || normName(it.code)===t; }); }
 function distributeStock(name,qty){
@@ -981,7 +1014,7 @@ function stockBoxFor(name){
   var places=matches.map(function(i){ return locPathText(i.locationId); }).filter(Boolean);
   return {pieces:pieces, places:places};
 }
-window.refreshProductsView=function(){ renderUnpriced(); if(document.getElementById("pane-products").classList.contains("on")) renderProducts(); };
+window.refreshProductsView=function(){ renderUnpriced(); renderAllStock(); if(document.getElementById("pane-products").classList.contains("on")) renderProducts(); };
 
 /* ---------- StockBox items not yet priced (auto-show in Sell) ---------- */
 function renderUnpriced(){

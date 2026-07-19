@@ -272,6 +272,7 @@ const State={
   pos:[],       // {id,number,vendor,date,rate,lines:[{item,qty,priceRMB}],note,createdAt}
   tracking:[],  // {id,date,fromVendor,forwarder,item,qty,weight,status,createdAt}
   shipments:[], // {id,no,openedAt,closedAt}
+  receives:[], // {id,shipment,date,count,pcs}
 };
 let ui={ tab:"purchases", search:"", statusFilter:"", vendorFilter:"" };
 
@@ -280,13 +281,14 @@ async function load(){
   let d=null;
   if(hasStore){ try{ const r=await window.storage.get(KEY); if(r&&r.value) d=JSON.parse(r.value); }catch(e){} }
   if(!d) d=lsLoad();
-  if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; }
+  if(d){ State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; State.receives=d.receives||[]; }
   ["categories","vendors","methods","types","statuses"].forEach(k=>{ if(!State.settings[k]||!State.settings[k].length) State.settings[k]=SEED[k].slice(); });
   if(!State.settings.forwarders) State.settings.forwarders=[];
   // make sure the newer statuses (e.g. At Forwarder) are available
   if(!State.settings.statuses.includes("At Forwarder")) State.settings.statuses=SEED.statuses.slice();
   if(!Array.isArray(State.needs)) State.needs=[]; if(!Array.isArray(State.pos)) State.pos=[];
   if(!Array.isArray(State.shipments)) State.shipments=[];
+  if(!Array.isArray(State.receives)) State.receives=[];
   if(!State.settings.currentShipment) State.settings.currentShipment=26;
   if(!State.shipments.some(s=>s.no===State.settings.currentShipment))
     State.shipments.push({id:uid(),no:State.settings.currentShipment,openedAt:Date.now(),closedAt:null});
@@ -410,6 +412,7 @@ function shipBarHTML(){
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn ghost sm" id="shipManage" title="Rename or delete this invoice">⚙</button>
       <button class="btn sm" id="sumBtn">📄 Purchase PDF</button>
+      <button class="btn primary sm" id="receiveBtn">📥 Receive → StockBox</button>
       <button class="btn sm" id="xlsBtn">📊 Excel</button>
       <button class="btn sm" id="arrivalBtn">📦 New arrival PDF</button>
       ${isOpen?`<button class="btn primary sm" id="finishShip">Finish → new shipment</button>`:""}
@@ -491,6 +494,7 @@ function renderPurchases(){
   const smg=document.getElementById("shipManage"); if(smg) smg.onclick=()=>manageShipment(ui.shipView);
   const sst=document.getElementById("shipStat"); if(sst) sst.onclick=()=>setShipStatus(ui.shipView);
   const sb=document.getElementById("sumBtn"); if(sb) sb.onclick=()=>purchaseSummaryPDF(ui.shipView);
+  const rb=document.getElementById("receiveBtn"); if(rb) rb.onclick=()=>openReceive();
   const xb=document.getElementById("xlsBtn"); if(xb) xb.onclick=()=>invoiceCSV(ui.shipView);
   wireGrid();
 }
@@ -1810,6 +1814,87 @@ if(!isStandalone()&&isIOS()) installBtn.style.display="inline-flex";
 
 /* ---------- modal + toast ---------- */
 const scrim=document.getElementById("scrim");
+function locOptions(selected){
+  var sbl=(window.__SB&&Array.isArray(window.__SB.locations))?window.__SB.locations:[];
+  var byId={}; sbl.forEach(function(l){ byId[l.id]=l; });
+  function path(l){ var parts=[],cur=l,g=0; while(cur&&g++<12){ parts.unshift(cur.name); cur=cur.parentId?byId[cur.parentId]:null; } return parts.join(" › "); }
+  var opts='<option value="">— pick location —</option>';
+  sbl.slice().sort(function(a,b){return path(a).localeCompare(path(b));}).forEach(function(l){
+    opts+='<option value="'+l.id+'"'+(l.id===selected?" selected":"")+'>'+path(l).replace(/</g,"&lt;")+'</option>';
+  });
+  return opts;
+}
+function openReceive(){
+  var no=ui.shipView;
+  var rows=State.purchases.filter(function(p){ return p.shipment===no && p.item; });
+  var sbl=(window.__SB&&Array.isArray(window.__SB.locations))?window.__SB.locations:[];
+  var already=State.receives.filter(function(r){ return r.shipment===no; });
+  var body="";
+  if(!sbl.length){
+    body='<div style="padding:14px;background:#FDECE7;border-radius:10px;color:#C25B37;font-size:13.5px;margin-bottom:12px">You have no boxes in StockBox yet. Open the <b>Stock</b> app and create at least one box/location first, then come back to receive.</div>';
+  }
+  var rate=State.settings.rate;
+  body+='<h3 style="font-family:var(--disp,inherit);margin-bottom:4px">📥 Receive into StockBox</h3>'
+    +'<div style="font-size:12.5px;color:#6E7673;margin-bottom:12px">'+shipLabel(no)+' — set a box for each item, then Receive. Adds pieces to StockBox with exact cost.</div>';
+  if(already.length){
+    body+='<div style="background:#EAF3EF;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">✓ Already received '+already.length+' time(s) for this invoice. '
+      +already.map(function(r){ return '<button class="btn ghost sm" data-undo="'+r.id+'" style="margin:4px 4px 0 0">↩ Undo '+r.count+' items ('+new Date(r.date).toLocaleDateString()+')</button>'; }).join("")+'</div>';
+  }
+  if(!rows.length){ body+='<div class="empty" style="padding:20px;color:#6E7673">No items in this invoice.</div>'; }
+  else{
+    body+='<div style="max-height:46vh;overflow:auto;margin:-4px -4px 8px">'+rows.map(function(p,i){
+      var unit=Math.round((p.priceRMB||0)*(p.rate||rate)+(p.freightPP||0));
+      return '<div style="display:flex;gap:8px;align-items:center;padding:9px 4px;border-bottom:1px solid #E2E7E4">'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px">'+String(p.item).replace(/</g,"&lt;")+'</div>'
+        +'<div style="font-size:11.5px;color:#6E7673;font-family:monospace">'+(p.qty||0)+' pcs · cost Rs '+unit.toLocaleString()+(p.vendor?" · "+String(p.vendor).replace(/</g,"&lt;"):"")+'</div></div>'
+        +'<select class="inp mono rcv-loc" data-i="'+i+'" style="width:150px;padding:8px;font-size:12px">'+locOptions("")+'</select>'
+        +'</div>';
+    }).join("")+'</div>';
+    body+='<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#6E7673;margin:6px 0 12px"><input type="checkbox" id="rcvSameAll"> Use the first location for all items</label>';
+    body+='<div style="display:flex;gap:9px"><button class="btn ghost" data-close style="flex:1">Cancel</button><button class="btn primary" id="rcvConfirm" style="flex:1"'+(sbl.length?"":" disabled")+'>📥 Receive all</button></div>';
+  }
+  openScrim(body);
+  // wire undo buttons
+  scrim.querySelectorAll("[data-undo]").forEach(function(b){
+    b.onclick=function(){
+      if(!confirm("Undo this receive? It removes those pieces back out of StockBox.")) return;
+      var rid=b.dataset.undo;
+      if(window.undoReceive) window.undoReceive(rid).then(function(ok){
+        if(ok){ State.receives=State.receives.filter(function(x){return x.id!==rid;}); persist(); toast&&toast("Receive undone — stock reversed"); closeScrim(); }
+        else alert("Undo failed — check connection.");
+      });
+    };
+  });
+  // "same location for all"
+  var same=document.getElementById("rcvSameAll");
+  if(same) same.onchange=function(){
+    var sels=scrim.querySelectorAll(".rcv-loc"); if(!sels.length) return;
+    if(same.checked){ var v=sels[0].value; sels.forEach(function(s){ s.value=v; }); }
+  };
+  // confirm
+  var cf=document.getElementById("rcvConfirm");
+  if(cf) cf.onclick=function(){
+    var sels=scrim.querySelectorAll(".rcv-loc");
+    var out=[], missing=0;
+    rows.forEach(function(p,i){
+      var sel=scrim.querySelector('.rcv-loc[data-i="'+i+'"]');
+      var loc=sel?sel.value:"";
+      if(!loc){ missing++; return; }
+      var unit=Math.round((p.priceRMB||0)*(p.rate||rate)+(p.freightPP||0));
+      out.push({name:p.item, code:"", qty:(p.qty||0), price:unit, locationId:loc});
+    });
+    if(missing){ alert(missing+" item(s) still need a location. Pick a box for each (or tick “use first location for all”)."); return; }
+    if(!out.length){ alert("Nothing to receive."); return; }
+    var rid="rcv"+Date.now().toString(36);
+    cf.textContent="Receiving…"; cf.disabled=true;
+    window.receiveToStockBox(out, rid).then(function(ok){
+      if(ok){
+        State.receives.push({id:rid, shipment:no, date:Date.now(), count:out.length, pcs:out.reduce(function(a,x){return a+x.qty;},0)});
+        persist(); toast&&toast("✓ "+out.length+" items received into StockBox"); closeScrim();
+      } else { cf.textContent="📥 Receive all"; cf.disabled=false; alert("Receive failed — check connection and try again."); }
+    });
+  };
+}
 function openScrim(html){ scrim.innerHTML=`<div class="modal">${html}</div>`; requestAnimationFrame(()=>scrim.classList.add("show")); scrim.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeScrim); }
 function closeScrim(){ scrim.classList.remove("show"); setTimeout(()=>{ if(!scrim.classList.contains("show")) scrim.innerHTML=""; },220); }
 scrim.addEventListener("click",e=>{ if(e.target===scrim) closeScrim(); });
@@ -1866,7 +1951,52 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous){ if(blockStaff(user.email)) return; start(); } });
   }catch(e){ return; }
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
+  function appRef(k){ return db.collection("shops").doc(SHOP).collection("apps").doc(k); }
+  window.__SB=null;
+  function watchStockbox(){ appRef("stockbox").onSnapshot(function(s){ window.__SB=(s.exists&&s.data()&&s.data().state)||null; }, function(){}); }
+  // write items into StockBox at chosen locations; tag with receiveId for undo
+  window.receiveToStockBox=function(rows, receiveId){
+    if(!db) return Promise.resolve(false);
+    var sref=appRef("stockbox");
+    return sref.get().then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state) || {items:[],locations:[],settings:{}};
+      if(!Array.isArray(st.items)) st.items=[];
+      if(!Array.isArray(st.locations)) st.locations=[];
+      rows.forEach(function(r){
+        // merge into an existing item with same name in same location, else create
+        var ex=st.items.find(function(it){ return (it.name||"").toLowerCase().trim()===(r.name||"").toLowerCase().trim() && it.locationId===r.locationId; });
+        if(ex){ ex.qty=(ex.qty||0)+r.qty; ex.updatedAt=Date.now(); if(!ex.receiveIds) ex.receiveIds=[]; ex.receiveIds.push({rid:receiveId,qty:r.qty}); if(r.price&&!ex.price) ex.price=r.price; }
+        else { st.items.push({ id:"rx"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+          name:r.name, code:r.code||"", qty:r.qty, price:r.price||0, locationId:r.locationId, note:"",
+          createdAt:Date.now(), updatedAt:Date.now(), receiveIds:[{rid:receiveId,qty:r.qty}] }); }
+      });
+      if(!st.settings) st.settings={};
+      st.settings.updatedAt=Date.now();
+      return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ return false; });
+  };
+  // undo a receive: subtract the exact quantities tagged with receiveId
+  window.undoReceive=function(receiveId){
+    if(!db) return Promise.resolve(false);
+    var sref=appRef("stockbox");
+    return sref.get().then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.items)) return false;
+      st.items.forEach(function(it){
+        if(!Array.isArray(it.receiveIds)) return;
+        var mine=it.receiveIds.filter(function(x){return x.rid===receiveId;});
+        if(!mine.length) return;
+        var back=mine.reduce(function(a,x){return a+(x.qty||0);},0);
+        it.qty=Math.max(0,(it.qty||0)-back);
+        it.receiveIds=it.receiveIds.filter(function(x){return x.rid!==receiveId;});
+        it.updatedAt=Date.now();
+      });
+      if(!st.settings) st.settings={};
+      st.settings.updatedAt=Date.now();
+      return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ return false; });
+  };
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
+    watchStockbox();
     var _op=persist; persist=function(){ _op(); schedulePush(); };
     ref().onSnapshot(function(snap){ window.__cloudActive=true;
       if(snap.exists){ var d=snap.data()&&snap.data().state;
