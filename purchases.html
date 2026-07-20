@@ -366,7 +366,7 @@ function sTracking(){ return State.tracking.filter(p=>p.shipment===curShip()); }
 function shipObj(no){ return State.shipments.find(s=>s.no===no); }
 function shipLabel(no){ const s=shipObj(no); return (s&&s.name&&s.name.trim()) ? s.name.trim() : ("INVOICE NO "+no); }
 function ensureShip(no){ let s=shipObj(no); if(!s){ s={id:uid(),no,openedAt:Date.now(),closedAt:null,status:"Open"}; State.shipments.push(s); } return s; }
-function shipNos(){ return State.shipments.map(s=>s.no).sort((a,b)=>b-a); }
+function shipNos(){ var seen={},out=[]; State.shipments.forEach(function(s){ if(s&&s.no!=null && !seen[s.no]){ seen[s.no]=1; out.push(s.no); } }); return out.sort((a,b)=>b-a); }
 function shipRows(no){ return State.purchases.filter(p=>p.shipment===no); }
 const SHIP_STAGES=["Open","Ordered","Paid","Shipped","Arrived","Closed"];
 function shipStatusOf(no){ const s=shipObj(no); if(s&&s.status) return s.status;
@@ -2100,6 +2100,8 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
     if(!d) return;
     State.purchases=_pApplyTomb(_pMerge(State.purchases,d.purchases,preferLocal),"purchase");
     if(Array.isArray(d.shipments)) State.shipments=_pApplyTomb(_pMerge(State.shipments,d.shipments,preferLocal),"shipment");
+    // self-heal: collapse duplicate shipment records that share the same invoice number
+    (function(){ var byNo={}, out=[]; (State.shipments||[]).forEach(function(s){ if(!s||s.no==null){ out.push(s); return; } var k=String(s.no); if(!byNo[k]){ byNo[k]=s; out.push(s); } else { var keep=byNo[k]; if((s.openedAt||0)<(keep.openedAt||0)){ keep.openedAt=s.openedAt; } if(s.name&&!keep.name) keep.name=s.name; if(s.closedAt&&!keep.closedAt) keep.closedAt=s.closedAt; } }); State.shipments=out; })();
     if(Array.isArray(d.receives)) State.receives=_pApplyTomb(_pMerge(State.receives,d.receives,preferLocal),"receive");
     if(Array.isArray(d.tracking)) State.tracking=_pApplyTomb(_pMerge(State.tracking,d.tracking,preferLocal),"tracking");
     var cs=d.settings||{}, ls=State.settings||{};
