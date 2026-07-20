@@ -306,6 +306,7 @@ function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return 
 let saveTimer=null,storageOK=true;
 async function save(){ let ok=false; if(hasStore){ try{ await window.storage.set(KEY,JSON.stringify(State)); ok=true; }catch(e){} } if(lsSave()) ok=true; storageOK=ok; updateStorageNote(); }
 function persist(){ State.settings.updatedAt=Date.now(); clearTimeout(saveTimer); saveTimer=setTimeout(save,120); if(dirHandle) writeToFolder(false); }
+function SLOG(m){ try{ var b=document.getElementById("syncLogBody"); if(!b) return; var t=new Date().toLocaleTimeString(); b.innerHTML='<div>['+t+'] '+m+'</div>'+b.innerHTML; if(b.children.length>40) b.removeChild(b.lastChild); }catch(_){} }
 function updateStorageNote(){ const el=document.getElementById("storageNote"); if(!el) return;
   if(window.__cloudActive) return;
   if(!storageOK){ el.innerHTML=`<span style="color:var(--warn)">⚠ Couldn't save on this device — use “Backup data”.</span>`; }
@@ -580,7 +581,7 @@ function wireGrid(rerender){
 function addBlankRow_(rerender){
   rerender = rerender || renderPurchases;
   const row={ id:uid(), shipment:(ui.shipView!=null?ui.shipView:State.settings.currentShipment), item:"", category:"", vendor:"", qty:0, priceRMB:0, rate:State.settings.rate, status:"Ordered", forwarder:"", date:todayISO(), createdAt:Date.now(), updatedAt:Date.now() };
-  State.purchases.push(row); persist(); rerender();
+  State.purchases.push(row); SLOG("ADDED new row (now "+(State.purchases||[]).length+")"); persist(); rerender();
   // focus the new row's item cell
   setTimeout(()=>{ const tr=document.querySelector(`tr[data-row="${row.id}"]`); if(tr){ tr.scrollIntoView({block:"center"}); const inp=tr.querySelector('[data-f="item"]'); if(inp) inp.focus(); } },40);
 }
@@ -2061,12 +2062,14 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
   };
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
     watchStockbox();
-    var _op=persist; persist=function(){ _op(); _dirty=true; schedulePush(); };
+    var _op=persist; persist=function(){ _op(); _dirty=true; SLOG("LOCAL EDIT ("+(State.purchases||[]).length+" rows) — will push"); schedulePush(); };
     ref().onSnapshot(function(snap){ window.__cloudActive=true;
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
+          var _cn=(d.purchases||[]).length, _ln=(State.purchases||[]).length;
           mergeCloudIntoState(d);
+          SLOG("RECEIVED cloud: "+_cn+" rows | local had "+_ln+" | after merge "+(State.purchases||[]).length+(_dirty?" [DIRTY]":"")+(_pTyping()?" [TYPING-deferred]":""));
           try{lsSave();}catch(_){}
           if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); }
           if(_dirty && _pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
@@ -2114,7 +2117,7 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
       var d=s.exists&&s.data()&&s.data().state;
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      _dirty=false; return ref().set({state:State,ts:Date.now()});
+      SLOG("PUSHING to cloud: "+(State.purchases||[]).length+" rows"); _dirty=false; return ref().set({state:State,ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })
       .catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }
   window.__pushNow=pushNow;
@@ -2124,5 +2127,8 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
 /* offline support */
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 </script>
+<div id="syncLog" style="position:fixed;left:0;right:0;bottom:0;max-height:130px;overflow:auto;background:#0A3E35;color:#BFE8DC;font:11px/1.4 monospace;padding:6px 10px;z-index:9999;border-top:2px solid #B08A3E">
+<div style="display:flex;justify-content:space-between"><b style="color:#E8CC84">BUY SYNC LOG — screenshot this if entry disappears</b><button onclick="document.getElementById('syncLog').style.display='none'" style="color:#fff;background:#C25B37;border:none;border-radius:4px;padding:2px 8px">hide</button></div>
+<div id="syncLogBody"></div></div>
 </body>
 </html>
