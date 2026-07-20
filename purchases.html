@@ -1202,7 +1202,7 @@ function renderTracking(){
       const commit=()=>{ let val=inp.value; if(f==="qty") val=parseFloat(val)||0; t[f]=val; t.updatedAt=Date.now(); persist(); };
       inp.addEventListener("change",commit); inp.addEventListener("blur",commit);
     });
-    tr.querySelector("[data-del]").onclick=()=>{ if(confirm("Delete this shipment?")){ State.tracking=State.tracking.filter(x=>x.id!==t.id); persist(); renderTracking(); } };
+    tr.querySelector("[data-del]").onclick=()=>{ if(confirm("Delete this shipment?")){ if(window.__pTombstone) window.__pTombstone("tracking",t.id); State.tracking=State.tracking.filter(x=>x.id!==t.id); persist(); renderTracking(); } };
   });
 }
 function addTrackRow(){
@@ -2078,7 +2078,7 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
   function _pTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
   var _pPending=false;
   function _pSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&((x.qty||0)+(x.priceRMB||0)))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.purchases)+"|"+sig(State.shipments)+"|"+sig(State.receives); }
-  function _pGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.purchases,d.purchases)||has(State.shipments,d.shipments)||has(State.receives,d.receives); }
+  function _pGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.purchases,d.purchases)||has(State.shipments,d.shipments)||has(State.receives,d.receives)||has(State.tracking,d.tracking); }
   document.addEventListener("focusout",function(){ setTimeout(function(){ if(_pPending&&!_pTyping()&&typeof render==="function"){ _pPending=false; render(); } },200); });
   document.addEventListener("visibilitychange",function(){ if(!document.hidden&&_pPending&&typeof render==="function"){ _pPending=false; render(); } });
   function _pTomb(){ try{ return JSON.parse(localStorage.getItem("purchases:deleted")||"{}"); }catch(_){ return {}; } }
@@ -2101,6 +2101,7 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
     State.purchases=_pApplyTomb(_pMerge(State.purchases,d.purchases,preferLocal),"purchase");
     if(Array.isArray(d.shipments)) State.shipments=_pApplyTomb(_pMerge(State.shipments,d.shipments,preferLocal),"shipment");
     if(Array.isArray(d.receives)) State.receives=_pApplyTomb(_pMerge(State.receives,d.receives,preferLocal),"receive");
+    if(Array.isArray(d.tracking)) State.tracking=_pApplyTomb(_pMerge(State.tracking,d.tracking,preferLocal),"tracking");
     var cs=d.settings||{}, ls=State.settings||{};
     if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
   }
