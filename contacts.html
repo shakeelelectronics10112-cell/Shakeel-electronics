@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Customers &amp; WhatsApp — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3; --panel:#FFFFFF; --ink:#0F1917; --muted:#6B7975; --faint:#9AA6A2;
+  --line:#E4E8E4; --line-strong:#D2D8D3; --green:#0E4F44; --green-hi:#0A3E35; --green-soft:#E6F0EC;
+  --paid:#2E7D5B; --warn:#B0492C; --warn-soft:#F8EAE4; --gold:#B08A3E; --amber:#8A6A2A; --amber-soft:#FBF3E2;
+  --blue:#1F6F8B; --blue-soft:#E4F0F4; --wa:#25D366; --wa-dark:#128C7E;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;padding-bottom:90px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.grot{font-family:"Space Grotesk",sans-serif}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+
+/* Header */
+header{background:var(--green);color:#fff;padding:16px 18px 14px;position:sticky;top:0;z-index:40}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+header .sub{font-size:12px;color:#BFE0D6;margin-top:2px}
+.status{font-size:11px;color:#BFE0D6;margin-top:6px}
+
+/* Search + filters */
+.toolbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 16px;position:sticky;top:70px;z-index:35}
+.search{width:100%;border:1.5px solid var(--line-strong);border-radius:12px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.search:focus{border-color:var(--green)}
+.chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line-strong);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip .n{font-size:11px;opacity:.85}
+.chip.cat-normal.on{background:var(--blue);border-color:var(--blue)}
+.chip.cat-bulk.on{background:var(--gold);border-color:var(--gold)}
+.chip.cat-special.on{background:var(--warn);border-color:var(--warn)}
+
+/* List */
+.wrap{padding:14px 16px}
+.stat{font-size:12.5px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.card .av{width:42px;height:42px;border-radius:11px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0;font-family:"Space Grotesk",sans-serif}
+.card.cat-normal .av{background:var(--blue-soft);color:var(--blue)}
+.card.cat-bulk .av{background:var(--amber-soft);color:var(--amber)}
+.card.cat-special .av{background:var(--warn-soft);color:var(--warn)}
+.card .info{flex:1;min-width:0}
+.card .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .ph{font-size:12.5px;color:var(--muted);font-family:"JetBrains Mono",monospace;margin-top:1px}
+.card .tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:5px;letter-spacing:.03em;text-transform:uppercase}
+.tag.normal{background:var(--blue-soft);color:var(--blue)}
+.tag.bulk{background:var(--amber-soft);color:var(--amber)}
+.tag.special{background:var(--warn-soft);color:var(--warn)}
+.card .acts{display:flex;gap:8px;flex-shrink:0}
+.iconbtn{width:40px;height:40px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.iconbtn.wa{background:var(--wa);color:#fff}
+.iconbtn.wa:active{background:var(--wa-dark)}
+.iconbtn.ed{background:#F0F2F0;color:var(--muted)}
+.iconbtn svg{width:20px;height:20px}
+.empty{text-align:center;padding:50px 20px;color:var(--faint)}
+.empty svg{width:54px;height:54px;opacity:.4;margin-bottom:12px}
+
+/* Bottom bar */
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;z-index:45}
+.btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;font-family:"Space Grotesk",sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--green);color:#fff;flex:1}
+.btn.wa{background:var(--wa);color:#fff;flex:1}
+.btn.ghost{background:#F0F2F0;color:var(--ink)}
+.btn svg{width:19px;height:19px}
+.btn:active{transform:scale(.98)}
+
+/* Scrim + sheet */
+.scrim{position:fixed;inset:0;background:rgba(15,25,23,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.scrim.on{display:flex}
+.sheet{background:#fff;border-radius:22px 22px 0 0;width:min(560px,100%);max-height:92vh;overflow-y:auto;padding:20px 20px 30px;animation:up .22s ease}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.sheet h2{font-size:18px;margin-bottom:16px}
+.fld{display:block;margin-bottom:14px}
+.fld .lt{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.inp{width:100%;border:1.5px solid var(--line-strong);border-radius:11px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.inp:focus{border-color:var(--green)}
+textarea.inp{resize:vertical;min-height:120px;line-height:1.5}
+.catpick{display:flex;gap:8px}
+.catopt{flex:1;border:1.5px solid var(--line-strong);border-radius:11px;padding:11px;text-align:center;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--muted)}
+.catopt.on.normal{background:var(--blue);border-color:var(--blue);color:#fff}
+.catopt.on.bulk{background:var(--gold);border-color:var(--gold);color:#fff}
+.catopt.on.special{background:var(--warn);border-color:var(--warn);color:#fff}
+.sheetacts{display:flex;gap:10px;margin-top:6px}
+.sheetacts .btn{flex:1}
+.del{background:var(--warn-soft);color:var(--warn);flex:0 0 auto!important;padding:14px 18px}
+.hint{font-size:12px;color:var(--faint);margin-top:-8px;margin-bottom:14px}
+.tokens{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.token{background:var(--green-soft);color:var(--green);border:none;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:"JetBrains Mono",monospace}
+
+/* Broadcast preview list */
+.bcinfo{background:var(--green-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--green-hi)}
+.bcinfo b{font-weight:700}
+.previewbox{background:#F0F2F0;border-radius:11px;padding:12px 14px;font-size:14px;white-space:pre-wrap;margin-bottom:14px;line-height:1.5;max-height:160px;overflow-y:auto}
+.sendlist{max-height:44vh;overflow-y:auto;margin:-4px -4px 12px;padding:4px}
+.sendrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px}
+.sendrow .nm{flex:1;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sendrow.done{opacity:.5}
+.sendrow.done .nm{text-decoration:line-through}
+.miniwa{background:var(--wa);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.miniwa svg{width:15px;height:15px}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:11px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap}
+.toast.on{opacity:1}
+.fab-hint{font-size:11.5px;color:var(--faint);text-align:center;margin-top:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div>
+      <h1>Customers &amp; WhatsApp</h1>
+      <div class="sub">Shakeel Electronics — Faisalabad</div>
+    </div>
+  </div>
+  <div class="status" id="status">Connecting…</div>
+</header>
+
+<div class="toolbar">
+  <input class="search" id="search" placeholder="Search name or number…" autocomplete="off">
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="wrap">
+  <div class="stat"><span id="count">0 customers</span></div>
+  <div id="list"></div>
+</div>
+
+<div class="bottombar">
+  <button class="btn wa" id="broadcastBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+    Send to group
+  </button>
+  <button class="btn primary" id="addBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add
+  </button>
+</div>
+
+<!-- Add / Edit customer -->
+<div class="scrim" id="custScrim">
+  <div class="sheet">
+    <h2 id="custTitle">Add customer</h2>
+    <label class="fld"><span class="lt">Customer name</span>
+      <input class="inp" id="c-name" placeholder="e.g. Ali Electronics, Lahore" autocomplete="off"></label>
+    <label class="fld"><span class="lt">WhatsApp number</span>
+      <input class="inp mono" id="c-phone" inputmode="tel" placeholder="03126617887 or +923126617887" autocomplete="off"></label>
+    <div class="hint">Pakistani numbers auto-format. Enter with or without 0 / +92.</div>
+    <label class="fld"><span class="lt">Category</span>
+      <div class="catpick" id="c-cat">
+        <div class="catopt normal" data-c="normal">Normal</div>
+        <div class="catopt bulk" data-c="bulk">Bulk</div>
+        <div class="catopt special" data-c="special">Special</div>
+      </div></label>
+    <label class="fld"><span class="lt">Note (optional)</span>
+      <input class="inp" id="c-note" placeholder="e.g. buys TCON boards, pays on time" autocomplete="off"></label>
+    <div class="sheetacts">
+      <button class="btn del" id="c-del" style="display:none">Delete</button>
+      <button class="btn ghost" id="c-cancel">Cancel</button>
+      <button class="btn primary" id="c-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Single message compose -->
+<div class="scrim" id="msgScrim">
+  <div class="sheet">
+    <h2 id="msgTitle">Message</h2>
+    <div class="tokens">
+      <button class="token" data-tok="{name}">+ Customer name</button>
+      <button class="token" data-tok="{shop}">+ My shop</button>
+    </div>
+    <textarea class="inp" id="m-text" placeholder="Type your message… use {name} to auto-insert the customer's name."></textarea>
+    <div class="hint">Tip: {name} becomes the customer's name automatically.</div>
+    <div class="sheetacts">
+      <button class="btn ghost" id="m-cancel">Cancel</button>
+      <button class="btn wa" id="m-send">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcast to group -->
+<div class="scrim" id="bcScrim">
+  <div class="sheet">
+    <h2>Send to a group</h2>
+    <label class="fld"><span class="lt">Which customers?</span>
+      <div class="catpick" id="bc-cat">
+        <div class="catopt" data-c="all" style="flex:1">All</div>
+        <div class="catopt normal" data-c="normal">Normal</div>
+        <div class="catopt bulk" data-c="bulk">Bulk</div>
+        <div class="catopt special" data-c="special">Special</div>
+      </div></label>
+    <div class="tokens">
+      <button class="token" data-tok="{name}">+ Customer name</button>
+      <button class="token" data-tok="{shop}">+ My shop</button>
+    </div>
+    <textarea class="inp" id="bc-text" placeholder="Type the message to send to everyone in this group…"></textarea>
+    <div class="hint">Each person gets their own message with their name filled in.</div>
+    <div class="bcinfo" id="bc-info">Select a group above.</div>
+    <div class="sheetacts">
+      <button class="btn ghost" id="bc-cancel">Cancel</button>
+      <button class="btn wa" id="bc-start">Start sending</button>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcast send-one-by-one -->
+<div class="scrim" id="sendScrim">
+  <div class="sheet">
+    <h2>Sending to group</h2>
+    <div class="bcinfo">Tap <b>Send</b> for each customer. WhatsApp opens with the message ready — press send there, then come back and do the next one.</div>
+    <div class="previewbox" id="send-preview"></div>
+    <div class="sendlist" id="send-list"></div>
+    <div class="sheetacts">
+      <button class="btn ghost" id="send-close">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ STATE ============ */
+var KEY="contacts:data:v1";
+var State={ customers:[], settings:{ shop:"Shakeel Electronics", updatedAt:0 } };
+var ui={ filter:"all", search:"", editId:null, msgId:null, bcCat:null };
+var CATS=[["all","All"],["normal","Normal"],["bulk","Bulk"],["special","Special"]];
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function lsSave(){ try{ localStorage.setItem(KEY, JSON.stringify(State)); return true; }catch(e){ return false; } }
+function lsLoad(){ try{ var s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+/* ============ PHONE FORMAT (Pakistan) ============ */
+function waNumber(raw){
+  var d=String(raw||"").replace(/[^\d+]/g,"");
+  d=d.replace(/\+/g,"");
+  if(d.indexOf("92")===0) return d;            // already 92...
+  if(d.indexOf("0")===0) return "92"+d.slice(1); // 03xx -> 923xx
+  if(d.length===10 && d.indexOf("3")===0) return "92"+d; // 3xx...
+  return d;
+}
+function prettyPhone(raw){
+  var d=String(raw||"").replace(/[^\d]/g,"");
+  if(d.indexOf("92")===0) d="0"+d.slice(2);
+  if(d.length===11) return d.slice(0,4)+"-"+d.slice(4);
+  return raw;
+}
+
+/* ============ RENDER ============ */
+function catCount(c){ return c==="all"?State.customers.length:State.customers.filter(function(x){return x.cat===c;}).length; }
+
+function renderChips(){
+  var el=document.getElementById("chips");
+  el.innerHTML=CATS.map(function(c){
+    return '<button class="chip cat-'+c[0]+(ui.filter===c[0]?' on':'')+'" data-f="'+c[0]+'">'+c[1]+' <span class="n">'+catCount(c[0])+'</span></button>';
+  }).join("");
+  el.querySelectorAll("[data-f]").forEach(function(b){ b.onclick=function(){ ui.filter=b.dataset.f; render(); }; });
+}
+
+function filtered(){
+  var q=ui.search.trim().toLowerCase();
+  return State.customers.filter(function(c){
+    if(ui.filter!=="all" && c.cat!==ui.filter) return false;
+    if(q){ return (c.name||"").toLowerCase().indexOf(q)>=0 || String(c.phone||"").indexOf(q)>=0; }
+    return true;
+  }).sort(function(a,b){ return (a.name||"").localeCompare(b.name||""); });
+}
+
+function render(){
+  renderChips();
+  var list=filtered();
+  document.getElementById("count").textContent=list.length+" customer"+(list.length===1?"":"s")+(ui.filter!=="all"?" in "+ui.filter:"");
+  var el=document.getElementById("list");
+  if(!list.length){
+    el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div>'+(State.customers.length?"No customers in this group.":"No customers yet. Tap Add to start.")+'</div></div>';
+    return;
+  }
+  el.innerHTML=list.map(function(c){
+    var initial=(c.name||"?").trim().charAt(0).toUpperCase();
+    return '<div class="card cat-'+c.cat+'">'
+      +'<div class="av">'+initial+'</div>'
+      +'<div class="info">'
+        +'<div class="nm">'+esc(c.name)+'</div>'
+        +'<div class="ph">'+esc(prettyPhone(c.phone))+'</div>'
+        +'<span class="tag '+c.cat+'">'+c.cat+'</span>'
+      +'</div>'
+      +'<div class="acts">'
+        +'<button class="iconbtn ed" data-ed="'+c.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+        +'<button class="iconbtn wa" data-msg="'+c.id+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.4A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 1 1 12 20zm4.5-5.6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1-.2.2-.6.8-.8 1-.1.1-.3.1-.5 0-.2-.1-1-.4-2-1.2-.7-.7-1.2-1.5-1.4-1.7-.1-.2 0-.4.1-.5l.4-.4c.1-.1.2-.3.2-.4.1-.1 0-.3 0-.4l-.8-1.9c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2 1 2.4c.1.2 1.6 2.5 4 3.5.5.2 1 .4 1.3.5.6.2 1.1.1 1.5.1.5-.1 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1z"/></svg></button>'
+      +'</div>'
+    +'</div>';
+  }).join("");
+  el.querySelectorAll("[data-ed]").forEach(function(b){ b.onclick=function(){ openCust(b.dataset.ed); }; });
+  el.querySelectorAll("[data-msg]").forEach(function(b){ b.onclick=function(){ openMsg(b.dataset.msg); }; });
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
+
+/* ============ ADD / EDIT ============ */
+function openCust(id){
+  ui.editId=id||null;
+  var c=id?State.customers.find(function(x){return x.id===id;}):null;
+  document.getElementById("custTitle").textContent=c?"Edit customer":"Add customer";
+  document.getElementById("c-name").value=c?c.name:"";
+  document.getElementById("c-phone").value=c?prettyPhone(c.phone):"";
+  document.getElementById("c-note").value=c&&c.note?c.note:"";
+  setCat("c-cat", c?c.cat:"normal");
+  document.getElementById("c-del").style.display=c?"block":"none";
+  document.getElementById("custScrim").classList.add("on");
+  setTimeout(function(){ document.getElementById("c-name").focus(); },100);
+}
+function setCat(box,val){
+  document.querySelectorAll("#"+box+" .catopt").forEach(function(o){
+    o.classList.toggle("on", o.dataset.c===val);
+  });
+}
+function getCat(box){
+  var on=document.querySelector("#"+box+" .catopt.on");
+  return on?on.dataset.c:"normal";
+}
+document.querySelectorAll("#c-cat .catopt").forEach(function(o){ o.onclick=function(){ setCat("c-cat",o.dataset.c); }; });
+
+document.getElementById("addBtn").onclick=function(){ openCust(null); };
+document.getElementById("c-cancel").onclick=function(){ document.getElementById("custScrim").classList.remove("on"); };
+document.getElementById("c-save").onclick=function(){
+  var name=document.getElementById("c-name").value.trim();
+  var phoneRaw=document.getElementById("c-phone").value.trim();
+  if(!name){ toast("Enter a name"); return; }
+  if(!phoneRaw){ toast("Enter a WhatsApp number"); return; }
+  var phone=phoneRaw.replace(/[^\d+]/g,"");
+  var cat=getCat("c-cat");
+  var note=document.getElementById("c-note").value.trim();
+  if(ui.editId){
+    var c=State.customers.find(function(x){return x.id===ui.editId;});
+    if(c){ c.name=name; c.phone=phone; c.cat=cat; c.note=note; c.updatedAt=Date.now(); }
+  } else {
+    State.customers.push({ id:uid(), name:name, phone:phone, cat:cat, note:note, createdAt:Date.now(), updatedAt:Date.now() });
+  }
+  persist(); render();
+  document.getElementById("custScrim").classList.remove("on");
+  toast(ui.editId?"Customer updated":"Customer added");
+};
+document.getElementById("c-del").onclick=function(){
+  if(!ui.editId) return;
+  if(!confirm("Delete this customer?")) return;
+  if(window.__tombstone) window.__tombstone(ui.editId);
+  State.customers=State.customers.filter(function(x){return x.id!==ui.editId;});
+  persist(); render();
+  document.getElementById("custScrim").classList.remove("on");
+  toast("Customer deleted");
+};
+
+/* ============ SINGLE MESSAGE ============ */
+function fillMsg(text,c){
+  return String(text||"").replace(/\{name\}/gi, c.name||"").replace(/\{shop\}/gi, State.settings.shop||"Shakeel Electronics");
+}
+function openMsg(id){
+  ui.msgId=id;
+  var c=State.customers.find(function(x){return x.id===id;});
+  document.getElementById("msgTitle").textContent="Message "+(c?c.name:"");
+  var last=localStorage.getItem("contacts:lastMsg")||"Assalam o Alaikum {name},\n\n";
+  document.getElementById("m-text").value=last;
+  document.getElementById("msgScrim").classList.add("on");
+  setTimeout(function(){ var t=document.getElementById("m-text"); t.focus(); t.setSelectionRange(t.value.length,t.value.length); },100);
+}
+document.querySelectorAll("#msgScrim .token").forEach(function(b){ b.onclick=function(){ insertTok("m-text", b.dataset.tok); }; });
+function insertTok(id,tok){
+  var t=document.getElementById(id); var s=t.selectionStart||t.value.length;
+  t.value=t.value.slice(0,s)+tok+t.value.slice(t.selectionEnd||s);
+  t.focus(); t.setSelectionRange(s+tok.length, s+tok.length);
+}
+document.getElementById("m-cancel").onclick=function(){ document.getElementById("msgScrim").classList.remove("on"); };
+document.getElementById("m-send").onclick=function(){
+  var c=State.customers.find(function(x){return x.id===ui.msgId;});
+  if(!c) return;
+  var text=document.getElementById("m-text").value;
+  localStorage.setItem("contacts:lastMsg", text);
+  var msg=fillMsg(text,c);
+  var url="https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg);
+  window.open(url,"_blank");
+  document.getElementById("msgScrim").classList.remove("on");
+};
+
+/* ============ BROADCAST ============ */
+document.getElementById("broadcastBtn").onclick=function(){
+  ui.bcCat=null;
+  document.querySelectorAll("#bc-cat .catopt").forEach(function(o){ o.classList.remove("on"); });
+  document.getElementById("bc-text").value=localStorage.getItem("contacts:lastBc")||"Assalam o Alaikum {name},\n\n";
+  updateBcInfo();
+  document.getElementById("bcScrim").classList.add("on");
+};
+document.querySelectorAll("#bc-cat .catopt").forEach(function(o){
+  o.onclick=function(){
+    ui.bcCat=o.dataset.c;
+    document.querySelectorAll("#bc-cat .catopt").forEach(function(x){ x.classList.toggle("on", x===o); });
+    updateBcInfo();
+  };
+});
+document.querySelectorAll("#bcScrim .token").forEach(function(b){ b.onclick=function(){ insertTok("bc-text", b.dataset.tok); }; });
+function bcTargets(){
+  if(!ui.bcCat) return [];
+  return State.customers.filter(function(c){ return ui.bcCat==="all" || c.cat===ui.bcCat; })
+    .sort(function(a,b){ return (a.name||"").localeCompare(b.name||""); });
+}
+function updateBcInfo(){
+  var el=document.getElementById("bc-info");
+  if(!ui.bcCat){ el.innerHTML="Select a group above."; return; }
+  var n=bcTargets().length;
+  el.innerHTML="This will send to <b>"+n+" customer"+(n===1?"":"s")+"</b> in the <b>"+ui.bcCat+"</b> group, one by one.";
+}
+document.getElementById("bc-cancel").onclick=function(){ document.getElementById("bcScrim").classList.remove("on"); };
+document.getElementById("bc-start").onclick=function(){
+  if(!ui.bcCat){ toast("Pick a group"); return; }
+  var targets=bcTargets();
+  if(!targets.length){ toast("No customers in this group"); return; }
+  var text=document.getElementById("bc-text").value;
+  if(!text.trim()){ toast("Type a message"); return; }
+  localStorage.setItem("contacts:lastBc", text);
+  document.getElementById("bcScrim").classList.remove("on");
+  openSendList(targets, text);
+};
+
+function openSendList(targets, text){
+  var sample=fillMsg(text, targets[0]);
+  document.getElementById("send-preview").textContent=sample;
+  var el=document.getElementById("send-list");
+  el.innerHTML=targets.map(function(c){
+    return '<div class="sendrow" data-row="'+c.id+'">'
+      +'<div class="nm">'+esc(c.name)+'</div>'
+      +'<button class="miniwa" data-send="'+c.id+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>Send</button>'
+    +'</div>';
+  }).join("");
+  el.querySelectorAll("[data-send]").forEach(function(b){
+    b.onclick=function(){
+      var c=State.customers.find(function(x){return x.id===b.dataset.send;});
+      if(!c) return;
+      var msg=fillMsg(text,c);
+      window.open("https://wa.me/"+waNumber(c.phone)+"?text="+encodeURIComponent(msg),"_blank");
+      var row=document.querySelector('.sendrow[data-row="'+c.id+'"]');
+      if(row){ row.classList.add("done"); }
+    };
+  });
+  document.getElementById("sendScrim").classList.add("on");
+}
+document.getElementById("send-close").onclick=function(){ document.getElementById("sendScrim").classList.remove("on"); };
+
+/* close scrims on backdrop tap */
+document.querySelectorAll(".scrim").forEach(function(s){
+  s.addEventListener("click",function(e){ if(e.target===s) s.classList.remove("on"); });
+});
+
+/* search */
+document.getElementById("search").addEventListener("input",function(e){
+  ui.search=e.target.value; render();
+});
+
+/* ============ TOAST ============ */
+var toastT=null;
+function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("on"); },1900); }
+
+/* ============ INIT ============ */
+(function(){
+  var d=lsLoad();
+  if(d){ State=Object.assign(State,d); if(!State.settings) State.settings={shop:"Shakeel Electronics",updatedAt:0}; if(!Array.isArray(State.customers)) State.customers=[]; }
+  render();
+})();
+</script>
+
+<!-- ============ CLOUD SYNC (Firebase) ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  var APP_KEY="contacts";
+  var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com", projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app", messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
+  var db=null, ready=false, _dirty=false, pushTimer=null, cloudHadData=false;
+
+  function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
+  function ref(){ return db.collection("shops").doc("main").collection("apps").doc(APP_KEY); }
+
+  try{ firebase.initializeApp(cfg); db=firebase.firestore(); }catch(e){ note("\u2601 Offline — saved on this device"); return; }
+
+  firebase.auth().signInAnonymously().catch(function(){});
+  firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
+  // also start immediately (rules may allow open access like other apps)
+  start();
+  var started=false;
+  function start(){
+    if(started) return; started=true;
+    ref().onSnapshot(function(snap){
+      if(snap.exists){
+        var d=snap.data()&&snap.data().state;
+        if(d){
+          try{ if(Array.isArray(d.customers)&&d.customers.length) cloudHadData=true; }catch(_){}
+          mergeCloudIntoState(d);
+          try{lsSave();}catch(_){}
+          if(!_typing()) render();
+          if(_dirty && _grew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+        }
+        ready=true; note("\u2601 Synced across your devices");
+      } else { ready=true; pushNow(); }
+    }, function(err){ ready=true; note(err&&err.code==="permission-denied"?"\u2601 Saved on this device":"\u2601 Offline — saved on this device"); });
+  }
+
+  function _typing(){ var a=document.activeElement; return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"); }
+
+  /* tombstones — deleted customers stay deleted */
+  function _tomb(){ try{ return JSON.parse(localStorage.getItem("contacts:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__tombstone=function(id){ try{ var t=_tomb(); t[id]=Date.now(); localStorage.setItem("contacts:deleted",JSON.stringify(t)); }catch(_){} };
+  function _applyTomb(arr){ var t=_tomb(); return arr.filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+
+  /* order-stable merge by id — local order kept, cloud-only appended, newest wins, no data loss */
+  function _merge(localArr,cloudArr,preferLocal){
+    localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+    var map={},order=[],noid=[];
+    function ts(x){ return (x&&(x.updatedAt||x.createdAt))||0; }
+    function sg(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    cloudArr.forEach(function(x){ if(!x||x.id==null){ return; } var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push(k); return; }
+      var cur=map[k], a=ts(x), b=ts(cur);
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+    return order.map(function(k){return map[k];}).concat(noid);
+  }
+  function mergeCloudIntoState(d,preferLocal){
+    if(!d) return;
+    State.customers=_applyTomb(_merge(State.customers,d.customers,preferLocal));
+    var cs=d.settings||{}, ls=State.settings||{};
+    if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+  }
+  function _grew(d){
+    var a=State.customers||[], b=d.customers||[];
+    if(a.length>b.length) return true;
+    var ids={}; b.forEach(function(x){ if(x&&x.id!=null) ids[x.id]=1; });
+    for(var i=0;i<a.length;i++){ if(a[i]&&a[i].id!=null&&!ids[a[i].id]) return true; }
+    return false;
+  }
+  function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
+  function pushNow(){
+    if(!db||!ready) return;
+    ref().get().then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d) mergeCloudIntoState(d,true);
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      _dirty=false;
+      return ref().set({state:State, ts:Date.now()});
+    }).then(function(){ note("\u2601 Synced across your devices"); try{lsSave();}catch(_){} })
+      .catch(function(){ note("\u2601 Cloud save failed — saved on this device"); });
+  }
+
+  /* wrap persist so every add/edit/delete saves locally + pushes to cloud */
+  window.persist=function(){ State.settings.updatedAt=Date.now(); lsSave(); _dirty=true; schedulePush(); };
+
+  /* catch up deferred render when user stops typing / returns to tab */
+  document.addEventListener("focusout",function(){ setTimeout(function(){ if(!_typing()) render(); },200); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) render(); });
+})();
+/* fallback persist if cloud script fails to load */
+if(typeof window.persist!=="function"){ window.persist=function(){ State.settings.updatedAt=Date.now(); lsSave(); }; }
+</script>
+</body>
+</html>
