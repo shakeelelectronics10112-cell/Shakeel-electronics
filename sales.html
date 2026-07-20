@@ -1068,7 +1068,7 @@ render();
 
   /* ---- MERGE HELPERS: union two arrays by id, never drop a record either side has ---- */
   function _recSig(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
-  function mergeById(localArr, cloudArr){
+  function mergeById(localArr, cloudArr, preferLocal){
     localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
     var map={}, order=[], noid=[];
     function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
@@ -1078,7 +1078,7 @@ render();
       var cur=map[k], a=ts(x), b=ts(cur);
       if(a>b){ map[k]=x; }
       else if(a<b){ /* keep cloud */ }
-      else { if(_recSig(x)!==_recSig(cur)) map[k]=cur; } // equal time, differ -> trust cloud edit
+      else { if(_recSig(x)!==_recSig(cur)) map[k]=preferLocal?x:cur; } // equal time: push=local wins, receive=cloud wins
     });
     return order.map(function(k){return map[k];}).concat(noid);
   }
@@ -1088,13 +1088,13 @@ render();
   window.__tombstone=saveTombstone;
   function applyTombstones(arr,kind){ var t=loadTombstones(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
 
-  function mergeCloudIntoState(d){
+  function mergeCloudIntoState(d,preferLocal){
     if(!d) return;
-    State.products=applyTombstones(mergeById(State.products, d.products),"product");
-    State.sales   =applyTombstones(mergeById(State.sales,    d.sales),"sale");
-    State.expenses=applyTombstones(mergeById(State.expenses, d.expenses),"expense");
-    State.returns =applyTombstones(mergeById(State.returns,  d.returns),"return");
-    State.holds   =mergeById(State.holds, d.holds); // holds are transient; union is fine
+    State.products=applyTombstones(mergeById(State.products, d.products, preferLocal),"product");
+    State.sales   =applyTombstones(mergeById(State.sales,    d.sales, preferLocal),"sale");
+    State.expenses=applyTombstones(mergeById(State.expenses, d.expenses, preferLocal),"expense");
+    State.returns =applyTombstones(mergeById(State.returns,  d.returns, preferLocal),"return");
+    State.holds   =mergeById(State.holds, d.holds, preferLocal); // holds are transient; union is fine
     // settings: keep the higher seq so receipt numbers never collide, newest footer
     var cs=d.settings||{}, ls=State.settings||{};
     State.settings.seq=Math.max(ls.seq||0, cs.seq||0);
@@ -1122,7 +1122,7 @@ render();
     // read-merge-write: pull latest cloud, union with local, then write — so a stale device can't erase the other
     ref().get().then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d);
+      if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       return ref().set({state:State,ts:Date.now()});
     }).then(function(){ note("☁ Synced"); try{lsSave();}catch(_){} scheduleAutoBackup(); })

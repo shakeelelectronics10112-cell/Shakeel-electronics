@@ -1102,7 +1102,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   function _sbTomb(){ try{ return JSON.parse(localStorage.getItem("stockbox:deleted")||"{}"); }catch(_){ return {}; } }
   window.__sbTombstone=function(kind,id){ try{ var t=_sbTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("stockbox:deleted",JSON.stringify(t)); }catch(_){} };
   function _sbApplyTomb(arr,kind){ var t=_sbTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
-  function _sbMerge(localArr,cloudArr){
+  function _sbMerge(localArr,cloudArr,preferLocal){
     localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
     var map={},order=[],noid=[];
     function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
@@ -1111,13 +1111,13 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
     localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id);
       if(!(k in map)){ map[k]=x; order.push(k); return; }
       var cur=map[k], a=ts(x), b=ts(cur);
-      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=cur; } });
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=preferLocal?x:cur; } });
     return order.map(function(k){return map[k];}).concat(noid);
   }
-  function mergeCloudIntoState(d){
+  function mergeCloudIntoState(d,preferLocal){
     if(!d) return;
-    State.items=_sbApplyTomb(_sbMerge(State.items,d.items),"item");
-    State.locations=_sbApplyTomb(_sbMerge(State.locations,d.locations),"loc");
+    State.items=_sbApplyTomb(_sbMerge(State.items,d.items,preferLocal),"item");
+    State.locations=_sbApplyTomb(_sbMerge(State.locations,d.locations,preferLocal),"loc");
     var cs=d.settings||{}, ls=State.settings||{};
     if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
   }
@@ -1127,7 +1127,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
     if(!ready) return;
     ref().get().then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d);
+      if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })

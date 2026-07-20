@@ -1444,7 +1444,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
   function _ledgerTomb(){ try{ return JSON.parse(localStorage.getItem("ledger:deleted")||"{}"); }catch(_){ return {}; } }
   window.__ledgerTombstone=function(kind,id){ try{ var t=_ledgerTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("ledger:deleted",JSON.stringify(t)); }catch(_){} };
   function _applyTomb(arr,kind){ var t=_ledgerTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
-  function _mergeArr(localArr,cloudArr){
+  function _mergeArr(localArr,cloudArr,preferLocal){
     localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
     var map={},order=[],noid=[];
     function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
@@ -1453,13 +1453,13 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
     localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id);
       if(!(k in map)){ map[k]=x; order.push(k); return; }
       var cur=map[k], a=ts(x), b=ts(cur);
-      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=cur; } });
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=preferLocal?x:cur; } });
     return order.map(function(k){return map[k];}).concat(noid);
   }
-  function mergeCloudIntoState(d){
+  function mergeCloudIntoState(d,preferLocal){
     if(!d) return;
-    State.members=_applyTomb(_mergeArr(State.members,d.members),"member");
-    State.transactions=_applyTomb(_mergeArr(State.transactions,d.transactions),"tx");
+    State.members=_applyTomb(_mergeArr(State.members,d.members,preferLocal),"member");
+    State.transactions=_applyTomb(_mergeArr(State.transactions,d.transactions,preferLocal),"tx");
     var cs=d.settings||{}, ls=State.settings||{};
     if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
   }
@@ -1468,7 +1468,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
     if(!ready){ return; }
     ref().get().then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d);
+      if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} scheduleAutoBackup(); })
