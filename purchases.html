@@ -241,6 +241,7 @@
       <button class="btn ghost sm" id="autoSaveBtn"><span class="as-dot off"></span>Auto-save to folder</button>
       <button class="btn ghost sm" id="importBtn">Import backup</button>
       <button class="btn ghost sm" id="exportCsvBtn">Export CSV</button>
+      <button class="btn ghost sm" id="pBkBtn">🛟 Snapshots</button>
       <button class="btn ghost sm" id="exportJsonBtn">Backup data</button>
       <input type="file" id="importFile" accept="application/json" style="display:none"/>
     </div>
@@ -524,6 +525,7 @@ function manageShipment(no){
   document.getElementById("sh-del").onclick=()=>{
     if(State.shipments.length<=1){ flash("You need at least one invoice"); return; }
     if(!confirm(`Delete "${shipLabel(no)}"?\n\nThis permanently removes its ${rows.length} item${rows.length===1?"":"s"}. This cannot be undone.`)) return;
+    if(window.__pTombstone) State.purchases.forEach(function(p){ if(p.shipment===no) window.__pTombstone("purchase",p.id); });
     State.purchases=State.purchases.filter(p=>p.shipment!==no);
     State.payments=State.payments.filter(p=>p.shipment!==no);
     State.pos=State.pos.filter(p=>p.shipment!==no);
@@ -568,6 +570,7 @@ function wireGrid(rerender){
     if(delBtn) delBtn.onclick=(e)=>{
       e.stopPropagation();
       if(confirm(`Delete "${p.item||"this row"}"?`)){
+        if(window.__pTombstone) window.__pTombstone("purchase",p.id);
         State.purchases=State.purchases.filter(x=>x.id!==p.id);
         persist(); rerender(); toast("Row deleted");
       }
@@ -683,7 +686,7 @@ function openPurchase(existing, prefill){
     if(needId) State.needs=State.needs.filter(n=>n.id!==needId);
     persist(); render(); closeScrim(); toast(existing?"Purchase updated":(needId?"Moved to purchases":"Purchase added"));
   };
-  if(existing) document.getElementById("f-del").onclick=()=>{ if(confirm("Delete this purchase line?")){ State.purchases=State.purchases.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  if(existing) document.getElementById("f-del").onclick=()=>{ if(confirm("Delete this purchase line?")){ if(window.__pTombstone) window.__pTombstone("purchase",existing.id); State.purchases=State.purchases.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
 }
 
 /* ---------- payment form ---------- */
@@ -1835,7 +1838,10 @@ function openReceive(){
   }
   var rate=State.settings.rate;
   body+='<h3 style="font-family:var(--disp,inherit);margin-bottom:4px">📥 Receive into StockBox</h3>'
-    +'<div style="font-size:12.5px;color:#6E7673;margin-bottom:12px">'+shipLabel(no)+' — set a box for each item, then Receive. Adds pieces to StockBox with exact cost.</div>';
+    +'<div style="font-size:12.5px;color:#6E7673;margin-bottom:10px">'+shipLabel(no)+' — receive to the <b>New Arrival</b> area now and place into boxes later, or pick a box per item.</div>';
+  if(rows.length){
+    body+='<button class="btn primary" id="rcvNewArrival" style="width:100%;margin-bottom:12px">🆕 Receive all to “New Arrival” (place later)</button>';
+  }
   if(already.length){
     body+='<div style="background:#EAF3EF;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px">✓ Already received '+already.length+' time(s) for this invoice. '
       +already.map(function(r){ return '<button class="btn ghost sm" data-undo="'+r.id+'" style="margin:4px 4px 0 0">↩ Undo '+r.count+' items ('+new Date(r.date).toLocaleDateString()+')</button>'; }).join("")+'</div>';
@@ -1865,6 +1871,20 @@ function openReceive(){
       });
     };
   });
+  // Receive-all to New Arrival holding area
+  var naBtn=document.getElementById("rcvNewArrival");
+  if(naBtn) naBtn.onclick=function(){
+    naBtn.textContent="Receiving…"; naBtn.disabled=true;
+    ensureNewArrivalLoc().then(function(locId){
+      if(!locId){ naBtn.textContent="🆕 Receive all to “New Arrival” (place later)"; naBtn.disabled=false; alert("Could not reach StockBox. Check connection."); return; }
+      var out=rows.map(function(p){ var unit=Math.round((p.priceRMB||0)*(p.rate||rate)+(p.freightPP||0)); return {name:p.item,code:"",qty:(p.qty||0),price:unit,locationId:locId}; });
+      var rid="rcv"+Date.now().toString(36);
+      window.receiveToStockBox(out,rid).then(function(ok){
+        if(ok){ State.receives.push({id:rid,shipment:no,date:Date.now(),count:out.length,pcs:out.reduce(function(a,x){return a+x.qty;},0),newArrival:true}); persist(); toast&&toast("✓ "+out.length+" items in New Arrival — place them into boxes in StockBox"); closeScrim(); }
+        else { naBtn.textContent="🆕 Receive all to “New Arrival” (place later)"; naBtn.disabled=false; alert("Receive failed — try again."); }
+      });
+    });
+  };
   // "same location for all"
   var same=document.getElementById("rcvSameAll");
   if(same) same.onchange=function(){
@@ -1917,6 +1937,36 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 
 (async function init(){ await load(); render(); autoConnectFolder(); updateStorageNote(); })();
 </script>
+<script>
+/* ===== BACKUP (Purchases) auto snapshots ===== */
+function scheduleAutoBackup(){ clearTimeout(window.__pBkT); window.__pBkT=setTimeout(_pAutoBackup,1500); }
+function _pDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function _pBkLoad(){ try{ return JSON.parse(localStorage.getItem("purchases:backups")||"[]"); }catch(_){ return []; } }
+function _pBkSaveL(l){ try{ localStorage.setItem("purchases:backups",JSON.stringify(l)); }catch(_){} }
+function _pAutoBackup(){ try{ var list=_pBkLoad(), tk=_pDay(); var snap={day:tk,at:Date.now(),n:(State.purchases||[]).length,data:JSON.stringify(State)}; var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=snap.at;ex.n=snap.n;ex.data=snap.data;} else list.unshift(snap); list=list.slice(0,14); _pBkSaveL(list); }catch(_){} }
+function _pMergeRestore(inc){ if(!inc) return;
+  function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
+  State.purchases=byId(State.purchases,inc.purchases); if(Array.isArray(inc.shipments))State.shipments=byId(State.shipments,inc.shipments); if(Array.isArray(inc.receives))State.receives=byId(State.receives,inc.receives);
+  if(typeof persist==="function") persist(); if(typeof render==="function") render(); if(window.__pushNow) window.__pushNow(); }
+function openBackupSheet(){
+  var list=_pBkLoad(), wrap=document.getElementById("pBkScrim"), sheet=document.getElementById("pBkSheet");
+  sheet.innerHTML='<h3 style="font-size:17px;margin-bottom:12px">🛟 Backup &amp; Restore</h3>'
+    +'<div style="font-size:12.5px;color:#6E7673;margin-bottom:14px">Purchases are saved on this device, in the cloud, and in these snapshots.</div>'
+    +'<button class="btn primary" id="pbk-dl" style="width:100%;margin-bottom:8px">⬇ Download backup file now</button>'
+    +'<label class="btn" style="width:100%;margin-bottom:14px;display:flex;justify-content:center;cursor:pointer">⬆ Restore from a file<input type="file" id="pbk-file" accept=".json,application/json" style="display:none"></label>'
+    +'<div style="font-size:11px;color:#6E7673;letter-spacing:.08em;margin-bottom:8px">AUTO SNAPSHOTS ('+list.length+')</div>'
+    +(list.length?list.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #E2E7E4;border-radius:10px;margin-bottom:8px"><div style="flex:1"><b>'+b.day+'</b><div style="font-size:11.5px;color:#6E7673">'+b.n+' purchase lines</div></div><button class="btn sm" data-rest="'+b.day+'">Restore</button></div>';}).join(""):'<div style="text-align:center;color:#6E7673;padding:16px">Snapshots will appear as you use the app.</div>')
+    +'<button class="btn" id="pbk-x" style="width:100%;margin-top:12px">Close</button>';
+  wrap.style.display="flex";
+  document.getElementById("pbk-x").onclick=function(){ wrap.style.display="none"; };
+  document.getElementById("pbk-dl").onclick=function(){ try{ var blob=new Blob([JSON.stringify({app:"purchases",at:Date.now(),state:State},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-PURCHASES-backup-"+_pDay()+".json"; a.click(); toast("Backup file downloaded"); }catch(e){} };
+  document.getElementById("pbk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing purchases, never deletes.")) return; _pMergeRestore(j.state||j); wrap.style.display="none"; toast("Restored from file"); }catch(_){ flash&&flash("Not a valid backup file"); } }; r.readAsText(f); };
+  sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_pBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore from "+b.dataset.rest+"? It ADDS back missing purchases, never deletes.")) return; try{ _pMergeRestore(JSON.parse(snap.data)); wrap.style.display="none"; toast("Restored from "+b.dataset.rest); }catch(_){} }; });
+}
+document.addEventListener("DOMContentLoaded",function(){ var b=document.getElementById("pBkBtn"); if(b) b.onclick=openBackupSheet; });
+</script>
+
+<div id="pBkScrim" style="position:fixed;inset:0;background:rgba(22,33,31,.44);z-index:200;display:none;align-items:flex-end;justify-content:center"><div id="pBkSheet" style="background:#fff;border-radius:20px 20px 0 0;width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:20px"></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -1955,6 +2005,20 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   window.__SB=null;
   function watchStockbox(){ appRef("stockbox").onSnapshot(function(s){ window.__SB=(s.exists&&s.data()&&s.data().state)||null; }, function(){}); }
   // write items into StockBox at chosen locations; tag with receiveId for undo
+  window.ensureNewArrivalLoc=function(){
+    if(!db) return Promise.resolve(null);
+    var sref=appRef("stockbox");
+    return sref.get().then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state) || {items:[],locations:[],settings:{}};
+      if(!Array.isArray(st.locations)) st.locations=[];
+      var na=st.locations.find(function(l){ return (l.name||"").toLowerCase()==="new arrival" && !l.parentId; });
+      if(na) return na.id;
+      var id="na"+Date.now().toString(36);
+      st.locations.push({id:id,name:"New Arrival",parentId:null,note:"Just arrived — place into boxes",createdAt:Date.now()});
+      if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
+      return sref.set({state:st,ts:Date.now()},{merge:true}).then(function(){ return id; });
+    }).catch(function(){ return null; });
+  };
   window.receiveToStockBox=function(rows, receiveId){
     if(!db) return Promise.resolve(false);
     var sref=appRef("stockbox");
@@ -2002,25 +2066,47 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
-          var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
-          var localEmpty = !(State.purchases||[]).length;
-          var cloudHas   = Array.isArray(d.purchases) && d.purchases.length;
-          if(rt>lt || (localEmpty && cloudHas)){
-            if(typeof applyLoaded==="function") applyLoaded(d);
-            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
-            if(typeof render==="function") render(); try{lsSave();}catch(_){}
-          }
+          var before=(State.purchases||[]).length+"/"+(State.shipments||[]).length+"/"+(State.receives||[]).length;
+          mergeCloudIntoState(d);
+          var after=(State.purchases||[]).length+"/"+(State.shipments||[]).length+"/"+(State.receives||[]).length;
+          if(typeof render==="function") render(); try{lsSave();}catch(_){}
+          if(before!==after){ scheduleAutoBackup(); clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
         ready=true; note("\u2601 Synced across your devices."); }
       else { ready=true; pushNow(); }
     }, function(){ note("\u2601 Offline — saved on this device."); });
   }
-  function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,400); }
+  function _pTomb(){ try{ return JSON.parse(localStorage.getItem("purchases:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__pTombstone=function(kind,id){ try{ var t=_pTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("purchases:deleted",JSON.stringify(t)); }catch(_){} };
+  function _pApplyTomb(arr,kind){ var t=_pTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
+  function _pMerge(localArr,cloudArr){
+    localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+    var map={},order=[];
+    function add(x){ if(!x||x.id==null){ order.push({k:"_"+Math.random(),v:x}); return; } var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push({k:k,v:null}); }
+      else { var c=map[k],a=(x.updatedAt||x.createdAt||x.date||0),b=(c.updatedAt||c.createdAt||c.date||0); if(a>=b) map[k]=x; } }
+    cloudArr.forEach(add); localArr.forEach(add);
+    var seen={},out=[]; order.forEach(function(o){ if(o.v!==null){out.push(o.v);return;} if(seen[o.k])return; seen[o.k]=1; out.push(map[o.k]); }); return out;
+  }
+  function mergeCloudIntoState(d){
+    if(!d) return;
+    State.purchases=_pApplyTomb(_pMerge(State.purchases,d.purchases),"purchase");
+    if(Array.isArray(d.shipments)) State.shipments=_pApplyTomb(_pMerge(State.shipments,d.shipments),"shipment");
+    if(Array.isArray(d.receives)) State.receives=_pApplyTomb(_pMerge(State.receives,d.receives),"receive");
+    var cs=d.settings||{}, ls=State.settings||{};
+    if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+  }
+  function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
   function pushNow(){ if(!db) return;
     if(!ready) return;
-    try{ if(cloudHadData && Array.isArray(State.purchases) && !State.purchases.length){
-      note('<span style="color:var(--warn)">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
-    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now(); ref().set({state:State,ts:Date.now()}).then(function(){ note("\u2601 Synced across your devices."); }).catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }catch(e){} }
+    ref().get().then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d) mergeCloudIntoState(d);
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      return ref().set({state:State,ts:Date.now()});
+    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })
+      .catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }
+  window.__pushNow=pushNow;
 })();
 </script>
 <script>

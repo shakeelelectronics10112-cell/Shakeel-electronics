@@ -258,9 +258,11 @@
     <button data-t="money">Money in</button>
   </div>
   <div id="view"></div>
+<style>#bkScrim.on{display:flex!important}</style><div class="scrim" id="bkScrim" style="position:fixed;inset:0;background:rgba(22,33,31,.44);z-index:80;display:none;align-items:flex-end;justify-content:center"><div class="sheet" id="bkSheet" style="background:#fff;border-radius:20px 20px 0 0;width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:20px"></div></div>
   <div class="foot">
     <span id="note"></span>
     <div class="r">
+      <button class="btn gh sm" id="bkBtn">🛟 Backup</button>
       <button class="btn gh sm" id="rptBtn">📈 Report</button>
       <button class="btn gh sm" id="setBtn">Settings</button>
       <button class="btn gh sm" id="expBtn">Backup</button>
@@ -828,6 +830,7 @@ function openMember(id){
   scrim.querySelectorAll("[data-dtx]").forEach(b=>b.onclick=()=>{
     const t=State.transactions.find(x=>x.id===b.dataset.dtx); if(!t) return;
     if(confirm(`Delete this ${t.type} of ${cur} ${money(t.amount)}?`)){
+      if(window.__ledgerTombstone) window.__ledgerTombstone("tx",t.id);
       State.transactions=State.transactions.filter(x=>x.id!==t.id);
       persist(); render(); openMember(id); toast("Entry deleted");
     }
@@ -865,6 +868,7 @@ function memberForm(existing){
   };
   if(existing) document.getElementById("m-del").onclick=()=>{
     if(!confirm(`Delete ${existing.name} and all their entries?`)) return;
+    if(window.__ledgerTombstone){ window.__ledgerTombstone("member",existing.id); State.transactions.forEach(function(t){ if(t.memberId===existing.id) window.__ledgerTombstone("tx",t.id); }); }
     State.members=State.members.filter(x=>x.id!==existing.id);
     State.transactions=State.transactions.filter(t=>t.memberId!==existing.id);
     persist(); render(); closeScrim(); toast("Customer deleted");
@@ -1345,6 +1349,37 @@ document.getElementById("impFile").addEventListener("change",e=>{
 (async function init(){ await load(); render(); })();
 </script>
 
+<script>
+/* ===== BACKUP + RESTORE (Ledger) ===== */
+function scheduleAutoBackup(){ clearTimeout(window.__bkT); window.__bkT=setTimeout(_ledgerAutoBackup,1500); }
+function _ledgerDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function _ledgerBkLoad(){ try{ return JSON.parse(localStorage.getItem("ledger:backups")||"[]"); }catch(_){ return []; } }
+function _ledgerBkSave(l){ try{ localStorage.setItem("ledger:backups",JSON.stringify(l)); }catch(_){} }
+function _ledgerAutoBackup(){ try{ var list=_ledgerBkLoad(), tk=_ledgerDay(); var snap={day:tk,at:Date.now(),n:(State.members||[]).length,data:JSON.stringify(State)}; var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=snap.at;ex.n=snap.n;ex.data=snap.data;} else list.unshift(snap); list=list.slice(0,14); _ledgerBkSave(list); }catch(_){} }
+function _ledgerDownload(){ try{ var blob=new Blob([JSON.stringify({app:"ledger",at:Date.now(),state:State},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-LEDGER-backup-"+_ledgerDay()+".json"; a.click(); note("Backup file downloaded"); }catch(e){} }
+function _ledgerMergeRestore(inc){ if(!inc) return;
+  function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
+  State.members=byId(State.members,inc.members); State.transactions=byId(State.transactions,inc.transactions);
+  persist(); render(); if(window.__pushNow) window.__pushNow(); }
+function openBackupSheet(){
+  var list=_ledgerBkLoad(), sc=document.getElementById("bkScrim"), sheet=document.getElementById("bkSheet");
+  sheet.innerHTML='<h3 style="font-family:var(--disp,inherit);font-size:17px;margin-bottom:12px">🛟 Backup &amp; Restore</h3>'
+    +'<div style="font-size:12.5px;color:var(--muted,#6E7673);margin-bottom:14px">Customers &amp; balances are saved on this device, in the cloud, and in these snapshots.</div>'
+    +'<button class="btn pri" id="bk-dl" style="width:100%;margin-bottom:8px">⬇ Download backup file now</button>'
+    +'<label class="btn gold" style="width:100%;margin-bottom:14px;display:flex;justify-content:center">⬆ Restore from a file<input type="file" id="bk-file" accept=".json,application/json" style="display:none"></label>'
+    +'<div style="font-size:11px;color:var(--muted,#6E7673);letter-spacing:.08em;margin-bottom:8px">AUTO SNAPSHOTS ('+list.length+')</div>'
+    +(list.length?list.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line,#E2E7E4);border-radius:10px;margin-bottom:8px"><div style="flex:1"><b>'+b.day+'</b><div style="font-size:11.5px;color:var(--muted,#6E7673)">'+b.n+' customers</div></div><button class="btn gh sm" data-rest="'+b.day+'">Restore</button></div>';}).join(""):'<div style="text-align:center;color:var(--muted,#6E7673);padding:16px">Snapshots will appear as you use the app.</div>')
+    +'<button class="btn gh" id="bk-x" style="width:100%;margin-top:12px">Close</button>';
+  sc.classList.add("on");
+  document.getElementById("bk-x").onclick=function(){ sc.classList.remove("on"); };
+  document.getElementById("bk-dl").onclick=_ledgerDownload;
+  document.getElementById("bk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing data, never deletes.")) return; _ledgerMergeRestore(j.state||j); sc.classList.remove("on"); note("Restored from file"); }catch(_){ alert("Not a valid backup file"); } }; r.readAsText(f); };
+  sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_ledgerBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore data from "+b.dataset.rest+"? It ADDS back missing data, never deletes.")) return; try{ _ledgerMergeRestore(JSON.parse(snap.data)); sc.classList.remove("on"); note("Restored from "+b.dataset.rest); }catch(_){} }; });
+}
+document.addEventListener("DOMContentLoaded",function(){ var b=document.getElementById("bkBtn"); if(b) b.onclick=openBackupSheet; });
+if(document.getElementById("bkBtn")) document.getElementById("bkBtn").onclick=openBackupSheet;
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -1385,42 +1420,54 @@ document.getElementById("impFile").addEventListener("change",e=>{
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("☁ Connecting…");
-    var _p=persist; persist=function(){ _p(); if(ready){ clearTimeout(pt); pt=setTimeout(push,400); } };
+    var _p=persist; persist=function(){ _p(); if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
     ref().onSnapshot(function(s){
       if(s.exists){
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
-          var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
-          var localEmpty = !State.members.length && !State.transactions.length;
-          var cloudHas   = (Array.isArray(d.members) && d.members.length) ||
-                           (Array.isArray(d.transactions) && d.transactions.length);
-          // Always adopt the cloud when this device has nothing yet — a fresh/empty
-          // app must never look "newer" than real data sitting in the cloud.
-          if(rt>lt || (localEmpty && cloudHas)){
-            applyLoaded(d);
-            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
-            render(); try{lsSave();}catch(_){}
-          }
+          var before=(State.members.length)+"/"+(State.transactions.length);
+          mergeCloudIntoState(d);
+          var after=(State.members.length)+"/"+(State.transactions.length);
+          render(); try{lsSave();}catch(_){}
+          if(before!==after){ scheduleAutoBackup(); clearTimeout(pt); pt=setTimeout(push,300); }
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }
     }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
+  /* MERGE: union by id so two devices never erase each other */
+  function _ledgerTomb(){ try{ return JSON.parse(localStorage.getItem("ledger:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__ledgerTombstone=function(kind,id){ try{ var t=_ledgerTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("ledger:deleted",JSON.stringify(t)); }catch(_){} };
+  function _applyTomb(arr,kind){ var t=_ledgerTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
+  function _mergeArr(localArr,cloudArr){
+    localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+    var map={},order=[];
+    function add(x){ if(!x||x.id==null){ order.push({k:"_"+Math.random(),v:x}); return; } var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push({k:k,v:null}); }
+      else { var c=map[k],a=(x.updatedAt||x.createdAt||x.date||0),b=(c.updatedAt||c.createdAt||c.date||0); if(a>=b) map[k]=x; } }
+    cloudArr.forEach(add); localArr.forEach(add);
+    var seen={},out=[]; order.forEach(function(o){ if(o.v!==null){out.push(o.v);return;} if(seen[o.k])return; seen[o.k]=1; out.push(map[o.k]); }); return out;
+  }
+  function mergeCloudIntoState(d){
+    if(!d) return;
+    State.members=_applyTomb(_mergeArr(State.members,d.members),"member");
+    State.transactions=_applyTomb(_mergeArr(State.transactions,d.transactions),"tx");
+    var cs=d.settings||{}, ls=State.settings||{};
+    if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+  }
   function push(){
     if(!db) return;
-    if(!ready){ return; }                      // never push before we've read the cloud
-    if(!State.members.length && cloudHadData){ // never wipe real data with an empty app
-      note('<span style="color:var(--warn)">Safety: refusing to overwrite cloud data</span>');
-      return;
-    }
-    try{
+    if(!ready){ return; }
+    ref().get().then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d) mergeCloudIntoState(d);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      ref().set({state:State, ts:Date.now()})
-        .then(function(){ note("☁ Synced across your devices"); })
-        .catch(function(){ note("☁ Cloud save failed — saved on this device"); });
-    }catch(e){}
+      return ref().set({state:State, ts:Date.now()});
+    }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} scheduleAutoBackup(); })
+      .catch(function(){ note("☁ Cloud save failed — saved on this device"); });
   }
+  window.__pushNow=push;
 })();
 </script>
 <script>
