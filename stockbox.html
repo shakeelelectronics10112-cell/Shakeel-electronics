@@ -1064,7 +1064,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
 (function(){
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="stockbox", SHOP="main";
-  var db=null, ready=false, pushTimer=null, cloudHadData=false;
+  var db=null, ready=false, _dirty=false, pushTimer=null, cloudHadData=false;
   function note(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
   if(typeof firebase==="undefined"){ return; }        // SDK blocked/offline -> stay on-device
   try{
@@ -1077,7 +1077,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("\u2601 Connecting\u2026");
-    var _op=persist; persist=function(){ _op(); schedulePush(); };
+    var _op=persist; persist=function(){ _op(); _dirty=true; schedulePush(); };
     ref().onSnapshot(function(snap){
       window.__cloudActive=true;
       if(snap.exists){
@@ -1087,7 +1087,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
           mergeCloudIntoState(d);
           try{lsSave();}catch(_){}
           if(_sbTyping()){ _sbPending=true; } else if(typeof render==="function"){ render(); }
-          if(_sbGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+          if(_dirty && _sbGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
         ready=true; note("\u2601 Synced across your devices.");
       }else{ ready=true; pushNow(); }
@@ -1129,7 +1129,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
       var d=s.exists&&s.data()&&s.data().state;
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      return ref().set({state:State, ts:Date.now()});
+      _dirty=false; return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })
       .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });
   }

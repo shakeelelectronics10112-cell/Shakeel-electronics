@@ -1406,7 +1406,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
           projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
           messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="ledger", SHOP="main";
-  var db=null, ready=false, pt=null, cloudHadData=false;
+  var db=null, ready=false, _dirty=false, pt=null, cloudHadData=false;
   function note(t){ var e=document.getElementById("note"); if(e) e.innerHTML=t; }
   if(typeof firebase==="undefined") return;
   try{
@@ -1419,7 +1419,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("☁ Connecting…");
-    var _p=persist; persist=function(){ _p(); if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
+    var _p=persist; persist=function(){ _p(); _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
     ref().onSnapshot(function(s){
       if(s.exists){
         var d=s.data()&&s.data().state;
@@ -1428,7 +1428,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
           mergeCloudIntoState(d);
           try{lsSave();}catch(_){}
           if(_ledgerTyping()){ _lPending=true; } else { render(); }
-          if(_lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
+          if(_dirty && _lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }
@@ -1470,7 +1470,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
       var d=s.exists&&s.data()&&s.data().state;
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      return ref().set({state:State, ts:Date.now()});
+      _dirty=false; return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} scheduleAutoBackup(); })
       .catch(function(){ note("☁ Cloud save failed — saved on this device"); });
   }
