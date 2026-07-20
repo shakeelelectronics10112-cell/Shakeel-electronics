@@ -265,7 +265,7 @@
       <button class="btn gh sm" id="bkBtn">🛟 Backup</button>
       <button class="btn gh sm" id="rptBtn">📈 Report</button>
       <button class="btn gh sm" id="setBtn">Settings</button>
-      <button class="btn gh sm" id="expBtn">Backup</button>
+      <button class="btn gh sm" id="expBtn">Export file</button>
       <button class="btn gh sm" id="impBtn">Import</button>
       <input type="file" id="impFile" accept="application/json" style="display:none">
     </div>
@@ -1351,11 +1351,11 @@ document.getElementById("impFile").addEventListener("change",e=>{
 
 <script>
 /* ===== BACKUP + RESTORE (Ledger) ===== */
-function scheduleAutoBackup(){ clearTimeout(window.__bkT); window.__bkT=setTimeout(_ledgerAutoBackup,1500); }
+function scheduleAutoBackup(){ clearTimeout(window.__bkT); window.__bkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ _ledgerAutoBackup(); }); },4000); }
 function _ledgerDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function _ledgerBkLoad(){ try{ return JSON.parse(localStorage.getItem("ledger:backups")||"[]"); }catch(_){ return []; } }
 function _ledgerBkSave(l){ try{ localStorage.setItem("ledger:backups",JSON.stringify(l)); }catch(_){} }
-function _ledgerAutoBackup(){ try{ var list=_ledgerBkLoad(), tk=_ledgerDay(); var snap={day:tk,at:Date.now(),n:(State.members||[]).length,data:JSON.stringify(State)}; var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=snap.at;ex.n=snap.n;ex.data=snap.data;} else list.unshift(snap); list=list.slice(0,14); _ledgerBkSave(list); }catch(_){} }
+var _lbkSig=""; function _ledgerAutoBackup(){ try{ var sig=(State.members||[]).length+"|"+(State.transactions||[]).length; if(sig===_lbkSig) return; _lbkSig=sig; var list=_ledgerBkLoad(), tk=_ledgerDay(); var data=JSON.stringify(State); var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=Date.now();ex.n=(State.members||[]).length;ex.data=data;} else list.unshift({day:tk,at:Date.now(),n:(State.members||[]).length,data:data}); list=list.slice(0,14); _ledgerBkSave(list); }catch(_){} }
 function _ledgerDownload(){ try{ var blob=new Blob([JSON.stringify({app:"ledger",at:Date.now(),state:State},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-LEDGER-backup-"+_ledgerDay()+".json"; a.click(); note("Backup file downloaded"); }catch(e){} }
 function _ledgerMergeRestore(inc){ if(!inc) return;
   function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
@@ -1376,8 +1376,7 @@ function openBackupSheet(){
   document.getElementById("bk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing data, never deletes.")) return; _ledgerMergeRestore(j.state||j); sc.classList.remove("on"); note("Restored from file"); }catch(_){ alert("Not a valid backup file"); } }; r.readAsText(f); };
   sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_ledgerBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore data from "+b.dataset.rest+"? It ADDS back missing data, never deletes.")) return; try{ _ledgerMergeRestore(JSON.parse(snap.data)); sc.classList.remove("on"); note("Restored from "+b.dataset.rest); }catch(_){} }; });
 }
-document.addEventListener("DOMContentLoaded",function(){ var b=document.getElementById("bkBtn"); if(b) b.onclick=openBackupSheet; });
-if(document.getElementById("bkBtn")) document.getElementById("bkBtn").onclick=openBackupSheet;
+document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&&e.target.closest("#bkBtn"); if(t){ e.preventDefault(); try{ openBackupSheet(); }catch(err){ alert("Backup error: "+err.message); } } });
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1426,17 +1425,22 @@ if(document.getElementById("bkBtn")) document.getElementById("bkBtn").onclick=op
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
-          var before=(State.members.length)+"/"+(State.transactions.length);
+          var before=_ledgerSig();
           mergeCloudIntoState(d);
-          var after=(State.members.length)+"/"+(State.transactions.length);
-          render(); try{lsSave();}catch(_){}
-          if(before!==after){ scheduleAutoBackup(); clearTimeout(pt); pt=setTimeout(push,300); }
+          var after=_ledgerSig();
+          if(before!==after){ try{lsSave();}catch(_){} if(_ledgerTyping()){ _lPending=true; } else { render(); } scheduleAutoBackup(); if(_lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); } }
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }
     }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
   /* MERGE: union by id so two devices never erase each other */
+  function _ledgerTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
+  var _lPending=false;
+  function _ledgerSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&(x.amount||0))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.members)+"|"+sig(State.transactions); }
+  function _lGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.members,d.members)||has(State.transactions,d.transactions); }
+  document.addEventListener("focusout",function(){ setTimeout(function(){ if(_lPending&&!_ledgerTyping()){ _lPending=false; render(); } },200); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden&&_lPending){ _lPending=false; render(); } });
   function _ledgerTomb(){ try{ return JSON.parse(localStorage.getItem("ledger:deleted")||"{}"); }catch(_){ return {}; } }
   window.__ledgerTombstone=function(kind,id){ try{ var t=_ledgerTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("ledger:deleted",JSON.stringify(t)); }catch(_){} };
   function _applyTomb(arr,kind){ var t=_ledgerTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }

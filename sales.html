@@ -308,6 +308,20 @@ function isoDate(t){ return dkey(t||Date.now()); }
 function today(){ return dkey(Date.now()); }
 function monthKey(t){ return dkey(t).slice(0,7); }
 function normName(s){ return String(s||"").toLowerCase().trim(); }
+function isTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
+var _pendingRender=false;
+function _stateSig(){
+  // cheap but content-aware: counts + newest timestamp of each list + total money
+  function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&(x.total||x.amount||x.qty||x.price))||0; } return arr.length+":"+mx+":"+Math.round(sum); }
+  return sig(State.sales)+"|"+sig(State.products)+"|"+sig(State.expenses)+"|"+sig(State.returns)+"|"+((State.settings&&State.settings.seq)||0);
+}
+function _grewBeyond(d){ // did WE have records the cloud snapshot lacked? then push our union back
+  function has(a,b){ a=a||[];b=b||[]; if(a.length>b.length) return true; var ids={}; b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;}); for(var i=0;i<a.length;i++){ if(a[i]&&a[i].id!=null&&!ids[a[i].id]) return true; } return false; }
+  return has(State.sales,d.sales)||has(State.products,d.products)||has(State.expenses,d.expenses)||has(State.returns,d.returns);
+}
+// catch up any deferred render as soon as the user stops typing / leaves the field
+document.addEventListener("focusout",function(){ setTimeout(function(){ if(_pendingRender && !isTyping()){ _pendingRender=false; render(); } },200); });
+document.addEventListener("visibilitychange",function(){ if(!document.hidden && _pendingRender){ _pendingRender=false; render(); } });
 function locPathText(id){
   var locs=((window.LINK||{}).stockLocs)||[]; var by={}; locs.forEach(function(l){by[l.id]=l;});
   var out=[],c=by[id],g=0; while(c&&g++<12){ out.unshift(c.name); c=c.parentId?by[c.parentId]:null; } return out.join(" › ");
@@ -811,15 +825,19 @@ var BK_KEY="sales:backups";
 function bkLoad(){ try{ return JSON.parse(localStorage.getItem(BK_KEY)||"[]"); }catch(_){ return []; } }
 function bkSaveList(l){ try{ localStorage.setItem(BK_KEY, JSON.stringify(l)); }catch(_){} }
 var _bkT=null;
-function scheduleAutoBackup(){ clearTimeout(_bkT); _bkT=setTimeout(autoBackup,1500); }
+function scheduleAutoBackup(){ clearTimeout(_bkT); _bkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ autoBackup(); }); },4000); }
+var _bkLastSig="";
 function autoBackup(){
   try{
+    var sig=(State.sales||[]).length+"|"+(State.products||[]).length+"|"+(State.expenses||[]).length+"|"+(State.returns||[]).length;
+    if(sig===_bkLastSig) return; // nothing changed since last snapshot — skip heavy stringify
+    _bkLastSig=sig;
     var list=bkLoad(), tk=today();
     var todaySnap=list.find(function(b){return b.day===tk;});
-    var snap={day:tk, at:Date.now(), sales:(State.sales||[]).length, data:JSON.stringify(State)};
-    if(todaySnap){ todaySnap.at=snap.at; todaySnap.sales=snap.sales; todaySnap.data=snap.data; }
+    var data=JSON.stringify(State);
+    var snap={day:tk, at:Date.now(), sales:(State.sales||[]).length, data:data};
+    if(todaySnap){ todaySnap.at=snap.at; todaySnap.sales=snap.sales; todaySnap.data=data; }
     else list.unshift(snap);
-    // keep last 14 daily snapshots
     list=list.slice(0,14);
     bkSaveList(list);
   }catch(_){}
@@ -1088,12 +1106,10 @@ render();
         if(d){
           try{ if((Array.isArray(d.sales)&&d.sales.length)||(Array.isArray(d.products)&&d.products.length)) cloudHad=true; }catch(_){}
           // MERGE cloud into local instead of overwriting — nothing either side has is lost
-          var before=JSON.stringify([State.sales.length,State.products.length,State.expenses.length,State.returns.length]);
+          var before=_stateSig();
           mergeCloudIntoState(d);
-          var after=JSON.stringify([State.sales.length,State.products.length,State.expenses.length,State.returns.length]);
-          render(); try{lsSave();}catch(_){}
-          // if the merge grew our local data beyond what cloud had, push the union back so cloud is complete too
-          if(before!==after){ scheduleAutoBackup(); clearTimeout(pt); pt=setTimeout(push,300); }
+          var after=_stateSig();
+          if(before!==after){ try{lsSave();}catch(_){} if(isTyping()){ _pendingRender=true; } else { render(); } scheduleAutoBackup(); if(_grewBeyond(d)){ clearTimeout(pt); pt=setTimeout(push,300); } }
         }
         ready=true; note("☁ Synced");
       } else { ready=true; push(); }

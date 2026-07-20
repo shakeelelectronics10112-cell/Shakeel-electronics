@@ -1939,11 +1939,11 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 </script>
 <script>
 /* ===== BACKUP (Purchases) auto snapshots ===== */
-function scheduleAutoBackup(){ clearTimeout(window.__pBkT); window.__pBkT=setTimeout(_pAutoBackup,1500); }
+function scheduleAutoBackup(){ clearTimeout(window.__pBkT); window.__pBkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ _pAutoBackup(); }); },4000); }
 function _pDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function _pBkLoad(){ try{ return JSON.parse(localStorage.getItem("purchases:backups")||"[]"); }catch(_){ return []; } }
 function _pBkSaveL(l){ try{ localStorage.setItem("purchases:backups",JSON.stringify(l)); }catch(_){} }
-function _pAutoBackup(){ try{ var list=_pBkLoad(), tk=_pDay(); var snap={day:tk,at:Date.now(),n:(State.purchases||[]).length,data:JSON.stringify(State)}; var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=snap.at;ex.n=snap.n;ex.data=snap.data;} else list.unshift(snap); list=list.slice(0,14); _pBkSaveL(list); }catch(_){} }
+var _pbkSig=""; function _pAutoBackup(){ try{ var sig=(State.purchases||[]).length+"|"+(State.shipments||[]).length+"|"+(State.receives||[]).length; if(sig===_pbkSig) return; _pbkSig=sig; var list=_pBkLoad(), tk=_pDay(); var data=JSON.stringify(State); var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=Date.now();ex.n=(State.purchases||[]).length;ex.data=data;} else list.unshift({day:tk,at:Date.now(),n:(State.purchases||[]).length,data:data}); list=list.slice(0,14); _pBkSaveL(list); }catch(_){} }
 function _pMergeRestore(inc){ if(!inc) return;
   function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
   State.purchases=byId(State.purchases,inc.purchases); if(Array.isArray(inc.shipments))State.shipments=byId(State.shipments,inc.shipments); if(Array.isArray(inc.receives))State.receives=byId(State.receives,inc.receives);
@@ -2066,16 +2066,21 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
-          var before=(State.purchases||[]).length+"/"+(State.shipments||[]).length+"/"+(State.receives||[]).length;
+          var before=_pSig();
           mergeCloudIntoState(d);
-          var after=(State.purchases||[]).length+"/"+(State.shipments||[]).length+"/"+(State.receives||[]).length;
-          if(typeof render==="function") render(); try{lsSave();}catch(_){}
-          if(before!==after){ scheduleAutoBackup(); clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+          var after=_pSig();
+          if(before!==after){ try{lsSave();}catch(_){} if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); } scheduleAutoBackup(); if(_pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); } }
         }
         ready=true; note("\u2601 Synced across your devices."); }
       else { ready=true; pushNow(); }
     }, function(){ note("\u2601 Offline — saved on this device."); });
   }
+  function _pTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
+  var _pPending=false;
+  function _pSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&((x.qty||0)+(x.priceRMB||0)))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.purchases)+"|"+sig(State.shipments)+"|"+sig(State.receives); }
+  function _pGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.purchases,d.purchases)||has(State.shipments,d.shipments)||has(State.receives,d.receives); }
+  document.addEventListener("focusout",function(){ setTimeout(function(){ if(_pPending&&!_pTyping()&&typeof render==="function"){ _pPending=false; render(); } },200); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden&&_pPending&&typeof render==="function"){ _pPending=false; render(); } });
   function _pTomb(){ try{ return JSON.parse(localStorage.getItem("purchases:deleted")||"{}"); }catch(_){ return {}; } }
   window.__pTombstone=function(kind,id){ try{ var t=_pTomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("purchases:deleted",JSON.stringify(t)); }catch(_){} };
   function _pApplyTomb(arr,kind){ var t=_pTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
