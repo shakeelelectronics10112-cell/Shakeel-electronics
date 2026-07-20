@@ -786,7 +786,7 @@ document.getElementById("p-save").onclick=function(){
   if(!name){ toast("Enter name"); return; }
   if(!(price>0)){ toast("Enter sale price"); return; }
   var fromSale=document.getElementById("prodScrim").dataset.fromsale==="1";
-  if(editPid){ var p=State.products.find(function(x){return x.id===editPid;}); if(p){ p.name=name; p.cost=cost; p.price=price; p.vendor=vendor; } }
+  if(editPid){ var p=State.products.find(function(x){return x.id===editPid;}); if(p){ p.name=name; p.cost=cost; p.price=price; p.vendor=vendor; p.updatedAt=Date.now(); } }
   else { var np={id:uid(),name:name,cost:cost,price:price,vendor:vendor}; State.products.unshift(np); if(fromSale){ cart.push({pid:np.id,name:name,qty:1,price:price,cost:cost}); renderCart(); } }
   persist(); closeProd(); render(); toast("Product saved");
 };
@@ -1067,17 +1067,20 @@ render();
   };
 
   /* ---- MERGE HELPERS: union two arrays by id, never drop a record either side has ---- */
+  function _recSig(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
   function mergeById(localArr, cloudArr){
     localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
-    var map={}, order=[];
-    function add(x){ if(!x||x.id==null){ order.push({k:"_"+Math.random(),v:x}); return; } var k=String(x.id);
-      if(!(k in map)){ map[k]=x; order.push({k:k,v:null}); }
-      else { var cur=map[k]; var a=(x.updatedAt||x.createdAt||x.date||0), b=(cur.updatedAt||cur.createdAt||cur.date||0); if(a>=b) map[k]=x; }
-    }
-    cloudArr.forEach(add); localArr.forEach(add); // local wins ties (fresher edits)
-    var seen={},out=[];
-    order.forEach(function(o){ if(o.v!==null){ out.push(o.v); return; } if(seen[o.k]) return; seen[o.k]=1; out.push(map[o.k]); });
-    return out;
+    var map={}, order=[], noid=[];
+    function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
+    cloudArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push(k); return; }
+      var cur=map[k], a=ts(x), b=ts(cur);
+      if(a>b){ map[k]=x; }
+      else if(a<b){ /* keep cloud */ }
+      else { if(_recSig(x)!==_recSig(cur)) map[k]=cur; } // equal time, differ -> trust cloud edit
+    });
+    return order.map(function(k){return map[k];}).concat(noid);
   }
   // deletions we must respect: if user deleted a sale locally, keep it deleted even if cloud still has it
   function loadTombstones(){ try{ return JSON.parse(localStorage.getItem("sales:deleted")||"{}"); }catch(_){ return {}; } }

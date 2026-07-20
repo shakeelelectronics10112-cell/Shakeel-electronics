@@ -1104,12 +1104,15 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
   function _sbApplyTomb(arr,kind){ var t=_sbTomb(); return arr.filter(function(x){ return !(x&&x.id!=null && t[kind+":"+x.id]); }); }
   function _sbMerge(localArr,cloudArr){
     localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
-    var map={},order=[];
-    function add(x){ if(!x||x.id==null){ order.push({k:"_"+Math.random(),v:x}); return; } var k=String(x.id);
-      if(!(k in map)){ map[k]=x; order.push({k:k,v:null}); }
-      else { var c=map[k],a=(x.updatedAt||x.createdAt||0),b=(c.updatedAt||c.createdAt||0); if(a>=b) map[k]=x; } }
-    cloudArr.forEach(add); localArr.forEach(add);
-    var seen={},out=[]; order.forEach(function(o){ if(o.v!==null){out.push(o.v);return;} if(seen[o.k])return; seen[o.k]=1; out.push(map[o.k]); }); return out;
+    var map={},order=[],noid=[];
+    function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
+    function sg(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
+    cloudArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push(k); return; }
+      var cur=map[k], a=ts(x), b=ts(cur);
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=cur; } });
+    return order.map(function(k){return map[k];}).concat(noid);
   }
   function mergeCloudIntoState(d){
     if(!d) return;
