@@ -216,35 +216,6 @@
   .reconnect-bar:hover{background:#0d1917}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-/* ===== BACKUP (StockBox) auto snapshots ===== */
-function scheduleAutoBackup(){}
-function _sbDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function _sbBkLoad(){ try{ return JSON.parse(localStorage.getItem("stockbox:backups")||"[]"); }catch(_){ return []; } }
-function _sbBkSaveL(l){ try{ localStorage.setItem("stockbox:backups",JSON.stringify(l)); }catch(_){} }
-var _sbkSig=""; function _sbAutoBackup(){ try{ var sig=(State.items||[]).length+"|"+(State.locations||[]).length; if(sig===_sbkSig) return; _sbkSig=sig; var list=_sbBkLoad(), tk=_sbDay(); var data=JSON.stringify(State); var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=Date.now();ex.n=(State.items||[]).length;ex.data=data;} else list.unshift({day:tk,at:Date.now(),n:(State.items||[]).length,data:data}); list=list.slice(0,14); _sbBkSaveL(list); }catch(_){} }
-function _sbMergeRestore(inc){ if(!inc) return;
-  function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||0),bx=(cur.updatedAt||cur.createdAt||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
-  State.items=byId(State.items,inc.items); State.locations=byId(State.locations,inc.locations);
-  if(typeof persist==="function") persist(); if(typeof render==="function") render(); if(window.__pushNow) window.__pushNow(); }
-function openBackupSheet(){
-  var list=_sbBkLoad();
-  var wrap=document.getElementById("sbBkScrim"), sheet=document.getElementById("sbBkSheet");
-  sheet.innerHTML='<h3 class="grot" style="font-size:17px;margin-bottom:12px">🛟 Backup &amp; Restore</h3>'
-    +'<div style="font-size:12.5px;color:var(--muted,#6E7673);margin-bottom:14px">Your stock is saved on this device, in the cloud, and in these snapshots.</div>'
-    +'<button class="btn primary" id="sbbk-dl" style="width:100%;margin-bottom:8px">⬇ Download backup file now</button>'
-    +'<label class="btn" style="width:100%;margin-bottom:14px;display:flex;justify-content:center;cursor:pointer">⬆ Restore from a file<input type="file" id="sbbk-file" accept=".json,application/json" style="display:none"></label>'
-    +'<div style="font-size:11px;color:var(--muted,#6E7673);letter-spacing:.08em;margin-bottom:8px">AUTO SNAPSHOTS ('+list.length+')</div>'
-    +(list.length?list.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line,#E2E7E4);border-radius:10px;margin-bottom:8px"><div style="flex:1"><b>'+b.day+'</b><div style="font-size:11.5px;color:var(--muted,#6E7673)">'+b.n+' item lines</div></div><button class="btn sm" data-rest="'+b.day+'">Restore</button></div>';}).join(""):'<div style="text-align:center;color:var(--muted,#6E7673);padding:16px">Snapshots will appear as you use the app.</div>')
-    +'<button class="btn" id="sbbk-x" style="width:100%;margin-top:12px">Close</button>';
-  wrap.style.display="flex";
-  document.getElementById("sbbk-x").onclick=function(){ wrap.style.display="none"; };
-  document.getElementById("sbbk-dl").onclick=function(){ try{ var blob=new Blob([JSON.stringify({app:"stockbox",at:Date.now(),items:State.items,locations:State.locations,settings:State.settings},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-STOCKBOX-backup-"+_sbDay()+".json"; a.click(); toast("Backup file downloaded"); }catch(e){} };
-  document.getElementById("sbbk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing stock, never deletes.")) return; _sbMergeRestore(j.state||j); wrap.style.display="none"; toast("Restored from file"); }catch(_){ flash&&flash("Not a valid backup file"); } }; r.readAsText(f); };
-  sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_sbBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore from "+b.dataset.rest+"? It ADDS back missing stock, never deletes.")) return; try{ _sbMergeRestore(JSON.parse(snap.data)); wrap.style.display="none"; toast("Restored from "+b.dataset.rest); }catch(_){} }; });
-}
-document.addEventListener("DOMContentLoaded",function(){ var b=document.getElementById("sbBkBtn"); if(b) b.onclick=openBackupSheet; });
-</script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -261,7 +232,6 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
       <button class="btn install" id="installBtn" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 21h14"/></svg>Install app
       </button>
-      <button class="btn" id="sbBkBtn" title="Backup & Restore">🛟</button>
       <button class="btn" id="addBoxBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V21H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Add box
       </button>
@@ -271,7 +241,6 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
     </div>
   </div>
 </header>
-<div id="sbBkScrim" style="position:fixed;inset:0;background:rgba(22,33,31,.44);z-index:120;display:none;align-items:flex-end;justify-content:center"><div id="sbBkSheet" style="background:#fff;border-radius:20px 20px 0 0;width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:20px"></div></div>
 
 <div class="wrap">
   <section class="summary" id="summary"></section>
@@ -1130,7 +1099,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false; return ref().set({state:State, ts:Date.now()});
-    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })
+    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} })
       .catch(function(){ note('\u2601 Cloud save failed \u2014 saved on this device.'); });
   }
   window.__pushNow=pushNow;

@@ -241,7 +241,6 @@
       <button class="btn ghost sm" id="autoSaveBtn"><span class="as-dot off"></span>Auto-save to folder</button>
       <button class="btn ghost sm" id="importBtn">Import backup</button>
       <button class="btn ghost sm" id="exportCsvBtn">Export CSV</button>
-      <button class="btn ghost sm" id="pBkBtn">🛟 Snapshots</button>
       <button class="btn ghost sm" id="exportJsonBtn">Backup data</button>
       <input type="file" id="importFile" accept="application/json" style="display:none"/>
     </div>
@@ -306,7 +305,6 @@ function lsSave(){ try{ localStorage.setItem(KEY,JSON.stringify(State)); return 
 let saveTimer=null,storageOK=true;
 async function save(){ let ok=false; if(hasStore){ try{ await window.storage.set(KEY,JSON.stringify(State)); ok=true; }catch(e){} } if(lsSave()) ok=true; storageOK=ok; updateStorageNote(); }
 function persist(){ State.settings.updatedAt=Date.now(); clearTimeout(saveTimer); saveTimer=setTimeout(save,120); if(dirHandle) writeToFolder(false); }
-function SLOG(m){ try{ var b=document.getElementById("syncLogBody"); if(!b) return; var t=new Date().toLocaleTimeString(); b.innerHTML='<div>['+t+'] '+m+'</div>'+b.innerHTML; if(b.children.length>40) b.removeChild(b.lastChild); }catch(_){} }
 function updateStorageNote(){ const el=document.getElementById("storageNote"); if(!el) return;
   if(window.__cloudActive) return;
   if(!storageOK){ el.innerHTML=`<span style="color:var(--warn)">⚠ Couldn't save on this device — use “Backup data”.</span>`; }
@@ -581,7 +579,7 @@ function wireGrid(rerender){
 function addBlankRow_(rerender){
   rerender = rerender || renderPurchases;
   const row={ id:uid(), shipment:(ui.shipView!=null?ui.shipView:State.settings.currentShipment), item:"", category:"", vendor:"", qty:0, priceRMB:0, rate:State.settings.rate, status:"Ordered", forwarder:"", date:todayISO(), createdAt:Date.now(), updatedAt:Date.now() };
-  State.purchases.push(row); SLOG("ADDED new row (now "+(State.purchases||[]).length+")"); persist(); rerender();
+  State.purchases.push(row); persist(); rerender();
   // focus the new row's item cell
   setTimeout(()=>{ const tr=document.querySelector(`tr[data-row="${row.id}"]`); if(tr){ tr.scrollIntoView({block:"center"}); const inp=tr.querySelector('[data-f="item"]'); if(inp) inp.focus(); } },40);
 }
@@ -1938,43 +1936,13 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 
 (async function init(){ await load(); render(); autoConnectFolder(); updateStorageNote(); })();
 </script>
-<script>
-/* ===== BACKUP (Purchases) auto snapshots ===== */
-function scheduleAutoBackup(){}
-function _pDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function _pBkLoad(){ try{ return JSON.parse(localStorage.getItem("purchases:backups")||"[]"); }catch(_){ return []; } }
-function _pBkSaveL(l){ try{ localStorage.setItem("purchases:backups",JSON.stringify(l)); }catch(_){} }
-var _pbkSig=""; function _pAutoBackup(){ try{ var sig=(State.purchases||[]).length+"|"+(State.shipments||[]).length+"|"+(State.receives||[]).length; if(sig===_pbkSig) return; _pbkSig=sig; var list=_pBkLoad(), tk=_pDay(); var data=JSON.stringify(State); var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=Date.now();ex.n=(State.purchases||[]).length;ex.data=data;} else list.unshift({day:tk,at:Date.now(),n:(State.purchases||[]).length,data:data}); list=list.slice(0,14); _pBkSaveL(list); }catch(_){} }
-function _pMergeRestore(inc){ if(!inc) return;
-  function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
-  State.purchases=byId(State.purchases,inc.purchases); if(Array.isArray(inc.shipments))State.shipments=byId(State.shipments,inc.shipments); if(Array.isArray(inc.receives))State.receives=byId(State.receives,inc.receives);
-  if(typeof persist==="function") persist(); if(typeof render==="function") render(); if(window.__pushNow) window.__pushNow(); }
-function openBackupSheet(){
-  var list=_pBkLoad(), wrap=document.getElementById("pBkScrim"), sheet=document.getElementById("pBkSheet");
-  sheet.innerHTML='<h3 style="font-size:17px;margin-bottom:12px">🛟 Backup &amp; Restore</h3>'
-    +'<div style="font-size:12.5px;color:#6E7673;margin-bottom:14px">Purchases are saved on this device, in the cloud, and in these snapshots.</div>'
-    +'<button class="btn primary" id="pbk-dl" style="width:100%;margin-bottom:8px">⬇ Download backup file now</button>'
-    +'<label class="btn" style="width:100%;margin-bottom:14px;display:flex;justify-content:center;cursor:pointer">⬆ Restore from a file<input type="file" id="pbk-file" accept=".json,application/json" style="display:none"></label>'
-    +'<div style="font-size:11px;color:#6E7673;letter-spacing:.08em;margin-bottom:8px">AUTO SNAPSHOTS ('+list.length+')</div>'
-    +(list.length?list.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #E2E7E4;border-radius:10px;margin-bottom:8px"><div style="flex:1"><b>'+b.day+'</b><div style="font-size:11.5px;color:#6E7673">'+b.n+' purchase lines</div></div><button class="btn sm" data-rest="'+b.day+'">Restore</button></div>';}).join(""):'<div style="text-align:center;color:#6E7673;padding:16px">Snapshots will appear as you use the app.</div>')
-    +'<button class="btn" id="pbk-x" style="width:100%;margin-top:12px">Close</button>';
-  wrap.style.display="flex";
-  document.getElementById("pbk-x").onclick=function(){ wrap.style.display="none"; };
-  document.getElementById("pbk-dl").onclick=function(){ try{ var blob=new Blob([JSON.stringify({app:"purchases",at:Date.now(),state:State},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-PURCHASES-backup-"+_pDay()+".json"; a.click(); toast("Backup file downloaded"); }catch(e){} };
-  document.getElementById("pbk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing purchases, never deletes.")) return; _pMergeRestore(j.state||j); wrap.style.display="none"; toast("Restored from file"); }catch(_){ flash&&flash("Not a valid backup file"); } }; r.readAsText(f); };
-  sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_pBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore from "+b.dataset.rest+"? It ADDS back missing purchases, never deletes.")) return; try{ _pMergeRestore(JSON.parse(snap.data)); wrap.style.display="none"; toast("Restored from "+b.dataset.rest); }catch(_){} }; });
-}
-document.addEventListener("DOMContentLoaded",function(){ var b=document.getElementById("pBkBtn"); if(b) b.onclick=openBackupSheet; });
-</script>
 
-<div id="pBkScrim" style="position:fixed;inset:0;background:rgba(22,33,31,.44);z-index:200;display:none;align-items:flex-end;justify-content:center"><div id="pBkSheet" style="background:#fff;border-radius:20px 20px 0 0;width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:20px"></div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
 /* ---------- Cloud sync (Firebase Firestore) ---------- */
 (function(){
-  
   /* ===== ROLE GUARD — this app is owner-only ===== */
   var STAFF_EMAILS = ["husnainali10112@gmail.com"];
   function blockStaff(email){
@@ -2062,14 +2030,12 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
   };
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
     watchStockbox();
-    var _op=persist; persist=function(){ _op(); _dirty=true; SLOG("LOCAL EDIT ("+(State.purchases||[]).length+" rows) — will push"); schedulePush(); };
+    var _op=persist; persist=function(){ _op(); _dirty=true; schedulePush(); };
     ref().onSnapshot(function(snap){ window.__cloudActive=true;
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
-          var _cn=(d.purchases||[]).length, _ln=(State.purchases||[]).length;
           mergeCloudIntoState(d);
-          SLOG("RECEIVED cloud: "+_cn+" rows | local had "+_ln+" | after merge "+(State.purchases||[]).length+(_dirty?" [DIRTY]":"")+(_pTyping()?" [TYPING-deferred]":""));
           try{lsSave();}catch(_){}
           if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); }
           if(_dirty && _pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
@@ -2117,8 +2083,8 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
       var d=s.exists&&s.data()&&s.data().state;
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      SLOG("PUSHING to cloud: "+(State.purchases||[]).length+" rows"); _dirty=false; return ref().set({state:State,ts:Date.now()});
-    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} scheduleAutoBackup(); })
+      _dirty=false; return ref().set({state:State,ts:Date.now()});
+    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} })
       .catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }
   window.__pushNow=pushNow;
 })();
@@ -2127,8 +2093,5 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
 /* offline support */
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
 </script>
-<div id="syncLog" style="position:fixed;left:0;right:0;bottom:0;max-height:130px;overflow:auto;background:#0A3E35;color:#BFE8DC;font:11px/1.4 monospace;padding:6px 10px;z-index:9999;border-top:2px solid #B08A3E">
-<div style="display:flex;justify-content:space-between"><b style="color:#E8CC84">BUY SYNC LOG — screenshot this if entry disappears</b><button onclick="document.getElementById('syncLog').style.display='none'" style="color:#fff;background:#C25B37;border:none;border-radius:4px;padding:2px 8px">hide</button></div>
-<div id="syncLogBody"></div></div>
 </body>
 </html>

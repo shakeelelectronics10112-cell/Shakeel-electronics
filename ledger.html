@@ -258,14 +258,12 @@
     <button data-t="money">Money in</button>
   </div>
   <div id="view"></div>
-<style>#bkScrim.on{display:flex!important}</style><div class="scrim" id="bkScrim" style="position:fixed;inset:0;background:rgba(22,33,31,.44);z-index:80;display:none;align-items:flex-end;justify-content:center"><div class="sheet" id="bkSheet" style="background:#fff;border-radius:20px 20px 0 0;width:min(560px,100%);max-height:90vh;overflow-y:auto;padding:20px"></div></div>
   <div class="foot">
     <span id="note"></span>
     <div class="r">
-      <button class="btn gh sm" id="bkBtn">🛟 Backup</button>
       <button class="btn gh sm" id="rptBtn">📈 Report</button>
       <button class="btn gh sm" id="setBtn">Settings</button>
-      <button class="btn gh sm" id="expBtn">Export file</button>
+      <button class="btn gh sm" id="expBtn">Backup</button>
       <button class="btn gh sm" id="impBtn">Import</button>
       <input type="file" id="impFile" accept="application/json" style="display:none">
     </div>
@@ -1350,33 +1348,6 @@ document.getElementById("impFile").addEventListener("change",e=>{
 </script>
 
 <script>
-/* ===== BACKUP + RESTORE (Ledger) ===== */
-function scheduleAutoBackup(){}
-function _ledgerDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function _ledgerBkLoad(){ try{ return JSON.parse(localStorage.getItem("ledger:backups")||"[]"); }catch(_){ return []; } }
-function _ledgerBkSave(l){ try{ localStorage.setItem("ledger:backups",JSON.stringify(l)); }catch(_){} }
-var _lbkSig=""; function _ledgerAutoBackup(){ try{ var sig=(State.members||[]).length+"|"+(State.transactions||[]).length; if(sig===_lbkSig) return; _lbkSig=sig; var list=_ledgerBkLoad(), tk=_ledgerDay(); var data=JSON.stringify(State); var ex=list.find(function(b){return b.day===tk;}); if(ex){ex.at=Date.now();ex.n=(State.members||[]).length;ex.data=data;} else list.unshift({day:tk,at:Date.now(),n:(State.members||[]).length,data:data}); list=list.slice(0,14); _ledgerBkSave(list); }catch(_){} }
-function _ledgerDownload(){ try{ var blob=new Blob([JSON.stringify({app:"ledger",at:Date.now(),state:State},null,1)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="shakeel-LEDGER-backup-"+_ledgerDay()+".json"; a.click(); note("Backup file downloaded"); }catch(e){} }
-function _ledgerMergeRestore(inc){ if(!inc) return;
-  function byId(a,c){ a=a||[];c=c||[]; var m={},o=[]; c.concat(a).forEach(function(x){ if(x&&x.id!=null){ var k=String(x.id); if(!(k in m)){m[k]=x;o.push(k);} else { var cur=m[k],ax=(x.updatedAt||x.createdAt||x.date||0),bx=(cur.updatedAt||cur.createdAt||cur.date||0); if(ax>=bx)m[k]=x; } } }); return o.map(function(k){return m[k];}); }
-  State.members=byId(State.members,inc.members); State.transactions=byId(State.transactions,inc.transactions);
-  persist(); render(); if(window.__pushNow) window.__pushNow(); }
-function openBackupSheet(){
-  var list=_ledgerBkLoad(), sc=document.getElementById("bkScrim"), sheet=document.getElementById("bkSheet");
-  sheet.innerHTML='<h3 style="font-family:var(--disp,inherit);font-size:17px;margin-bottom:12px">🛟 Backup &amp; Restore</h3>'
-    +'<div style="font-size:12.5px;color:var(--muted,#6E7673);margin-bottom:14px">Customers &amp; balances are saved on this device, in the cloud, and in these snapshots.</div>'
-    +'<button class="btn pri" id="bk-dl" style="width:100%;margin-bottom:8px">⬇ Download backup file now</button>'
-    +'<label class="btn gold" style="width:100%;margin-bottom:14px;display:flex;justify-content:center">⬆ Restore from a file<input type="file" id="bk-file" accept=".json,application/json" style="display:none"></label>'
-    +'<div style="font-size:11px;color:var(--muted,#6E7673);letter-spacing:.08em;margin-bottom:8px">AUTO SNAPSHOTS ('+list.length+')</div>'
-    +(list.length?list.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line,#E2E7E4);border-radius:10px;margin-bottom:8px"><div style="flex:1"><b>'+b.day+'</b><div style="font-size:11.5px;color:var(--muted,#6E7673)">'+b.n+' customers</div></div><button class="btn gh sm" data-rest="'+b.day+'">Restore</button></div>';}).join(""):'<div style="text-align:center;color:var(--muted,#6E7673);padding:16px">Snapshots will appear as you use the app.</div>')
-    +'<button class="btn gh" id="bk-x" style="width:100%;margin-top:12px">Close</button>';
-  sc.classList.add("on");
-  document.getElementById("bk-x").onclick=function(){ sc.classList.remove("on"); };
-  document.getElementById("bk-dl").onclick=_ledgerDownload;
-  document.getElementById("bk-file").onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!confirm("Restore from this file? It ADDS back missing data, never deletes.")) return; _ledgerMergeRestore(j.state||j); sc.classList.remove("on"); note("Restored from file"); }catch(_){ alert("Not a valid backup file"); } }; r.readAsText(f); };
-  sheet.querySelectorAll("[data-rest]").forEach(function(b){ b.onclick=function(){ var snap=_ledgerBkLoad().find(function(x){return x.day===b.dataset.rest;}); if(!snap) return; if(!confirm("Restore data from "+b.dataset.rest+"? It ADDS back missing data, never deletes.")) return; try{ _ledgerMergeRestore(JSON.parse(snap.data)); sc.classList.remove("on"); note("Restored from "+b.dataset.rest); }catch(_){} }; });
-}
-document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&&e.target.closest("#bkBtn"); if(t){ e.preventDefault(); try{ openBackupSheet(); }catch(err){ alert("Backup error: "+err.message); } } });
 </script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1385,7 +1356,6 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
 <script>
 /* ---------- cloud sync (auth comes from the app shell login) ---------- */
 (function(){
-  
   /* ===== ROLE GUARD — this app is owner-only ===== */
   var STAFF_EMAILS = ["husnainali10112@gmail.com"];
   function blockStaff(email){
@@ -1471,7 +1441,7 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
       if(d) mergeCloudIntoState(d,true);
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false; return ref().set({state:State, ts:Date.now()});
-    }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} scheduleAutoBackup(); })
+    }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} })
       .catch(function(){ note("☁ Cloud save failed — saved on this device"); });
   }
   window.__pushNow=push;
