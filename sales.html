@@ -825,7 +825,7 @@ var BK_KEY="sales:backups";
 function bkLoad(){ try{ return JSON.parse(localStorage.getItem(BK_KEY)||"[]"); }catch(_){ return []; } }
 function bkSaveList(l){ try{ localStorage.setItem(BK_KEY, JSON.stringify(l)); }catch(_){} }
 var _bkT=null;
-function scheduleAutoBackup(){ clearTimeout(_bkT); _bkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ autoBackup(); }); },4000); }
+function scheduleAutoBackup(){} /* auto-snapshots disabled — was causing lag. Manual 🛟 Backup still works. */
 var _bkLastSig="";
 function autoBackup(){
   try{
@@ -1109,10 +1109,10 @@ render();
         if(d){
           try{ if((Array.isArray(d.sales)&&d.sales.length)||(Array.isArray(d.products)&&d.products.length)) cloudHad=true; }catch(_){}
           // MERGE cloud into local instead of overwriting — nothing either side has is lost
-          var before=_stateSig();
           mergeCloudIntoState(d);
-          var after=_stateSig();
-          if(before!==after){ try{lsSave();}catch(_){} if(isTyping()){ _pendingRender=true; } else { render(); } scheduleAutoBackup(); if(_grewBeyond(d)){ clearTimeout(pt); pt=setTimeout(push,300); } }
+          try{lsSave();}catch(_){}
+          if(isTyping()){ _pendingRender=true; } else { render(); }
+          if(_grewBeyond(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
         }
         ready=true; note("☁ Synced");
       } else { ready=true; push(); }

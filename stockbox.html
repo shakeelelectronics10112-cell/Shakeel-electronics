@@ -218,7 +218,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ===== BACKUP (StockBox) auto snapshots ===== */
-function scheduleAutoBackup(){ clearTimeout(window.__sbBkT); window.__sbBkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ _sbAutoBackup(); }); },4000); }
+function scheduleAutoBackup(){}
 function _sbDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function _sbBkLoad(){ try{ return JSON.parse(localStorage.getItem("stockbox:backups")||"[]"); }catch(_){ return []; } }
 function _sbBkSaveL(l){ try{ localStorage.setItem("stockbox:backups",JSON.stringify(l)); }catch(_){} }
@@ -1084,10 +1084,10 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
         var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.locations) && d.locations.length) cloudHadData=true; }catch(_){}
-          var before=_sbSig();
           mergeCloudIntoState(d);
-          var after=_sbSig();
-          if(before!==after){ try{lsSave();}catch(_){} if(_sbTyping()){ _sbPending=true; } else if(typeof render==="function"){ render(); } scheduleAutoBackup(); if(_sbGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); } }
+          try{lsSave();}catch(_){}
+          if(_sbTyping()){ _sbPending=true; } else if(typeof render==="function"){ render(); }
+          if(_sbGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
         ready=true; note("\u2601 Synced across your devices.");
       }else{ ready=true; pushNow(); }

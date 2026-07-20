@@ -1351,7 +1351,7 @@ document.getElementById("impFile").addEventListener("change",e=>{
 
 <script>
 /* ===== BACKUP + RESTORE (Ledger) ===== */
-function scheduleAutoBackup(){ clearTimeout(window.__bkT); window.__bkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ _ledgerAutoBackup(); }); },4000); }
+function scheduleAutoBackup(){}
 function _ledgerDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function _ledgerBkLoad(){ try{ return JSON.parse(localStorage.getItem("ledger:backups")||"[]"); }catch(_){ return []; } }
 function _ledgerBkSave(l){ try{ localStorage.setItem("ledger:backups",JSON.stringify(l)); }catch(_){} }
@@ -1425,10 +1425,10 @@ document.addEventListener("click",function(e){ var t=e.target&&e.target.closest&
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
-          var before=_ledgerSig();
           mergeCloudIntoState(d);
-          var after=_ledgerSig();
-          if(before!==after){ try{lsSave();}catch(_){} if(_ledgerTyping()){ _lPending=true; } else { render(); } scheduleAutoBackup(); if(_lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); } }
+          try{lsSave();}catch(_){}
+          if(_ledgerTyping()){ _lPending=true; } else { render(); }
+          if(_lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
         }
         ready=true; note("☁ Synced across your devices");
       } else { ready=true; push(); }

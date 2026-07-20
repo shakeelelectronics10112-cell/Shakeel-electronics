@@ -1939,7 +1939,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 </script>
 <script>
 /* ===== BACKUP (Purchases) auto snapshots ===== */
-function scheduleAutoBackup(){ clearTimeout(window.__pBkT); window.__pBkT=setTimeout(function(){ (window.requestIdleCallback||function(cb){cb();})(function(){ _pAutoBackup(); }); },4000); }
+function scheduleAutoBackup(){}
 function _pDay(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function _pBkLoad(){ try{ return JSON.parse(localStorage.getItem("purchases:backups")||"[]"); }catch(_){ return []; } }
 function _pBkSaveL(l){ try{ localStorage.setItem("purchases:backups",JSON.stringify(l)); }catch(_){} }
@@ -2066,10 +2066,10 @@ document.addEventListener("DOMContentLoaded",function(){ var b=document.getEleme
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
-          var before=_pSig();
           mergeCloudIntoState(d);
-          var after=_pSig();
-          if(before!==after){ try{lsSave();}catch(_){} if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); } scheduleAutoBackup(); if(_pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); } }
+          try{lsSave();}catch(_){}
+          if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); }
+          if(_pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
         ready=true; note("\u2601 Synced across your devices."); }
       else { ready=true; pushNow(); }
