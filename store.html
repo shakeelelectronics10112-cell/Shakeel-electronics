@@ -976,10 +976,11 @@ const PHOTOS = [
   var section=document.getElementById("catalog");
   if(!grid) return;
   var all=[], activeCat="All";
-  var CAT_IMG={};
+  var CAT_IMG={};       /* borrowed: first product photo in that category */
+  var CAT_IMG_SET={};   /* explicit category photos set in the admin panel */
   function catKey(p){ return String((p&&p.cat)||"Other parts").trim().toLowerCase(); }
   function buildCatImg(){ CAT_IMG={}; all.forEach(function(p){ var k=catKey(p); if(p&&p.img&&!CAT_IMG[k]) CAT_IMG[k]=p.img; }); }
-  function prodImg(p){ return (p&&p.img)?p.img:(CAT_IMG[catKey(p)]||""); }
+  function prodImg(p){ if(p&&p.img) return p.img; var k=catKey(p); return CAT_IMG_SET[k]||CAT_IMG[k]||""; }
   (function(){ var sk=""; for(var i=0;i<4;i++){ sk+='<div class="pcard sk"><div class="ph"></div><div class="b1"></div><div class="b2"></div></div>'; } grid.innerHTML=sk; })();
 
   var escp=function(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); };
@@ -1092,6 +1093,8 @@ const PHOTOS = [
     db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
     var d=s.exists?s.data():null;
     all=(d&&Array.isArray(d.products))?d.products:[];
+    CAT_IMG_SET={}; var _ci=(d&&d.catImg&&typeof d.catImg==="object")?d.catImg:{};
+    Object.keys(_ci).forEach(function(k){ if(_ci[k]) CAT_IMG_SET[String(k).trim().toLowerCase()]=_ci[k]; });
     buildCatImg();
     window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
     // daily offer banner

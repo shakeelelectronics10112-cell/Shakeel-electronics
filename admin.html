@@ -80,6 +80,24 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#0A2A22;border:1px solid var(--gold);color:var(--cream);font-size:13.5px;font-weight:500;padding:11px 18px;border-radius:11px;z-index:60;opacity:0;transition:.25s;box-shadow:0 12px 30px rgba(0,0,0,.4)}
   .toast.show{opacity:1;transform:translateX(-50%)}
   .status{font-family:var(--mono);font-size:11px;color:var(--cream-dim);text-align:center;margin-top:14px}
+
+  /* storage meter */
+  .storemeter{background:var(--panel,#0E3B30);border:1px solid var(--hair,rgba(203,165,75,.16));border-radius:14px;padding:13px 15px;margin-bottom:14px}
+  .sm-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--cream-dim,#A7B8AF);margin-bottom:8px}
+  .sm-bar{height:9px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+  .sm-fill{height:100%;width:0;background:linear-gradient(90deg,#2E7D5B,#57b98a);transition:width .3s,background .3s}
+  .sm-fill.warm{background:linear-gradient(90deg,#B08A3E,#E7CD85)}
+  .sm-fill.hot{background:linear-gradient(90deg,#B0492C,#e0714f)}
+  /* add category row */
+  .addcat{display:flex;gap:8px;margin-top:8px}
+  .addcat .inp{flex:1}
+  /* category pictures */
+  .catpics{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .catpic{border:1px solid var(--hair,rgba(203,165,75,.16));border-radius:12px;padding:10px;text-align:center;background:rgba(255,255,255,.03)}
+  .catpic img{width:100%;height:96px;object-fit:cover;border-radius:8px}
+  .catpic .noimg{height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--cream-dim,#8fa39b);font-size:12px;background:rgba(255,255,255,.05)}
+  .catpic .cp-name{font-size:13px;font-weight:600;margin:8px 0 8px;word-break:break-word}
+  .catpic .cp-acts{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -109,6 +127,11 @@
       <div class="kpi"><div class="l">Products</div><div class="v" id="k-count">0</div></div>
       <div class="kpi"><div class="l">Categories</div><div class="v" id="k-cats">0</div></div>
       <div class="kpi"><div class="l">With photo</div><div class="v" id="k-pics">0</div></div>
+    </div>
+    <div class="storemeter" id="storeMeter">
+      <div class="sm-row"><span>Photo storage</span><span id="sm-val" class="mono"></span></div>
+      <div class="sm-bar"><div class="sm-fill" id="sm-fill"></div></div>
+      <div class="hint" id="sm-hint" style="margin-top:8px">Photos are auto-shrunk when you add them, so you can fit many.</div>
     </div>
 
     <div class="panel">
@@ -144,16 +167,11 @@
       </div>
       <div class="two">
         <div class="field"><label>Category *</label>
-          <select class="inp" id="f-cat">
-            <option value="T-CON boards">T-CON boards</option>
-            <option value="COF / TAB IC">COF / TAB IC</option>
-            <option value="Scaler / Mainboard">Scaler / Mainboard</option>
-            <option value="LVDS / FFC Cables">LVDS / FFC Cables</option>
-            <option value="ACF Tape">ACF Tape</option>
-            <option value="Bonding machines">Bonding machines</option>
-            <option value="Panel PCBs">Panel PCBs</option>
-            <option value="Other parts">Other parts</option>
-          </select>
+          <select class="inp" id="f-cat"></select>
+          <div class="addcat">
+            <input class="inp" id="newCat" placeholder="Or type a new category…" autocomplete="off">
+            <button class="btn ghost small" id="addCatBtn" type="button">Add</button>
+          </div>
         </div>
         <div class="field"><label>MOQ — min order qty (optional)</label><input class="inp mono" id="f-moq" inputmode="numeric" placeholder="e.g. 10"></div>
       </div>
@@ -169,6 +187,12 @@
         <button class="btn gold" id="save">Add product</button>
         <button class="btn ghost" id="cancel" style="display:none">Cancel edit</button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>Category pictures</h2>
+      <div class="hint">Set one photo per category. Any product you add <b>without its own photo</b> shows its category's picture on your website.</div>
+      <div class="catpics" id="catPics"></div>
     </div>
 
     <div class="panel">
@@ -201,6 +225,13 @@ function docRef(){ return db.collection("shops").doc("main").collection("apps").
 
 var gate=document.getElementById("gate"), app=document.getElementById("app");
 var products=[], editingId=null, pendingImg="";
+var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
+var cats=BASE_CATS.slice(), catImg={};
+var DOC_LIMIT=1048487, SAFE_LIMIT=980000;
+function dedupeCats(arr){ var seen={},out=[]; arr.forEach(function(c){ c=String(c==null?"":c).trim(); if(!c) return; var k=c.toLowerCase(); if(!seen[k]){ seen[k]=1; out.push(c); } }); return out; }
+function catImgFor(cat){ if(catImg[cat]) return catImg[cat]; var k=String(cat==null?"":cat).trim().toLowerCase(); for(var kk in catImg){ if(kk.toLowerCase()===k && catImg[kk]) return catImg[kk]; } return ""; }
+function borrowImg(cat){ var k=String(cat==null?"":cat).trim().toLowerCase(); for(var i=0;i<products.length;i++){ var q=products[i]; if(q&&q.img&&String(q.cat==null?"":q.cat).trim().toLowerCase()===k) return q.img; } return ""; }
+function imgOf(p){ return (p&&p.img)?p.img:(catImgFor(p&&p.cat)||borrowImg(p&&p.cat)||""); }
 
 /* ---------- toast ---------- */
 var tt=null;
@@ -239,6 +270,9 @@ function watch(){
   docRef().onSnapshot(function(s){
     var d=s.exists ? s.data() : null;
     products = (d && Array.isArray(d.products)) ? d.products : [];
+    catImg = (d && d.catImg && typeof d.catImg==="object") ? d.catImg : {};
+    var savedCats = (d && Array.isArray(d.cats)) ? d.cats : [];
+    cats = dedupeCats(BASE_CATS.concat(savedCats).concat(products.map(function(p){return p.cat;})));
     var off=(d&&d.offer)?d.offer:{text:"",day:"all"};
     if(document.activeElement!==document.getElementById("o-text")){
       document.getElementById("o-text").value=off.text||"";
@@ -249,9 +283,16 @@ function watch(){
   }, function(){ status("☁ Offline — check your connection"); });
 }
 
+function payload(){ return {products:products, cats:cats, catImg:catImg, updatedAt:Date.now()}; }
+function docBytes(){ try{ return JSON.stringify(payload()).length; }catch(e){ return 0; } }
 function save(){
   status("Saving…");
-  return docRef().set({products:products, updatedAt:Date.now()}, {merge:true});
+  return docRef().set(payload(), {merge:true});
+}
+function saveErr(e){
+  var m=(e&&e.message)||"";
+  return (m.indexOf("longer than")>=0 || m.indexOf("1048")>=0 || m.indexOf("exceeds")>=0)
+    ? "Too many/large photos to fit. Remove a photo or use lighter ones." : "Save failed — check your connection and try again.";
 }
 
 document.getElementById("o-save").onclick=function(){
@@ -286,15 +327,15 @@ function resetDrop(){
 function compress(file, cb){
   var img=new Image(), url=URL.createObjectURL(file);
   img.onload=function(){
-    var max=900, w=img.width, h=img.height;
+    var max=480, w=img.width, h=img.height;
     if(w>h && w>max){ h=Math.round(h*max/w); w=max; }
     else if(h>=w && h>max){ w=Math.round(w*max/h); h=max; }
     var cv=document.createElement("canvas"); cv.width=w; cv.height=h;
     cv.getContext("2d").drawImage(img,0,0,w,h);
     URL.revokeObjectURL(url);
-    cb(cv.toDataURL("image/jpeg",0.7));
+    cb(cv.toDataURL("image/jpeg",0.55));
   };
-  img.onerror=function(){ toast("Couldn't read that image"); };
+  img.onerror=function(){ URL.revokeObjectURL(url); toast("Couldn't read that photo. If it's from an iPhone, try a screenshot or a JPG."); };
   img.src=url;
 }
 
@@ -308,6 +349,7 @@ document.getElementById("save").onclick=function(){
   if(!name){ toast("Enter a product name"); return; }
   if(!(price>0)){ toast("Enter a price"); return; }
 
+  var _revert=JSON.stringify(products), _wasEditing=editingId;
   if(editingId){
     var p=products.find(function(x){return x.id===editingId;});
     if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=pendingImg; }
@@ -315,8 +357,14 @@ document.getElementById("save").onclick=function(){
     products.unshift({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
       name:name, price:price, cat:cat, note:note, moq:moq, img:pendingImg, createdAt:Date.now() });
   }
-  save().then(function(){ toast(editingId?"Product updated":"Product added — live on your site"); clearForm(); })
-        .catch(function(){ toast("Save failed — try again"); status("Save failed"); });
+  if(!cats.some(function(c){return c.toLowerCase()===String(cat).toLowerCase();})) cats.push(cat);
+  if(docBytes()>SAFE_LIMIT){
+    products=JSON.parse(_revert);
+    toast(pendingImg?"Photo storage almost full. Use a lighter photo, or remove an old product's photo first.":"Storage almost full.");
+    status("Storage almost full"); render(); return;
+  }
+  save().then(function(){ toast(_wasEditing?"Product updated":"Product added — live on your site"); clearForm(); })
+        .catch(function(e){ products=JSON.parse(_revert); render(); toast(saveErr(e)); status("Save failed"); });
 };
 document.getElementById("cancel").onclick=clearForm;
 function clearForm(){
@@ -354,14 +402,15 @@ function del(id){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 function render(){
   document.getElementById("k-count").textContent=products.length;
-  document.getElementById("k-cats").textContent=new Set(products.map(function(p){return p.cat;})).size;
+  document.getElementById("k-cats").textContent=cats.length;
   document.getElementById("k-pics").textContent=products.filter(function(p){return p.img;}).length;
   document.getElementById("listCount").textContent=products.length?("· "+products.length):"";
+  renderCatSelect(); renderCatPics(); updMeter();
   var el=document.getElementById("list");
   if(!products.length){ el.innerHTML='<div class="empty">No products yet. Add your first one above — it shows on your website instantly.</div>'; return; }
   el.innerHTML=products.map(function(p){
     return '<div class="prod">'
-      + (p.img ? '<img class="pic" src="'+p.img+'" alt="">' : '<div class="pic">no photo</div>')
+      + (imgOf(p) ? '<img class="pic" src="'+imgOf(p)+'" alt="">' : '<div class="pic">no photo</div>')
       + '<div class="m"><div class="nm">'+esc(p.name)+'</div>'
       + '<div class="meta"><span class="cat">'+esc(p.cat)+'</span>'+(p.note?esc(p.note)+' · ':'')+(p.moq?'MOQ '+p.moq+' · ':'')+'<span class="pr">Rs '+Number(p.price).toLocaleString()+'</span></div></div>'
       + '<div class="acts"><button class="btn ghost small" data-edit="'+p.id+'">Edit</button>'
@@ -369,6 +418,68 @@ function render(){
   }).join("");
   el.querySelectorAll("[data-edit]").forEach(function(b){ b.onclick=function(){ edit(b.dataset.edit); }; });
   el.querySelectorAll("[data-del]").forEach(function(b){ b.onclick=function(){ del(b.dataset.del); }; });
+}
+
+/* ---------- categories + storage meter (added) ---------- */
+function renderCatSelect(){
+  var sel=document.getElementById("f-cat"); if(!sel) return;
+  var cur=sel.value;
+  sel.innerHTML=cats.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join("");
+  if(cur && cats.indexOf(cur)>=0) sel.value=cur;
+}
+var _addCatBtn=document.getElementById("addCatBtn");
+if(_addCatBtn) _addCatBtn.onclick=function(){
+  var inp=document.getElementById("newCat"); var name=(inp.value||"").trim();
+  if(!name){ toast("Type a category name"); return; }
+  var exist=cats.filter(function(c){return c.toLowerCase()===name.toLowerCase();})[0];
+  if(exist){ document.getElementById("f-cat").value=exist; inp.value=""; toast("That category already exists"); return; }
+  cats.push(name); renderCatSelect(); document.getElementById("f-cat").value=name; inp.value="";
+  save().then(function(){ toast("Category added"); renderCatPics(); }).catch(function(e){ toast(saveErr(e)); });
+};
+var _newCatInp=document.getElementById("newCat");
+if(_newCatInp) _newCatInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); _addCatBtn.click(); } });
+
+function updMeter(){
+  var used=docBytes(), pct=Math.min(100, Math.round(used/DOC_LIMIT*100)), kb=Math.round(used/1024);
+  var f=document.getElementById("sm-fill"); if(f){ f.style.width=pct+"%"; f.className="sm-fill"+(pct>85?" hot":pct>65?" warm":""); }
+  var v=document.getElementById("sm-val"); if(v) v.textContent=kb+" KB used · "+pct+"%";
+  var hint=document.getElementById("sm-hint");
+  if(hint) hint.textContent = pct>85
+    ? "Almost full — remove a photo or use lighter ones before adding more."
+    : "Photos are auto-shrunk when you add them, so you can fit many.";
+}
+
+function renderCatPics(){
+  var box=document.getElementById("catPics"); if(!box) return;
+  box.innerHTML=cats.map(function(c){
+    var explicit=catImgFor(c), im=explicit||borrowImg(c), isSet=!!explicit;
+    return '<div class="catpic">'
+      + (im?'<img src="'+im+'" alt="">':'<div class="noimg">no photo</div>')
+      + '<div class="cp-name">'+esc(c)+'</div>'
+      + '<div class="cp-acts"><button class="btn ghost small" data-setcat="'+esc(c)+'">'+(isSet?"Change":"Set photo")+'</button>'
+      + (isSet?'<button class="btn small danger" data-rmcat="'+esc(c)+'">Remove</button>':'')
+      + '</div></div>';
+  }).join("");
+  box.querySelectorAll("[data-setcat]").forEach(function(b){ b.onclick=function(){ pickCatImg(b.getAttribute("data-setcat")); }; });
+  box.querySelectorAll("[data-rmcat]").forEach(function(b){ b.onclick=function(){
+    var c=b.getAttribute("data-rmcat"), before=catImg[c]; catImg[c]="";
+    save().then(function(){ toast("Category photo removed"); renderCatPics(); render(); })
+          .catch(function(e){ catImg[c]=before; toast(saveErr(e)); });
+  }; });
+}
+function pickCatImg(cat){
+  var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none";
+  document.body.appendChild(inp);
+  inp.onchange=function(e){ var f=e.target.files[0]; if(!f){ inp.remove(); return; }
+    compress(f, function(dataUrl){
+      var before=catImg[cat]||""; catImg[cat]=dataUrl;
+      if(docBytes()>SAFE_LIMIT){ catImg[cat]=before; toast("Storage almost full — use a lighter photo."); inp.remove(); return; }
+      save().then(function(){ toast("Category photo set"); renderCatPics(); render(); })
+            .catch(function(er){ catImg[cat]=before; toast(saveErr(er)); });
+      inp.remove();
+    });
+  };
+  inp.click();
 }
 </script>
 </body>
