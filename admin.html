@@ -98,6 +98,15 @@
   .catpic .noimg{height:96px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--cream-dim,#8fa39b);font-size:12px;background:rgba(255,255,255,.05)}
   .catpic .cp-name{font-size:13px;font-weight:600;margin:8px 0 8px;word-break:break-word}
   .catpic .cp-acts{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+
+  /* showcase carousel manager */
+  .sclist{display:flex;flex-direction:column;gap:12px}
+  .scrow{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--hair,rgba(203,165,75,.16));border-radius:12px;padding:10px;background:rgba(255,255,255,.03)}
+  .scrow>img,.scrow>.noimg{width:96px;height:72px;object-fit:cover;border-radius:8px;flex:none}
+  .scrow>.noimg{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);color:var(--cream-dim,#8fa39b);font-size:11px}
+  .scrow .scf{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .scrow .sca{display:flex;flex-direction:column;gap:6px;flex:none}
+  .scrow .sca .btn{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -132,6 +141,7 @@
       <div class="sm-row"><span>Photo storage</span><span id="sm-val" class="mono"></span></div>
       <div class="sm-bar"><div class="sm-fill" id="sm-fill"></div></div>
       <div class="hint" id="sm-hint" style="margin-top:8px">Photos are auto-shrunk when you add them, so you can fit many.</div>
+      <button class="btn ghost small" id="freeSpaceBtn" type="button" style="display:none;margin-top:10px">Free up space</button>
     </div>
 
     <div class="panel">
@@ -196,6 +206,14 @@
     </div>
 
     <div class="panel">
+      <h2>Showcase carousel <span class="mono" style="color:var(--cream-dim);font-size:13px">— the “From our stock” slider</span></h2>
+      <div class="hint">These big photos slide near the top of your website. Add your best stock photos, give each a title, and reorder with ↑ ↓.</div>
+      <div class="sclist" id="scList"></div>
+      <button class="btn gold small" id="scAdd" type="button" style="margin-top:12px">+ Add carousel photo</button>
+      <div class="hint" id="scMeterHint" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
       <h2>Your products <span class="mono" style="color:var(--cream-dim);font-size:13px" id="listCount"></span></h2>
       <div class="hint">Tap edit to change price or details. Delete removes it from the website.</div>
       <div class="list" id="list"></div>
@@ -226,12 +244,29 @@ function docRef(){ return db.collection("shops").doc("main").collection("apps").
 var gate=document.getElementById("gate"), app=document.getElementById("app");
 var products=[], editingId=null, pendingImg="";
 var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
-var cats=BASE_CATS.slice(), catImg={};
+var cats=BASE_CATS.slice(), catImg={}, scSlides=[];
 var DOC_LIMIT=1048487, SAFE_LIMIT=980000;
 function dedupeCats(arr){ var seen={},out=[]; arr.forEach(function(c){ c=String(c==null?"":c).trim(); if(!c) return; var k=c.toLowerCase(); if(!seen[k]){ seen[k]=1; out.push(c); } }); return out; }
-function catImgFor(cat){ if(catImg[cat]) return catImg[cat]; var k=String(cat==null?"":cat).trim().toLowerCase(); for(var kk in catImg){ if(kk.toLowerCase()===k && catImg[kk]) return catImg[kk]; } return ""; }
-function borrowImg(cat){ var k=String(cat==null?"":cat).trim().toLowerCase(); for(var i=0;i<products.length;i++){ var q=products[i]; if(q&&q.img&&String(q.cat==null?"":q.cat).trim().toLowerCase()===k) return q.img; } return ""; }
-function imgOf(p){ return (p&&p.img)?p.img:(catImgFor(p&&p.cat)||borrowImg(p&&p.cat)||""); }
+/* photos now live in their own records so there is no shared limit */
+var MEDIA={};
+function mediaRef(key){ return docRef().collection("media").doc(key); }
+function catMediaKey(cat){ return "cat::"+String(cat==null?"":cat).trim().toLowerCase(); }
+function prodMedia(p){ return (p&&p.id&&MEDIA[p.id])?MEDIA[p.id]:""; }
+function catImgFor(cat){
+  var mk=catMediaKey(cat); if(MEDIA[mk]) return MEDIA[mk];
+  if(catImg[cat]) return catImg[cat];
+  var k=String(cat==null?"":cat).trim().toLowerCase();
+  for(var kk in catImg){ if(kk.toLowerCase()===k && catImg[kk]) return catImg[kk]; }
+  return "";
+}
+function borrowImg(cat){
+  var k=String(cat==null?"":cat).trim().toLowerCase();
+  for(var i=0;i<products.length;i++){ var q=products[i]; if(!q) continue;
+    if(String(q.cat==null?"":q.cat).trim().toLowerCase()!==k) continue;
+    var im=q.img||prodMedia(q); if(im) return im; }
+  return "";
+}
+function imgOf(p){ return (p&&p.img)?p.img:(prodMedia(p)||catImgFor(p&&p.cat)||borrowImg(p&&p.cat)||""); }
 
 /* ---------- toast ---------- */
 var tt=null;
@@ -281,6 +316,15 @@ function watch(){
     render();
     status("☁ Live — synced to your website");
   }, function(){ status("☁ Offline — check your connection"); });
+  scRef().onSnapshot(function(s){
+    var d=s.exists?s.data():null;
+    scSlides=(d&&Array.isArray(d.slides))?d.slides:[];
+    renderShowcaseMgr();
+  }, function(){});
+  docRef().collection("media").onSnapshot(function(qs){
+    MEDIA={}; qs.forEach(function(doc){ var d=doc.data(); if(d&&d.img) MEDIA[doc.id]=d.img; });
+    render();
+  }, function(){});
 }
 
 function payload(){ return {products:products, cats:cats, catImg:catImg, updatedAt:Date.now()}; }
@@ -293,6 +337,16 @@ function saveErr(e){
   var m=(e&&e.message)||"";
   return (m.indexOf("longer than")>=0 || m.indexOf("1048")>=0 || m.indexOf("exceeds")>=0)
     ? "Too many/large photos to fit. Remove a photo or use lighter ones." : "Save failed — check your connection and try again.";
+}
+function saveInlineFallback(pid, img, wasEditing, err){
+  var p=products.find(function(x){return x.id===pid;});
+  if(p) p.img=img||"";
+  if(docBytes()>SAFE_LIMIT){
+    if(p) p.img=""; save();
+    toast("Photo storage almost full — tap ‘Free up space’, or use a lighter photo."); status("Storage almost full"); render(); return;
+  }
+  save().then(function(){ if(img) MEDIA[pid]=img; toast(wasEditing?"Product updated":"Product added — live on your site"); clearForm(); render(); })
+        .catch(function(e){ toast(saveErr(e)); status("Save failed"); });
 }
 
 document.getElementById("o-save").onclick=function(){
@@ -349,22 +403,22 @@ document.getElementById("save").onclick=function(){
   if(!name){ toast("Enter a product name"); return; }
   if(!(price>0)){ toast("Enter a price"); return; }
 
-  var _revert=JSON.stringify(products), _wasEditing=editingId;
+  var _wasEditing=editingId, pid;
   if(editingId){
     var p=products.find(function(x){return x.id===editingId;});
-    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=pendingImg; }
+    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=""; pid=p.id; }
   } else {
-    products.unshift({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      name:name, price:price, cat:cat, note:note, moq:moq, img:pendingImg, createdAt:Date.now() });
+    pid=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    products.unshift({ id:pid, name:name, price:price, cat:cat, note:note, moq:moq, img:"", createdAt:Date.now() });
   }
   if(!cats.some(function(c){return c.toLowerCase()===String(cat).toLowerCase();})) cats.push(cat);
-  if(docBytes()>SAFE_LIMIT){
-    products=JSON.parse(_revert);
-    toast(pendingImg?"Photo storage almost full. Use a lighter photo, or remove an old product's photo first.":"Storage almost full.");
-    status("Storage almost full"); render(); return;
-  }
-  save().then(function(){ toast(_wasEditing?"Product updated":"Product added — live on your site"); clearForm(); })
-        .catch(function(e){ products=JSON.parse(_revert); render(); toast(saveErr(e)); status("Save failed"); });
+  status("Saving…");
+  var _img=pendingImg;
+  save()
+    .then(function(){ return _img ? mediaRef(pid).set({img:_img,updatedAt:Date.now()}) : mediaRef(pid).delete().catch(function(){}); })
+    .then(function(){ if(_img) MEDIA[pid]=_img; else delete MEDIA[pid];
+      toast(_wasEditing?"Product updated":"Product added — live on your site"); clearForm(); render(); status("☁ Live — synced to your website"); })
+    .catch(function(e){ saveInlineFallback(pid, _img, _wasEditing, e); });
 };
 document.getElementById("cancel").onclick=clearForm;
 function clearForm(){
@@ -378,7 +432,7 @@ function clearForm(){
 }
 function edit(id){
   var p=products.find(function(x){return x.id===id;}); if(!p) return;
-  editingId=id; pendingImg=p.img||"";
+  editingId=id; pendingImg=p.img||prodMedia(p)||"";
   document.getElementById("f-name").value=p.name||"";
   document.getElementById("f-price").value=p.price||"";
   document.getElementById("f-note").value=p.note||"";
@@ -394,6 +448,7 @@ function del(id){
   var p=products.find(function(x){return x.id===id;}); if(!p) return;
   if(!confirm('Remove "'+p.name+'" from the website?')) return;
   products=products.filter(function(x){return x.id!==id;});
+  mediaRef(id).delete().then(function(){ delete MEDIA[id]; }).catch(function(){});
   save().then(function(){ toast("Removed"); if(editingId===id) clearForm(); })
         .catch(function(){ toast("Delete failed"); });
 }
@@ -440,14 +495,31 @@ var _newCatInp=document.getElementById("newCat");
 if(_newCatInp) _newCatInp.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); _addCatBtn.click(); } });
 
 function updMeter(){
-  var used=docBytes(), pct=Math.min(100, Math.round(used/DOC_LIMIT*100)), kb=Math.round(used/1024);
-  var f=document.getElementById("sm-fill"); if(f){ f.style.width=pct+"%"; f.className="sm-fill"+(pct>85?" hot":pct>65?" warm":""); }
-  var v=document.getElementById("sm-val"); if(v) v.textContent=kb+" KB used · "+pct+"%";
+  var used=docBytes(), pct=Math.min(100, Math.round(used/DOC_LIMIT*100));
+  var withPhoto=products.filter(function(p){return imgOf(p);}).length;
+  var inlineLeft=products.filter(function(p){return p.img;}).length + Object.keys(catImg).filter(function(k){return catImg[k];}).length;
+  var f=document.getElementById("sm-fill"); if(f){ f.style.width=Math.max(4,pct)+"%"; f.className="sm-fill"+(pct>85?" hot":pct>65?" warm":""); }
+  var v=document.getElementById("sm-val"); if(v) v.textContent=withPhoto+" photo"+(withPhoto===1?"":"s");
   var hint=document.getElementById("sm-hint");
-  if(hint) hint.textContent = pct>85
-    ? "Almost full — remove a photo or use lighter ones before adding more."
-    : "Photos are auto-shrunk when you add them, so you can fit many.";
+  if(hint) hint.textContent = inlineLeft>0
+    ? ("You have "+inlineLeft+" older photo"+(inlineLeft>1?"s":"")+" using the old shared space. Tap “Free up space” to move "+(inlineLeft>1?"them":"it")+" — then you can add many more.")
+    : "Photos now use expandable storage — add as many as you need.";
+  var btn=document.getElementById("freeSpaceBtn"); if(btn) btn.style.display=inlineLeft>0?"":"none";
 }
+function migrateInline(){
+  var btn=document.getElementById("freeSpaceBtn"); if(btn){ btn.disabled=true; btn.textContent="Moving…"; }
+  status("Freeing up space…");
+  var jobs=[];
+  products.forEach(function(p){ if(p&&p.img){ (function(pp){ var im=pp.img; jobs.push(mediaRef(pp.id).set({img:im,updatedAt:Date.now()}).then(function(){ MEDIA[pp.id]=im; pp.img=""; }).catch(function(){})); })(p); } });
+  Object.keys(catImg).forEach(function(c){ if(catImg[c]){ (function(cc){ var im=catImg[cc], key=catMediaKey(cc); jobs.push(mediaRef(key).set({img:im,updatedAt:Date.now()}).then(function(){ MEDIA[key]=im; catImg[cc]=""; }).catch(function(){})); })(c); } });
+  if(!jobs.length){ if(btn){btn.disabled=false;btn.textContent="Free up space";} return; }
+  Promise.all(jobs).then(function(){ return save(); }).then(function(){
+    toast("Done — space freed. You can add many more photos now."); status("☁ Live — synced to your website"); render();
+    if(btn){ btn.disabled=false; btn.textContent="Free up space"; }
+  }).catch(function(e){ toast(saveErr(e)); if(btn){ btn.disabled=false; btn.textContent="Free up space"; } render(); });
+}
+var _freeBtn=document.getElementById("freeSpaceBtn");
+if(_freeBtn) _freeBtn.onclick=migrateInline;
 
 function renderCatPics(){
   var box=document.getElementById("catPics"); if(!box) return;
@@ -462,9 +534,9 @@ function renderCatPics(){
   }).join("");
   box.querySelectorAll("[data-setcat]").forEach(function(b){ b.onclick=function(){ pickCatImg(b.getAttribute("data-setcat")); }; });
   box.querySelectorAll("[data-rmcat]").forEach(function(b){ b.onclick=function(){
-    var c=b.getAttribute("data-rmcat"), before=catImg[c]; catImg[c]="";
-    save().then(function(){ toast("Category photo removed"); renderCatPics(); render(); })
-          .catch(function(e){ catImg[c]=before; toast(saveErr(e)); });
+    var c=b.getAttribute("data-rmcat"), key=catMediaKey(c);
+    mediaRef(key).delete().then(function(){ delete MEDIA[key]; if(catImg[c]){ catImg[c]=""; save(); } toast("Category photo removed"); renderCatPics(); render(); })
+      .catch(function(){ var before=catImg[c]; catImg[c]=""; save().then(function(){ toast("Category photo removed"); renderCatPics(); render(); }).catch(function(e){ catImg[c]=before; toast(saveErr(e)); }); });
   }; });
 }
 function pickCatImg(cat){
@@ -472,15 +544,92 @@ function pickCatImg(cat){
   document.body.appendChild(inp);
   inp.onchange=function(e){ var f=e.target.files[0]; if(!f){ inp.remove(); return; }
     compress(f, function(dataUrl){
-      var before=catImg[cat]||""; catImg[cat]=dataUrl;
-      if(docBytes()>SAFE_LIMIT){ catImg[cat]=before; toast("Storage almost full — use a lighter photo."); inp.remove(); return; }
-      save().then(function(){ toast("Category photo set"); renderCatPics(); render(); })
-            .catch(function(er){ catImg[cat]=before; toast(saveErr(er)); });
+      var key=catMediaKey(cat);
+      mediaRef(key).set({img:dataUrl,updatedAt:Date.now()})
+        .then(function(){ MEDIA[key]=dataUrl; toast("Category photo set"); renderCatPics(); render(); })
+        .catch(function(){
+          var before=catImg[cat]||""; catImg[cat]=dataUrl;
+          if(docBytes()>SAFE_LIMIT){ catImg[cat]=before; toast("Storage almost full — use a lighter photo."); return; }
+          save().then(function(){ toast("Category photo set"); renderCatPics(); render(); }).catch(function(er){ catImg[cat]=before; toast(saveErr(er)); });
+        });
       inp.remove();
     });
   };
   inp.click();
 }
+
+/* ---------- showcase carousel manager (added) ---------- */
+function scRef(){ return db.collection("shops").doc("main").collection("apps").doc("store_showcase"); }
+function scBytes(){ try{ return JSON.stringify({slides:scSlides}).length; }catch(e){ return 0; } }
+function saveShowcase(){ return scRef().set({slides:scSlides, updatedAt:Date.now()}, {merge:true}); }
+function compressBig(file, cb){
+  var img=new Image(), url=URL.createObjectURL(file);
+  img.onload=function(){
+    var max=760, w=img.width, hh=img.height;
+    if(w>hh && w>max){ hh=Math.round(hh*max/w); w=max; } else if(hh>=w && hh>max){ w=Math.round(w*max/hh); hh=max; }
+    var cv=document.createElement("canvas"); cv.width=w; cv.height=hh;
+    cv.getContext("2d").drawImage(img,0,0,w,hh);
+    URL.revokeObjectURL(url);
+    cb(cv.toDataURL("image/jpeg",0.5));
+  };
+  img.onerror=function(){ URL.revokeObjectURL(url); toast("Couldn't read that photo. If it's from an iPhone, try a screenshot or a JPG."); };
+  img.src=url;
+}
+function updScHint(){
+  var el=document.getElementById("scMeterHint"); if(!el) return;
+  var kb=Math.round(scBytes()/1024), pct=Math.min(100,Math.round(scBytes()/1048487*100));
+  el.textContent=scSlides.length+" photo"+(scSlides.length===1?"":"s")+" · "+kb+" KB used ("+pct+"%). Keep it under ~10 for a fast website.";
+}
+function renderShowcaseMgr(){
+  var box=document.getElementById("scList"); if(!box) return;
+  if(!scSlides.length){ box.innerHTML='<div class="hint">No carousel photos yet — tap “Add carousel photo” below.</div>'; updScHint(); return; }
+  box.innerHTML=scSlides.map(function(s,i){
+    return '<div class="scrow">'
+      + (s.src?'<img src="'+s.src+'" alt="">':'<div class="noimg">no photo</div>')
+      + '<div class="scf">'
+      +   '<input class="inp" data-sct="'+i+'" placeholder="Title (e.g. TCON converter boards)" value="'+esc(s.title||"")+'">'
+      +   '<input class="inp" data-scs="'+i+'" placeholder="Small line (e.g. 100 pcs packs)" value="'+esc(s.sub||"")+'">'
+      + '</div>'
+      + '<div class="sca">'
+      +   '<button class="btn ghost small" data-scchg="'+i+'" type="button">Change</button>'
+      +   '<button class="btn ghost small" data-scup="'+i+'" type="button">↑</button>'
+      +   '<button class="btn ghost small" data-scdn="'+i+'" type="button">↓</button>'
+      +   '<button class="btn small danger" data-scrm="'+i+'" type="button">Remove</button>'
+      + '</div></div>';
+  }).join("");
+  box.querySelectorAll("[data-sct]").forEach(function(x){ x.onchange=function(){ scSlides[+x.dataset.sct].title=x.value; saveShowcase().then(function(){toast("Saved");}); }; });
+  box.querySelectorAll("[data-scs]").forEach(function(x){ x.onchange=function(){ scSlides[+x.dataset.scs].sub=x.value; saveShowcase().then(function(){toast("Saved");}); }; });
+  box.querySelectorAll("[data-scchg]").forEach(function(b){ b.onclick=function(){ changeSlidePhoto(+b.dataset.scchg); }; });
+  box.querySelectorAll("[data-scrm]").forEach(function(b){ b.onclick=function(){ if(!confirm("Remove this carousel photo?"))return; scSlides.splice(+b.dataset.scrm,1); saveShowcase().then(function(){toast("Removed"); renderShowcaseMgr();}).catch(function(e){toast(saveErr(e));}); }; });
+  box.querySelectorAll("[data-scup]").forEach(function(b){ b.onclick=function(){ var i=+b.dataset.scup; if(i<=0)return; var t=scSlides[i-1]; scSlides[i-1]=scSlides[i]; scSlides[i]=t; saveShowcase().then(function(){renderShowcaseMgr();}); }; });
+  box.querySelectorAll("[data-scdn]").forEach(function(b){ b.onclick=function(){ var i=+b.dataset.scdn; if(i>=scSlides.length-1)return; var t=scSlides[i+1]; scSlides[i+1]=scSlides[i]; scSlides[i]=t; saveShowcase().then(function(){renderShowcaseMgr();}); }; });
+  updScHint();
+}
+function changeSlidePhoto(i){
+  var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none"; document.body.appendChild(inp);
+  inp.onchange=function(e){ var f=e.target.files[0]; if(!f){inp.remove();return;}
+    compressBig(f,function(url){
+      var before=scSlides[i].src; scSlides[i].src=url;
+      if(scBytes()>SAFE_LIMIT){ scSlides[i].src=before; toast("Carousel storage almost full — use fewer or lighter photos."); inp.remove(); return; }
+      saveShowcase().then(function(){toast("Photo changed"); renderShowcaseMgr();}).catch(function(er){ scSlides[i].src=before; toast(saveErr(er)); });
+      inp.remove();
+    });
+  };
+  inp.click();
+}
+var _scAdd=document.getElementById("scAdd");
+if(_scAdd) _scAdd.onclick=function(){
+  var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none"; document.body.appendChild(inp);
+  inp.onchange=function(e){ var f=e.target.files[0]; if(!f){inp.remove();return;}
+    compressBig(f,function(url){
+      scSlides.push({src:url,title:"",sub:""});
+      if(scBytes()>SAFE_LIMIT){ scSlides.pop(); toast("Carousel storage almost full — use fewer or lighter photos."); inp.remove(); return; }
+      saveShowcase().then(function(){toast("Photo added"); renderShowcaseMgr();}).catch(function(er){ scSlides.pop(); toast(saveErr(er)); });
+      inp.remove();
+    });
+  };
+  inp.click();
+};
 </script>
 </body>
 </html>

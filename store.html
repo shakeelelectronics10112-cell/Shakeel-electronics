@@ -888,34 +888,39 @@ const PHOTOS = [
   const dotsEl=document.getElementById("scDots");
   if(!stage) return;
   const prevBtn=document.getElementById("scPrev"), nextBtn=document.getElementById("scNext");
-
-  const slides=PHOTOS.map((p,i)=>{
-    const el=document.createElement("div");
-    el.className="slide"+(p.src?"":" ph")+(i===0?" on":"");
-    if(p.src){
-      el.innerHTML=`<img src="${p.src}" alt="${(p.title||"").replace(/"/g,"")}" loading="lazy">
-        <div class="cap"><div class="t">${p.title||""}</div><div class="s">${p.sub||""}</div></div>`;
-    } else {
-      el.innerHTML=`<div class="pin"><div class="ic">🖼️</div><b>${p.title||"Product photo"}</b>
-        <span>${p.sub||"Add your picture here"}</span></div>
-        <div class="cap"><div class="t">${p.title||""}</div><div class="s">${p.sub||""}</div></div>`;
-    }
-    stage.insertBefore(el, prevBtn);
-    return el;
-  });
-
-  const dots=PHOTOS.map((_,i)=>{
-    const b=document.createElement("button");
-    if(i===0) b.className="on";
-    b.setAttribute("aria-label","Show picture "+(i+1));
-    b.onclick=()=>go(i,true);
-    dotsEl.appendChild(b);
-    return b;
-  });
-
-  let cur=0, timer=null;
   const REDUCE = matchMedia("(prefers-reduced-motion:reduce)").matches;
+  let slides=[], dots=[], cur=0, timer=null;
+
+  function clearStage(){ stage.querySelectorAll(".slide").forEach(el=>el.remove()); dotsEl.innerHTML=""; slides=[]; dots=[]; cur=0; }
+  function build(list){
+    clearInterval(timer); clearStage();
+    const data=(Array.isArray(list)&&list.length)?list:PHOTOS;
+    slides=data.map((p,i)=>{
+      const el=document.createElement("div");
+      el.className="slide"+(p.src?"":" ph")+(i===0?" on":"");
+      if(p.src){
+        el.innerHTML=`<img src="${p.src}" alt="${(p.title||"").replace(/"/g,"")}" loading="lazy">
+          <div class="cap"><div class="t">${p.title||""}</div><div class="s">${p.sub||""}</div></div>`;
+      } else {
+        el.innerHTML=`<div class="pin"><div class="ic">🖼️</div><b>${p.title||"Product photo"}</b>
+          <span>${p.sub||"Add your picture here"}</span></div>
+          <div class="cap"><div class="t">${p.title||""}</div><div class="s">${p.sub||""}</div></div>`;
+      }
+      stage.insertBefore(el, prevBtn);
+      return el;
+    });
+    dots=data.map((_,i)=>{
+      const b=document.createElement("button");
+      if(i===0) b.className="on";
+      b.setAttribute("aria-label","Show picture "+(i+1));
+      b.onclick=()=>go(i,true);
+      dotsEl.appendChild(b);
+      return b;
+    });
+    cur=0; start();
+  }
   function go(n,manual){
+    if(!slides.length) return;
     slides[cur].classList.remove("on"); dots[cur].classList.remove("on");
     cur=(n+slides.length)%slides.length;
     slides[cur].classList.add("on"); dots[cur].classList.add("on");
@@ -926,19 +931,16 @@ const PHOTOS = [
   function restart(){ clearInterval(timer); start(); }
   prevBtn.onclick=()=>go(cur-1,true);
   nextBtn.onclick=()=>go(cur+1,true);
-
-  /* pause when tab hidden or pointer over the stage */
   stage.addEventListener("mouseenter",()=>clearInterval(timer));
   stage.addEventListener("mouseleave",start);
   document.addEventListener("visibilitychange",()=>{ if(document.hidden) clearInterval(timer); else restart(); });
-
-  /* swipe on touch */
   let sx=0;
   stage.addEventListener("touchstart",e=>{ sx=e.touches[0].clientX; clearInterval(timer); },{passive:true});
   stage.addEventListener("touchend",e=>{ const dx=e.changedTouches[0].clientX-sx;
     if(Math.abs(dx)>40){ dx<0?go(cur+1,true):go(cur-1,true); } else start(); },{passive:true});
 
-  start();
+  window.__renderShowcase=build;   /* Firebase can refresh the slides live */
+  build(PHOTOS);                   /* start with built-in photos until the cloud loads */
 })();
 
 </script>
@@ -976,11 +978,17 @@ const PHOTOS = [
   var section=document.getElementById("catalog");
   if(!grid) return;
   var all=[], activeCat="All";
-  var CAT_IMG={};       /* borrowed: first product photo in that category */
-  var CAT_IMG_SET={};   /* explicit category photos set in the admin panel */
+  var CAT_IMG={};       /* borrowed: first photo in that category */
+  var CAT_IMG_SET={};   /* explicit category photos stored in the main record (legacy) */
+  var MEDIA={};         /* photos kept in their own records: key = product id, or "cat::<category>" */
   function catKey(p){ return String((p&&p.cat)||"Other parts").trim().toLowerCase(); }
-  function buildCatImg(){ CAT_IMG={}; all.forEach(function(p){ var k=catKey(p); if(p&&p.img&&!CAT_IMG[k]) CAT_IMG[k]=p.img; }); }
-  function prodImg(p){ if(p&&p.img) return p.img; var k=catKey(p); return CAT_IMG_SET[k]||CAT_IMG[k]||""; }
+  function buildCatImg(){ CAT_IMG={}; all.forEach(function(p){ var k=catKey(p); var im=(p&&p.img)||(p&&p.id&&MEDIA[p.id])||""; if(im&&!CAT_IMG[k]) CAT_IMG[k]=im; }); }
+  function prodImg(p){
+    if(p&&p.img) return p.img;
+    if(p&&p.id&&MEDIA[p.id]) return MEDIA[p.id];
+    var k=catKey(p);
+    return MEDIA["cat::"+k]||CAT_IMG_SET[k]||CAT_IMG[k]||"";
+  }
   (function(){ var sk=""; for(var i=0;i<4;i++){ sk+='<div class="pcard sk"><div class="ph"></div><div class="b1"></div><div class="b2"></div></div>'; } grid.innerHTML=sk; })();
 
   var escp=function(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); };
@@ -1090,6 +1098,11 @@ const PHOTOS = [
   scrim.addEventListener("click",function(e){ if(e.target===scrim) closeProduct(); });
   document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeProduct(); });
 
+    db.collection("shops").doc("main").collection("apps").doc("store_showcase").onSnapshot(function(s){
+      var d=s.exists?s.data():null;
+      var sl=(d&&Array.isArray(d.slides))?d.slides.filter(function(x){return x&&x.src;}):[];
+      if(window.__renderShowcase) window.__renderShowcase(sl.length?sl:null);
+    }, function(){});
     db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
     var d=s.exists?s.data():null;
     all=(d&&Array.isArray(d.products))?d.products:[];
@@ -1113,6 +1126,13 @@ const PHOTOS = [
     section.style.display = all.length ? "" : "none";
     buildFilter(); renderGrid();
   }, function(){ section.style.display = all.length ? "" : "none"; });
+
+    db.collection("shops").doc("main").collection("apps").doc("store").collection("media").onSnapshot(function(qs){
+      MEDIA={}; qs.forEach(function(doc){ var d=doc.data(); if(d&&d.img) MEDIA[doc.id]=d.img; });
+      buildCatImg();
+      window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
+      if(document.getElementById("prodGrid")){ buildFilter(); renderGrid(); }
+    }, function(){});
 
   function buildFilter(){
     var cats=["All"].concat(Array.from(new Set(all.map(function(p){return p.cat||"Other parts";}))));
