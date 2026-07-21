@@ -243,13 +243,14 @@ function docRef(){ return db.collection("shops").doc("main").collection("apps").
 
 var gate=document.getElementById("gate"), app=document.getElementById("app");
 var products=[], editingId=null, pendingImg="";
-var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
+var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","Modification","4K","Cables","Tapes","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
 var cats=BASE_CATS.slice(), catImg={}, scSlides=[];
 var DOC_LIMIT=1048487, SAFE_LIMIT=980000;
 function dedupeCats(arr){ var seen={},out=[]; arr.forEach(function(c){ c=String(c==null?"":c).trim(); if(!c) return; var k=c.toLowerCase(); if(!seen[k]){ seen[k]=1; out.push(c); } }); return out; }
 /* photos now live in their own records so there is no shared limit */
 var MEDIA={};
-function mediaRef(key){ return docRef().collection("media").doc(key); }
+function mediaDocId(key){ return "store_ph_"+String(key).replace(/[^a-z0-9]+/gi,"_"); }
+function mediaRef(key){ return db.collection("shops").doc("main").collection("apps").doc(mediaDocId(key)); }
 function catMediaKey(cat){ return "cat::"+String(cat==null?"":cat).trim().toLowerCase(); }
 function prodMedia(p){ return (p&&p.id&&MEDIA[p.id])?MEDIA[p.id]:""; }
 function catImgFor(cat){
@@ -314,6 +315,7 @@ function watch(){
       document.getElementById("o-day").value=off.day||"all";
     }
     render();
+    loadMedia();
     status("☁ Live — synced to your website");
   }, function(){ status("☁ Offline — check your connection"); });
   scRef().onSnapshot(function(s){
@@ -321,10 +323,14 @@ function watch(){
     scSlides=(d&&Array.isArray(d.slides))?d.slides:[];
     renderShowcaseMgr();
   }, function(){});
-  docRef().collection("media").onSnapshot(function(qs){
-    MEDIA={}; qs.forEach(function(doc){ var d=doc.data(); if(d&&d.img) MEDIA[doc.id]=d.img; });
-    render();
-  }, function(){});
+}
+function loadMedia(){
+  var keys=[]; products.forEach(function(p){ if(p&&p.id) keys.push(p.id); });
+  cats.forEach(function(c){ keys.push(catMediaKey(c)); });
+  if(!keys.length) return;
+  Promise.all(keys.map(function(k){
+    return mediaRef(k).get().then(function(s){ return {k:k, img:(s.exists&&s.data())?s.data().img:""}; }).catch(function(){ return null; });
+  })).then(function(res){ var m={}; res.forEach(function(r){ if(r&&r.img) m[r.k]=r.img; }); MEDIA=m; render(); });
 }
 
 function payload(){ return {products:products, cats:cats, catImg:catImg, updatedAt:Date.now()}; }

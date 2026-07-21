@@ -1125,14 +1125,25 @@ const PHOTOS = [
     // hide the whole section until there's at least one product
     section.style.display = all.length ? "" : "none";
     buildFilter(); renderGrid();
+    loadStoreMedia();
   }, function(){ section.style.display = all.length ? "" : "none"; });
 
-    db.collection("shops").doc("main").collection("apps").doc("store").collection("media").onSnapshot(function(qs){
-      MEDIA={}; qs.forEach(function(doc){ var d=doc.data(); if(d&&d.img) MEDIA[doc.id]=d.img; });
+  function mediaDocId(key){ return "store_ph_"+String(key).replace(/[^a-z0-9]+/gi,"_"); }
+  function loadStoreMedia(){
+    var keys=[], seen={};
+    all.forEach(function(p){ if(p&&p.id){ keys.push(p.id); } });
+    all.forEach(function(p){ var k="cat::"+catKey(p); if(!seen[k]){ seen[k]=1; keys.push(k); } });
+    if(!keys.length) return;
+    Promise.all(keys.map(function(k){
+      return db.collection("shops").doc("main").collection("apps").doc(mediaDocId(k)).get()
+        .then(function(s){ return {k:k, img:(s.exists&&s.data())?s.data().img:""}; }).catch(function(){ return null; });
+    })).then(function(res){
+      var m={}; res.forEach(function(r){ if(r&&r.img) m[r.k]=r.img; }); MEDIA=m;
       buildCatImg();
       window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
       if(document.getElementById("prodGrid")){ buildFilter(); renderGrid(); }
-    }, function(){});
+    });
+  }
 
   function buildFilter(){
     var cats=["All"].concat(Array.from(new Set(all.map(function(p){return p.cat||"Other parts";}))));
