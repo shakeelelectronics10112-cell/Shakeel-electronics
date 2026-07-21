@@ -228,6 +228,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 /* ===== Firebase (same project as your app) ===== */
 var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",
@@ -238,6 +239,21 @@ var OWNER_EMAILS=["shakeelelectronics10112@gmail.com"];
 
 firebase.initializeApp(FB);
 var auth=firebase.auth(), db=firebase.firestore();
+var storage=null; try{ storage=firebase.storage(); }catch(e){ storage=null; }
+/* Upload a photo to Firebase Storage and return its public link.
+   Falls back to keeping the image inline if Storage is unavailable. */
+function uploadPhoto(path, dataUrl){
+  if(!storage) return Promise.reject(new Error("no-storage"));
+  return fetch(dataUrl).then(function(r){ return r.blob(); })
+    .then(function(blob){ return storage.ref().child(path).put(blob); })
+    .then(function(snap){ return snap.ref.getDownloadURL(); });
+}
+function resolvePhoto(path, pending){
+  if(!pending) return Promise.resolve("");
+  if(/^https?:/i.test(pending)) return Promise.resolve(pending);   // already a link
+  return uploadPhoto(path, pending).catch(function(){ return pending; }); // fallback: keep inline
+}
+function deletePhoto(path){ if(storage){ try{ storage.ref().child(path).delete().catch(function(){}); }catch(e){} } }
 /* products live in one public document the website reads */
 function docRef(){ return db.collection("shops").doc("main").collection("apps").doc("store"); }
 
@@ -409,22 +425,27 @@ document.getElementById("save").onclick=function(){
   if(!name){ toast("Enter a product name"); return; }
   if(!(price>0)){ toast("Enter a price"); return; }
 
-  var _wasEditing=editingId, pid;
-  if(editingId){
-    var p=products.find(function(x){return x.id===editingId;});
-    if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=""; pid=p.id; }
-  } else {
-    pid=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    products.unshift({ id:pid, name:name, price:price, cat:cat, note:note, moq:moq, img:"", createdAt:Date.now() });
-  }
+  var _wasEditing=editingId, pid = editingId || (Date.now().toString(36)+Math.random().toString(36).slice(2,6));
   if(!cats.some(function(c){return c.toLowerCase()===String(cat).toLowerCase();})) cats.push(cat);
-  status("Saving…");
+  status(pendingImg?"Uploading photo…":"Saving…");
   var _img=pendingImg;
-  save()
-    .then(function(){ return _img ? mediaRef(pid).set({img:_img,updatedAt:Date.now()}) : mediaRef(pid).delete().catch(function(){}); })
-    .then(function(){ if(_img) MEDIA[pid]=_img; else delete MEDIA[pid];
-      toast(_wasEditing?"Product updated":"Product added — live on your site"); clearForm(); render(); status("☁ Live — synced to your website"); })
-    .catch(function(e){ saveInlineFallback(pid, _img, _wasEditing, e); });
+  resolvePhoto("store/products/"+pid+".jpg", _img).then(function(imgVal){
+    if(_wasEditing){
+      var p=products.find(function(x){return x.id===pid;});
+      if(p){ p.name=name; p.price=price; p.cat=cat; p.note=note; p.moq=moq; p.img=imgVal; }
+    } else {
+      products.unshift({ id:pid, name:name, price:price, cat:cat, note:note, moq:moq, img:imgVal, createdAt:Date.now() });
+    }
+    delete MEDIA[pid];
+    var inlineBig = imgVal && !/^https?:/i.test(imgVal) && docBytes()>SAFE_LIMIT;
+    if(inlineBig){ var pp=products.find(function(x){return x.id===pid;}); if(pp) pp.img=""; }
+    return save().then(function(){ if(inlineBig) throw new Error("BIG"); });
+  }).then(function(){
+    toast(_wasEditing?"Product updated":"Product added — live on your site"); clearForm(); render(); status("☁ Live — synced to your website");
+  }).catch(function(e){
+    if(e&&e.message==="BIG"){ toast("Saved, but the photo couldn't upload and is too large to store here. Product is live without the photo — try the photo again."); status("Saved without photo"); clearForm(); render(); return; }
+    toast(saveErr(e)); status("Save failed");
+  });
 };
 document.getElementById("cancel").onclick=clearForm;
 function clearForm(){
@@ -454,6 +475,7 @@ function del(id){
   var p=products.find(function(x){return x.id===id;}); if(!p) return;
   if(!confirm('Remove "'+p.name+'" from the website?')) return;
   products=products.filter(function(x){return x.id!==id;});
+  deletePhoto("store/products/"+id+".jpg");
   mediaRef(id).delete().then(function(){ delete MEDIA[id]; }).catch(function(){});
   save().then(function(){ toast("Removed"); if(editingId===id) clearForm(); })
         .catch(function(){ toast("Delete failed"); });
@@ -503,7 +525,7 @@ if(_newCatInp) _newCatInp.addEventListener("keydown",function(e){ if(e.key==="En
 function updMeter(){
   var used=docBytes(), pct=Math.min(100, Math.round(used/DOC_LIMIT*100));
   var withPhoto=products.filter(function(p){return imgOf(p);}).length;
-  var inlineLeft=products.filter(function(p){return p.img;}).length + Object.keys(catImg).filter(function(k){return catImg[k];}).length;
+  var inlineLeft=products.filter(function(p){return p.img&&!/^https?:/i.test(p.img);}).length + Object.keys(catImg).filter(function(k){return catImg[k]&&!/^https?:/i.test(catImg[k]);}).length;
   var f=document.getElementById("sm-fill"); if(f){ f.style.width=Math.max(4,pct)+"%"; f.className="sm-fill"+(pct>85?" hot":pct>65?" warm":""); }
   var v=document.getElementById("sm-val"); if(v) v.textContent=withPhoto+" photo"+(withPhoto===1?"":"s");
   var hint=document.getElementById("sm-hint");
@@ -516,8 +538,8 @@ function migrateInline(){
   var btn=document.getElementById("freeSpaceBtn"); if(btn){ btn.disabled=true; btn.textContent="Moving…"; }
   status("Freeing up space…");
   var jobs=[];
-  products.forEach(function(p){ if(p&&p.img){ (function(pp){ var im=pp.img; jobs.push(mediaRef(pp.id).set({img:im,updatedAt:Date.now()}).then(function(){ MEDIA[pp.id]=im; pp.img=""; }).catch(function(){})); })(p); } });
-  Object.keys(catImg).forEach(function(c){ if(catImg[c]){ (function(cc){ var im=catImg[cc], key=catMediaKey(cc); jobs.push(mediaRef(key).set({img:im,updatedAt:Date.now()}).then(function(){ MEDIA[key]=im; catImg[cc]=""; }).catch(function(){})); })(c); } });
+  products.forEach(function(p){ if(p&&p.img&&!/^https?:/i.test(p.img)){ (function(pp){ jobs.push(resolvePhoto("store/products/"+pp.id+".jpg", pp.img).then(function(url){ pp.img=url; }).catch(function(){})); })(p); } });
+  Object.keys(catImg).forEach(function(c){ if(catImg[c]&&!/^https?:/i.test(catImg[c])){ (function(cc){ jobs.push(resolvePhoto("store/cats/"+catMediaKey(cc).replace(/[^a-z0-9]+/gi,"_")+".jpg", catImg[cc]).then(function(url){ catImg[cc]=url; }).catch(function(){})); })(c); } });
   if(!jobs.length){ if(btn){btn.disabled=false;btn.textContent="Free up space";} return; }
   Promise.all(jobs).then(function(){ return save(); }).then(function(){
     toast("Done — space freed. You can add many more photos now."); status("☁ Live — synced to your website"); render();
@@ -550,14 +572,13 @@ function pickCatImg(cat){
   document.body.appendChild(inp);
   inp.onchange=function(e){ var f=e.target.files[0]; if(!f){ inp.remove(); return; }
     compress(f, function(dataUrl){
-      var key=catMediaKey(cat);
-      mediaRef(key).set({img:dataUrl,updatedAt:Date.now()})
-        .then(function(){ MEDIA[key]=dataUrl; toast("Category photo set"); renderCatPics(); render(); })
-        .catch(function(){
-          var before=catImg[cat]||""; catImg[cat]=dataUrl;
-          if(docBytes()>SAFE_LIMIT){ catImg[cat]=before; toast("Storage almost full — use a lighter photo."); return; }
-          save().then(function(){ toast("Category photo set"); renderCatPics(); render(); }).catch(function(er){ catImg[cat]=before; toast(saveErr(er)); });
-        });
+      status("Uploading photo…");
+      var path="store/cats/"+catMediaKey(cat).replace(/[^a-z0-9]+/gi,"_")+".jpg";
+      resolvePhoto(path, dataUrl).then(function(url){
+        var before=catImg[cat]||""; catImg[cat]=url;
+        if(!/^https?:/i.test(url) && docBytes()>SAFE_LIMIT){ catImg[cat]=before; toast("Storage almost full — use a lighter photo."); return; }
+        return save().then(function(){ toast("Category photo set"); renderCatPics(); render(); });
+      }).catch(function(er){ toast(saveErr(er)); });
       inp.remove();
     });
   };
@@ -614,10 +635,13 @@ function renderShowcaseMgr(){
 function changeSlidePhoto(i){
   var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none"; document.body.appendChild(inp);
   inp.onchange=function(e){ var f=e.target.files[0]; if(!f){inp.remove();return;}
-    compressBig(f,function(url){
-      var before=scSlides[i].src; scSlides[i].src=url;
-      if(scBytes()>SAFE_LIMIT){ scSlides[i].src=before; toast("Carousel storage almost full — use fewer or lighter photos."); inp.remove(); return; }
-      saveShowcase().then(function(){toast("Photo changed"); renderShowcaseMgr();}).catch(function(er){ scSlides[i].src=before; toast(saveErr(er)); });
+    compressBig(f,function(dataUrl){
+      status("Uploading photo…");
+      resolvePhoto("store/carousel/"+Date.now().toString(36)+".jpg", dataUrl).then(function(url){
+        var before=scSlides[i].src; scSlides[i].src=url;
+        if(!/^https?:/i.test(url) && scBytes()>SAFE_LIMIT){ scSlides[i].src=before; toast("Carousel almost full — use fewer or lighter photos."); return; }
+        return saveShowcase().then(function(){toast("Photo changed"); renderShowcaseMgr();});
+      }).catch(function(er){ toast(saveErr(er)); });
       inp.remove();
     });
   };
@@ -627,10 +651,13 @@ var _scAdd=document.getElementById("scAdd");
 if(_scAdd) _scAdd.onclick=function(){
   var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none"; document.body.appendChild(inp);
   inp.onchange=function(e){ var f=e.target.files[0]; if(!f){inp.remove();return;}
-    compressBig(f,function(url){
-      scSlides.push({src:url,title:"",sub:""});
-      if(scBytes()>SAFE_LIMIT){ scSlides.pop(); toast("Carousel storage almost full — use fewer or lighter photos."); inp.remove(); return; }
-      saveShowcase().then(function(){toast("Photo added"); renderShowcaseMgr();}).catch(function(er){ scSlides.pop(); toast(saveErr(er)); });
+    compressBig(f,function(dataUrl){
+      status("Uploading photo…");
+      resolvePhoto("store/carousel/"+Date.now().toString(36)+".jpg", dataUrl).then(function(url){
+        scSlides.push({src:url,title:"",sub:""});
+        if(!/^https?:/i.test(url) && scBytes()>SAFE_LIMIT){ scSlides.pop(); toast("Carousel almost full — use fewer or lighter photos."); return; }
+        return saveShowcase().then(function(){toast("Photo added"); renderShowcaseMgr();});
+      }).catch(function(er){ toast(saveErr(er)); });
       inp.remove();
     });
   };
