@@ -1389,13 +1389,15 @@ document.getElementById("impFile").addEventListener("change",e=>{
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("☁ Connecting…");
-    var _p=persist; persist=function(){ _p(); _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
+    try{ _safeRestore(); _safeGrow(); lsSave(); render(); }catch(_){}
+    var _p=persist; persist=function(){ _p(); try{_safeGrow();}catch(_){} _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
     ref().onSnapshot(function(s){
       if(s.exists){
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
           mergeCloudIntoState(d);
+          try{ _safeRestore(); _safeGrow(); }catch(_){}
           try{lsSave();}catch(_){}
           if(_ledgerTyping()){ _lPending=true; } else { render(); }
           if(_dirty && _lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
@@ -1419,11 +1421,11 @@ document.getElementById("impFile").addEventListener("change",e=>{
     var map={},order=[],noid=[];
     function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
     function sg(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
-    cloudArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
-    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id);
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    cloudArr.forEach(function(x){ if(!x||x.id==null){ return; } var k=String(x.id);
       if(!(k in map)){ map[k]=x; order.push(k); return; }
-      var cur=map[k], a=ts(x), b=ts(cur);
-      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)) map[k]=preferLocal?x:cur; } });
+      var cur=map[k], a=ts(x), b=ts(cur); /* x=cloud, cur=local */
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
     return order.map(function(k){return map[k];}).concat(noid);
   }
   function mergeCloudIntoState(d,preferLocal){
@@ -1433,6 +1435,15 @@ document.getElementById("impFile").addEventListener("change",e=>{
     var cs=d.settings||{}, ls=State.settings||{};
     if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
   }
+  /* ---- SAFETY COPY: keeps every entry you've ever had, so old ones can't vanish ---- */
+  function _safeRead(){ try{ return JSON.parse(localStorage.getItem("ledger:safe")||"{}"); }catch(_){ return {}; } }
+  function _safeWrite(o){ try{ localStorage.setItem("ledger:safe", JSON.stringify(o)); }catch(_){ } }
+  function _safeGrow(){ var s=_safeRead();
+    _safeWrite({ members:_applyTomb(_mergeArr(s.members||[],State.members,false),"member"),
+                 transactions:_applyTomb(_mergeArr(s.transactions||[],State.transactions,false),"tx") }); }
+  function _safeRestore(){ var s=_safeRead();
+    State.members=_applyTomb(_mergeArr(State.members,s.members||[],true),"member");
+    State.transactions=_applyTomb(_mergeArr(State.transactions,s.transactions||[],true),"tx"); }
   function push(){
     if(!db) return;
     if(!ready){ return; }
