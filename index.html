@@ -423,6 +423,7 @@
   <div class="tb-actions">
     <button class="install" id="webBtn" title="Open my public website" style="background:linear-gradient(135deg,#12594B,#0A3E35)">🌐 Website</button>
     <button class="install" id="installBtn">⬇ Install</button>
+    <button class="install" id="backupBtn" title="Backup all your data" style="background:linear-gradient(135deg,#B08A3E,#8A6A2A)">💾 Backup</button>
     <button class="iconbtn" id="outBtn" title="Sign out">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
     </button>
@@ -553,7 +554,7 @@
 </nav>
 
 <script>
-var V = "60";  // cache-buster: bump when you upload new app files
+var V = "62";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -917,6 +918,98 @@ if("serviceWorker" in navigator){
       });
     }
   }
+})();
+</script>
+
+<!-- ===== BACKUP & RESTORE ===== -->
+<div id="bkScrim" style="display:none;position:fixed;inset:0;background:rgba(6,20,16,.62);z-index:9999;align-items:center;justify-content:center;padding:18px">
+  <div style="background:#0E3B30;border:1px solid rgba(203,165,75,.28);border-radius:18px;max-width:440px;width:100%;padding:22px 20px;color:#EAF3EE;font-family:inherit;box-shadow:0 24px 60px rgba(0,0,0,.5)">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;margin-bottom:6px">Backup &amp; Restore</div>
+    <div style="font-size:13px;color:#A7C0B6;line-height:1.5;margin-bottom:16px">Save a copy of <b>all your data</b> — Ledger, Buy, Stock, Labels, Quotes, Orders, Customers and Store — to one file on this device. Keep it safe. You can restore from it any time.</div>
+    <button id="bkDownload" style="width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:linear-gradient(135deg,#2E7D5B,#1F6B4C);color:#fff;margin-bottom:10px">⬇ Download backup file now</button>
+    <button id="bkRestore" style="width:100%;border:1px solid rgba(203,165,75,.4);border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:transparent;color:#E7CD85;margin-bottom:10px">↺ Restore from a backup file</button>
+    <input type="file" id="bkFile" accept="application/json,.json" style="display:none">
+    <div id="bkMsg" style="font-size:12.5px;color:#A7C0B6;min-height:16px;margin:4px 0 12px;text-align:center"></div>
+    <button id="bkClose" style="width:100%;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:rgba(255,255,255,.08);color:#EAF3EE">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var APPS=[
+    {key:"ledger",        ls:"ledger:data:v1"},
+    {key:"purchases",     ls:"purchases:data:v1"},
+    {key:"stockbox",      ls:"inventory:data:v1"},
+    {key:"labels",        ls:"labels:data:v1"},
+    {key:"orderbook",     ls:"orders:data:v1"},
+    {key:"quotes",        ls:"quotes:data:v1"},
+    {key:"contacts",      ls:"contacts:data:v1"},
+    {key:"store",         ls:null},
+    {key:"store_showcase",ls:null}
+  ];
+  var scrim=document.getElementById("bkScrim");
+  var msg=document.getElementById("bkMsg");
+  function fdb(){ try{ return firebase.firestore(); }catch(e){ return null; } }
+  function ref(db,key){ return db.collection("shops").doc("main").collection("apps").doc(key); }
+  function open(){ msg.textContent=""; scrim.style.display="flex"; }
+  function close(){ scrim.style.display="none"; }
+  document.getElementById("backupBtn").onclick=open;
+  document.getElementById("bkClose").onclick=close;
+  scrim.addEventListener("click",function(e){ if(e.target===scrim) close(); });
+
+  // ---------- DOWNLOAD BACKUP ----------
+  document.getElementById("bkDownload").onclick=function(){
+    msg.textContent="Gathering your data…";
+    var db=fdb();
+    var out={ app:"Shakeel Electronics", type:"full-backup", version:1, exportedAt:new Date().toISOString(), apps:{} };
+    // local copy first (instant, always available)
+    APPS.forEach(function(a){ if(a.ls){ try{ var v=localStorage.getItem(a.ls); if(v){ out.apps[a.key]=out.apps[a.key]||{}; out.apps[a.key].local=JSON.parse(v); } }catch(e){} } });
+    var jobs = db ? APPS.map(function(a){
+      return ref(db,a.key).get().then(function(s){
+        if(s.exists){ var d=s.data(); out.apps[a.key]=out.apps[a.key]||{}; out.apps[a.key].cloud=(d&&d.state!==undefined)?d.state:d; out.apps[a.key].cloudTs=(d&&d.ts)||null; }
+      }).catch(function(){});
+    }) : [];
+    Promise.all(jobs).then(function(){
+      var count=Object.keys(out.apps).length;
+      var blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+      var d=new Date(), pad=function(n){return(n<10?"0":"")+n;};
+      var fname="shakeel-backup-"+d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"_"+pad(d.getHours())+pad(d.getMinutes())+".json";
+      var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+      try{ localStorage.setItem("shakeel:lastBackup", d.toISOString()); }catch(e){}
+      msg.textContent="✓ Backup saved ("+count+" apps). Keep the file safe.";
+    }).catch(function(){ msg.textContent="Could not read cloud — saved local copy only."; });
+  };
+
+  // ---------- RESTORE ----------
+  document.getElementById("bkRestore").onclick=function(){ document.getElementById("bkFile").click(); };
+  document.getElementById("bkFile").onchange=function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){
+      var data; try{ data=JSON.parse(r.result); }catch(err){ msg.textContent="That file is not a valid backup."; return; }
+      if(!data||!data.apps){ msg.textContent="That file is not a Shakeel backup."; return; }
+      var names=Object.keys(data.apps);
+      if(!confirm("Restore "+names.length+" apps from this backup?\n\nThis replaces current data on the cloud and this device with the backup. Continue?")) { e.target.value=""; return; }
+      var db=fdb();
+      msg.textContent="Restoring…";
+      var jobs=[];
+      names.forEach(function(key){
+        var rec=data.apps[key]||{};
+        var state=(rec.cloud!==undefined)?rec.cloud:rec.local;
+        if(state===undefined||state===null) return;
+        var meta=APPS.filter(function(a){return a.key===key;})[0];
+        if(meta&&meta.ls){ try{ localStorage.setItem(meta.ls, JSON.stringify(state)); }catch(e2){} }
+        if(db){ jobs.push(ref(db,key).set({state:state, ts:Date.now()}).catch(function(){})); }
+      });
+      Promise.all(jobs).then(function(){
+        msg.textContent="✓ Restored. Reloading…";
+        setTimeout(function(){ location.reload(); },1200);
+      }).catch(function(){ msg.textContent="Restored on this device. Reloading…"; setTimeout(function(){ location.reload(); },1200); });
+      e.target.value="";
+    };
+    r.readAsText(f);
+  };
 })();
 </script>
 </body>
