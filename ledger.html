@@ -155,11 +155,11 @@
   :root{ --spring:cubic-bezier(.34,1.4,.44,1); --glide:cubic-bezier(.22,.61,.36,1); }
 
   @keyframes rise{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
-  .kpis{animation:rise .5s var(--glide) both}
-  .kpi:nth-child(1){animation:rise .45s var(--glide) .05s both}
-  .kpi:nth-child(2){animation:rise .45s var(--glide) .11s both}
-  .kpi:nth-child(3){animation:rise .45s var(--glide) .17s both}
-  #view > .card, #view > .sect, #view > .search, #view > div{animation:rise .45s var(--glide) .12s both}
+  html.boot .kpis{animation:rise .5s var(--glide) both}
+  html.boot .kpi:nth-child(1){animation:rise .45s var(--glide) .05s both}
+  html.boot .kpi:nth-child(2){animation:rise .45s var(--glide) .11s both}
+  html.boot .kpi:nth-child(3){animation:rise .45s var(--glide) .17s both}
+  html.boot #view > .card, html.boot #view > .sect, html.boot #view > .search, html.boot #view > div{animation:rise .45s var(--glide) .12s both}
 
   .kpi{transition:transform .26s var(--spring), box-shadow .26s var(--glide)}
   .kpi:hover{transform:translateY(-2px);box-shadow:0 3px 6px rgba(15,25,23,.05),0 14px 32px rgba(15,25,23,.10)}
@@ -240,6 +240,11 @@
   .mh .btn.gh{color:rgba(255,255,255,.85)}
   .mh .btn.gh:hover{background:rgba(255,255,255,.12)}
 </style>
+<script>
+/* play the entry animation only when the app first opens, never on later updates */
+document.documentElement.classList.add("boot");
+setTimeout(function(){ document.documentElement.classList.remove("boot"); },1500);
+</script>
 </head>
 <body>
 <header>

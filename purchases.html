@@ -158,7 +158,7 @@
   /* ═══════ PREMIUM MOTION ═══════ */
   :root{ --spring:cubic-bezier(.34,1.4,.44,1); --glide:cubic-bezier(.22,.61,.36,1); }
   @keyframes rise{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
-  #view > *{animation:rise .45s var(--glide) .08s both}
+  html.boot #view > *{animation:rise .45s var(--glide) .08s both}
   .btn{transition:border-color .16s, background .16s, transform .18s var(--spring)}
   .btn:active{transform:scale(.96)}
   .prow, .vrow{transition:background .16s, transform .2s var(--glide)}
@@ -211,6 +211,11 @@
   .ship-stat .st{cursor:pointer;transition:transform .15s var(--spring)}
   .ship-stat:active .st{transform:scale(.94)}
 </style>
+<script>
+/* play the entry animation only when the app first opens, never on later updates */
+document.documentElement.classList.add("boot");
+setTimeout(function(){ document.documentElement.classList.remove("boot"); },1500);
+</script>
 </head>
 <body>
 <header class="top">
