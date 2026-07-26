@@ -1969,6 +1969,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     if(typeof updateStorageNote==="function"){ var _u=updateStorageNote; updateStorageNote=function(){ if(window.__cloudActive) return; _u(); }; }
     firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous){ if(blockStaff(user.email)) return; start(); } });
   }catch(e){ return; }
+  var _serverSeen=false;
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function appRef(k){ return db.collection("shops").doc(SHOP).collection("apps").doc(k); }
   window.__SB=null;
@@ -2033,6 +2034,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     watchStockbox();
     var _op=persist; persist=function(){ _op(); try{_safeGrow();}catch(_){} _dirty=true; schedulePush(); };
     ref().onSnapshot(function(snap){ window.__cloudActive=true;
+      var fromCache = !!(snap.metadata && snap.metadata.fromCache);
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
@@ -2040,10 +2042,11 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
           try{ _safeRestore(); _safeGrow(); }catch(_){}
           try{lsSave();}catch(_){}
           if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); }
-          if(_dirty && _pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+          if(!fromCache && _dirty && _pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
-        ready=true; note("\u2601 Synced across your devices."); }
-      else { ready=true; pushNow(); }
+        if(!fromCache){ _serverSeen=true; ready=true; note("\u2601 Synced across your devices."); }
+        else { note("\u2601 Checking cloud\u2026"); } }
+      else if(!fromCache){ _serverSeen=true; ready=true; pushNow(); }
     }, function(){ note("\u2601 Offline — saved on this device."); });
   }
   function _pTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
@@ -2092,15 +2095,40 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     State.receives=_pApplyTomb(_pMerge(State.receives,s.receives||[],true),"receive");
     State.tracking=_pApplyTomb(_pMerge(State.tracking,s.tracking||[],true),"tracking"); }
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
+  /* SHRINK GUARD: a save can never remove an entry you did not delete */
+  function _pMissing(cloudArr, localArr, kind){
+    var t=_pTomb(), ids={}, miss=[];
+    (localArr||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+    (cloudArr||[]).forEach(function(x){ if(!x||x.id==null) return;
+      if(!ids[String(x.id)] && !t[kind+":"+x.id]) miss.push(x); });
+    return miss;
+  }
+  function _pAbsorb(d){
+    if(!d) return 0; var n=0;
+    var a=_pMissing(d.purchases,State.purchases,"purchase"); if(a.length){ State.purchases=State.purchases.concat(a); n+=a.length; }
+    var b=_pMissing(d.shipments,State.shipments,"shipment"); if(b.length){ State.shipments=State.shipments.concat(b); n+=b.length; }
+    var c=_pMissing(d.receives,State.receives,"receive");    if(c.length){ State.receives=State.receives.concat(c);   n+=c.length; }
+    var e=_pMissing(d.tracking,State.tracking,"tracking");   if(e.length){ State.tracking=State.tracking.concat(e);   n+=e.length; }
+    return n;
+  }
   function pushNow(){ if(!db) return;
-    if(!ready) return;
-    ref().get().then(function(s){
+    if(!ready || !_serverSeen){ _dirty=true; return; }   /* never write from stale cached data */
+    ref().get({source:"server"}).then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d,true);
+      if(d){
+        mergeCloudIntoState(d,true);
+        var saved=_pAbsorb(d);                            /* pull back anything this write would drop */
+        if(saved){ try{ _safeGrow(); lsSave(); if(typeof render==="function") render(); }catch(_){} }
+      }
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false; return ref().set({state:State,ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} })
-      .catch(function(){ note("\u2601 Cloud save failed — saved on this device."); }); }
+      .catch(function(){
+        _dirty=true;                                      /* offline: stay pending, never overwrite later */
+        note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,8000);
+      }); }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,900); } });
   window.__pushNow=pushNow;
 })();
 </script>

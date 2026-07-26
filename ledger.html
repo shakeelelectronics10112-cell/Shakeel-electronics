@@ -1386,12 +1386,14 @@ document.getElementById("impFile").addEventListener("change",e=>{
       else note('<span style="color:var(--warn)">Not signed in — open from the main app.</span>');
     });
   }catch(e){ return; }
+  var _serverSeen=false;
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("☁ Connecting…");
     try{ _safeRestore(); _safeGrow(); lsSave(); render(); }catch(_){}
     var _p=persist; persist=function(){ _p(); try{_safeGrow();}catch(_){} _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
     ref().onSnapshot(function(s){
+      var fromCache = !!(s.metadata && s.metadata.fromCache);
       if(s.exists){
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
@@ -1400,10 +1402,11 @@ document.getElementById("impFile").addEventListener("change",e=>{
           try{ _safeRestore(); _safeGrow(); }catch(_){}
           try{lsSave();}catch(_){}
           if(_ledgerTyping()){ _lPending=true; } else { render(); }
-          if(_dirty && _lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
+          if(!fromCache && _dirty && _lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
         }
-        ready=true; note("☁ Synced across your devices");
-      } else { ready=true; push(); }
+        if(!fromCache){ _serverSeen=true; ready=true; note("☁ Synced across your devices"); }
+        else { note("\u2601 Checking cloud\u2026"); }
+      } else if(!fromCache){ _serverSeen=true; ready=true; push(); }
     }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
   /* MERGE: union by id so two devices never erase each other */
@@ -1444,17 +1447,42 @@ document.getElementById("impFile").addEventListener("change",e=>{
   function _safeRestore(){ var s=_safeRead();
     State.members=_applyTomb(_mergeArr(State.members,s.members||[],true),"member");
     State.transactions=_applyTomb(_mergeArr(State.transactions,s.transactions||[],true),"tx"); }
+  /* SHRINK GUARD: a save can never remove an entry you did not delete */
+  function _missingFrom(cloudArr, localArr, kind){
+    var t=_ledgerTomb(), ids={}, miss=[];
+    (localArr||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+    (cloudArr||[]).forEach(function(x){ if(!x||x.id==null) return;
+      if(!ids[String(x.id)] && !t[kind+":"+x.id]) miss.push(x); });
+    return miss;
+  }
+  function _absorb(d){
+    if(!d) return 0;
+    var a=_missingFrom(d.members,State.members,"member");
+    var b=_missingFrom(d.transactions,State.transactions,"tx");
+    if(a.length) State.members=State.members.concat(a);
+    if(b.length) State.transactions=State.transactions.concat(b);
+    return a.length+b.length;
+  }
   function push(){
     if(!db) return;
-    if(!ready){ return; }
-    ref().get().then(function(s){
+    if(!ready || !_serverSeen){ _dirty=true; return; }   /* never write from stale cached data */
+    ref().get({source:"server"}).then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d,true);
+      if(d){
+        mergeCloudIntoState(d,true);
+        var saved=_absorb(d);                             /* pull back anything this write would drop */
+        if(saved){ try{ _safeGrow(); lsSave(); render(); }catch(_){} }
+      }
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false; return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} })
-      .catch(function(){ note("☁ Cloud save failed — saved on this device"); });
+      .catch(function(){
+        _dirty=true;                                      /* offline: keep it pending, do NOT overwrite later */
+        note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pt); pt=setTimeout(push,8000);
+      });
   }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pt); pt=setTimeout(push,900); } });
   window.__pushNow=push;
 })();
 </script>
