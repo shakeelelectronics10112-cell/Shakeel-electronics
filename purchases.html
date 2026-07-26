@@ -1589,9 +1589,7 @@ function invoiceCSV(shipNo){
   data.push(["","TOTAL","","","","","",tot.rmb.toFixed(2),"","",Math.round(tot.pkr),"",""]);
   const csv="\uFEFF"+data.map(r=>r.map(q).join(",")).join("\r\n"); // BOM so Excel opens it cleanly
   const b=new Blob([csv],{type:"text/csv;charset=utf-8"});
-  const u=URL.createObjectURL(b); const a=document.createElement("a");
-  a.href=u; a.download=`${shipLabel(shipNo).replace(/[^\w]+/g,"-")}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800);
+  sefSaveBlob(b, `${shipLabel(shipNo).replace(/[^\w]+/g,"-")}.csv`);
   toast("Excel file saved — open it in Excel or Google Sheets");
 }
 
@@ -1780,7 +1778,7 @@ function buildCsv(){
   State.purchases.forEach((p,i)=>{ const t=pTotals(p); rows.push([i+1,p.date||"",p.category||"",p.vendor||"",p.item||"",p.qty,p.priceRMB,p.rate||State.settings.rate,t.rmb.toFixed(2),t.pkr.toFixed(2),t.unit.toFixed(2),p.status||""]); });
   return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
 }
-function downloadBlob(b,n){ const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=n; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
+function downloadBlob(b,n){ sefSaveBlob(b,n); }
 function exportCsv(){ downloadBlob(new Blob([buildCsv()],{type:"text/csv"}),`purchases-${todayISO()}.csv`); toast("CSV exported"); }
 function exportJson(){ downloadBlob(new Blob([JSON.stringify(State,null,2)],{type:"application/json"}),`purchases-backup-${todayISO()}.json`); toast("Backup downloaded"); }
 function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!Array.isArray(d.purchases)) throw 0; if(!confirm("Replace all purchases data with this backup?")) return; State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Purchases backup"); } }; r.readAsText(file); }
@@ -2030,7 +2028,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     }).catch(function(){ return false; });
   };
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
-    try{ _safeRestore(); _safeGrow(); lsSave(); if(typeof render==="function") render(); }catch(_){}
+    try{ var _s0=_pVisSig(); _safeRestore(); _safeGrow(); lsSave(); if(_pVisSig()!==_s0 && typeof render==="function") render(); }catch(_){}
     watchStockbox();
     var _op=persist; persist=function(){ _op(); try{_safeGrow();}catch(_){} _dirty=true; schedulePush(); };
     ref().onSnapshot(function(snap){ window.__cloudActive=true;
@@ -2038,10 +2036,11 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       if(snap.exists){ var d=snap.data()&&snap.data().state;
         if(d){
           try{ if(Array.isArray(d.purchases) && d.purchases.length) cloudHadData=true; }catch(_){}
+          var _sig0=_pVisSig();
           mergeCloudIntoState(d);
           try{ _safeRestore(); _safeGrow(); }catch(_){}
           try{lsSave();}catch(_){}
-          if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); }
+          if(_pVisSig()!==_sig0){ if(_pTyping()){ _pPending=true; } else if(typeof render==="function"){ render(); } }
           if(!fromCache && _dirty && _pGrew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
         if(!fromCache){ _serverSeen=true; ready=true; note("\u2601 Synced across your devices."); }
@@ -2049,6 +2048,8 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       else if(!fromCache){ _serverSeen=true; ready=true; pushNow(); }
     }, function(){ note("\u2601 Offline — saved on this device."); });
   }
+  /* exact picture of what is on screen — used ONLY to skip a pointless redraw */
+  function _pVisSig(){ try{ return JSON.stringify(State.purchases)+"|"+JSON.stringify(State.shipments)+"|"+JSON.stringify(State.receives)+"|"+JSON.stringify(State.tracking)+"|"+JSON.stringify(State.settings); }catch(_){ return "x"+Math.random(); } }
   function _pTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
   var _pPending=false;
   function _pSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&((x.qty||0)+(x.priceRMB||0)))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.purchases)+"|"+sig(State.shipments)+"|"+sig(State.receives); }
@@ -2135,6 +2136,40 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
 <script>
 /* offline support */
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
+</script>
+<script>
+/* ===== universal file saver — routes downloads to the app shell so they are not blocked ===== */
+var SEF_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent||"")||((navigator.platform==="MacIntel")&&navigator.maxTouchPoints>1);
+function sefAnchorSave(blob,filename){
+  try{
+    var u=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=u; a.download=filename; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); },4000); return true;
+  }catch(e){ try{ window.open(URL.createObjectURL(blob),"_blank"); return true; }catch(e2){ return false; } }
+}
+function sefLocalSave(blob,filename){
+  if(SEF_IOS){
+    try{ var f=new File([blob],filename,{type:(blob&&blob.type)||"application/octet-stream"});
+      if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){
+        navigator.share({files:[f],title:filename}).catch(function(){ sefAnchorSave(blob,filename); }); return true; }
+    }catch(e){}
+  }
+  return sefAnchorSave(blob,filename);
+}
+function sefSaveBlob(blob,filename){
+  try{ if(window.parent&&window.parent!==window&&typeof window.parent.__sefDownload==="function"){ return window.parent.__sefDownload(blob,filename); } }catch(e){}
+  return sefLocalSave(blob,filename);
+}
+/* every PDF save goes through it too */
+(function(){
+  function patch(){ try{ var J=window.jspdf&&window.jspdf.jsPDF;
+    if(J&&J.prototype&&!J.prototype.__sefPatched){ var P=J.prototype, orig=P.save;
+      P.save=function(fn){ try{ sefSaveBlob(this.output("blob"), fn||"document.pdf"); return this; }catch(e){ return orig.apply(this,arguments); } };
+      P.__sefPatched=true; } }catch(e){} }
+  patch(); setTimeout(patch,600); setTimeout(patch,2000); setTimeout(patch,5000);
+  document.addEventListener("click",patch,true);
+})();
 </script>
 </body>
 </html>

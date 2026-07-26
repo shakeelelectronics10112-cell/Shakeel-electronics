@@ -554,7 +554,7 @@
 </nav>
 
 <script>
-var V = "63";  // cache-buster: bump when you upload new app files
+var V = "65";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -921,6 +921,36 @@ if("serviceWorker" in navigator){
 })();
 </script>
 
+<script>
+/* ===== universal file saver — apps inside the shell call this so downloads are not blocked ===== */
+(function(){
+  var IOS=/iPad|iPhone|iPod/.test(navigator.userAgent||"")||((navigator.platform==="MacIntel")&&navigator.maxTouchPoints>1);
+  function anchorSave(blob,filename){
+    try{
+      var u=URL.createObjectURL(blob), a=document.createElement("a");
+      a.href=u; a.download=filename; a.rel="noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(u); },4000);
+      return true;
+    }catch(e){
+      try{ window.open(URL.createObjectURL(blob),"_blank"); return true; }catch(e2){ return false; }
+    }
+  }
+  window.__sefDownload=function(blob,filename){
+    if(IOS){
+      try{
+        var f=new File([blob],filename,{type:(blob&&blob.type)||"application/octet-stream"});
+        if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){
+          navigator.share({files:[f],title:filename}).catch(function(){ anchorSave(blob,filename); });
+          return true;
+        }
+      }catch(e){}
+    }
+    return anchorSave(blob,filename);
+  };
+})();
+</script>
+
 <!-- ===== BACKUP & RESTORE ===== -->
 <div id="bkScrim" style="display:none;position:fixed;inset:0;background:rgba(6,20,16,.62);z-index:9999;align-items:center;justify-content:center;padding:18px">
   <div style="background:#0E3B30;border:1px solid rgba(203,165,75,.28);border-radius:18px;max-width:440px;width:100%;padding:22px 20px;color:#EAF3EE;font-family:inherit;box-shadow:0 24px 60px rgba(0,0,0,.5)">
@@ -974,8 +1004,7 @@ if("serviceWorker" in navigator){
       var blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
       var d=new Date(), pad=function(n){return(n<10?"0":"")+n;};
       var fname="shakeel-backup-"+d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"_"+pad(d.getHours())+pad(d.getMinutes())+".json";
-      var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click();
-      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500);
+      window.__sefDownload(blob, fname);
       try{ localStorage.setItem("shakeel:lastBackup", d.toISOString()); }catch(e){}
       msg.textContent="✓ Backup saved ("+count+" apps). Keep the file safe.";
     }).catch(function(){ msg.textContent="Could not read cloud — saved local copy only."; });

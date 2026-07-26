@@ -703,9 +703,8 @@ function collectionCSV(pays,B){
   const rows=[["Date","Customer","Account","Account number","Description","Amount"]]
     .concat(pays.map(t=>[t.date||"", nameOf(t.memberId), accOf(t.accountId), numOf(t.accountId), t.description||"", t.amount||0]));
   const csv=rows.map(r=>r.map(q).join(",")).join("\n");
-  const b=new Blob([csv],{type:"text/csv"}); const u=URL.createObjectURL(b);
-  const a=document.createElement("a"); a.href=u; a.download=`collections-${todayISO()}.csv`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800);
+  const b=new Blob([csv],{type:"text/csv"});
+  sefSaveBlob(b, `collections-${todayISO()}.csv`);
   toast("CSV downloaded");
 }
 function collectionPDF(pays,groups,total,B){
@@ -1390,7 +1389,7 @@ document.getElementById("impFile").addEventListener("change",e=>{
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function start(){
     window.__cloudActive=true; note("☁ Connecting…");
-    try{ _safeRestore(); _safeGrow(); lsSave(); render(); }catch(_){}
+    try{ var _s0=_visSig(); _safeRestore(); _safeGrow(); lsSave(); if(_visSig()!==_s0) render(); }catch(_){}
     var _p=persist; persist=function(){ _p(); try{_safeGrow();}catch(_){} _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,600); } };
     ref().onSnapshot(function(s){
       var fromCache = !!(s.metadata && s.metadata.fromCache);
@@ -1398,10 +1397,11 @@ document.getElementById("impFile").addEventListener("change",e=>{
         var d=s.data()&&s.data().state;
         if(d && Array.isArray(d.members) && d.members.length) cloudHadData=true;
         if(d){
+          var _sig0=_visSig();
           mergeCloudIntoState(d);
           try{ _safeRestore(); _safeGrow(); }catch(_){}
           try{lsSave();}catch(_){}
-          if(_ledgerTyping()){ _lPending=true; } else { render(); }
+          if(_visSig()!==_sig0){ if(_ledgerTyping()){ _lPending=true; } else { render(); } }
           if(!fromCache && _dirty && _lGrew(d)){ clearTimeout(pt); pt=setTimeout(push,300); }
         }
         if(!fromCache){ _serverSeen=true; ready=true; note("☁ Synced across your devices"); }
@@ -1410,6 +1410,8 @@ document.getElementById("impFile").addEventListener("change",e=>{
     }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
   /* MERGE: union by id so two devices never erase each other */
+  /* exact picture of what is on screen — used ONLY to skip a pointless redraw */
+  function _visSig(){ try{ return JSON.stringify(State.members)+"|"+JSON.stringify(State.transactions)+"|"+JSON.stringify(State.settings); }catch(_){ return "x"+Math.random(); } }
   function _ledgerTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
   var _lPending=false;
   function _ledgerSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&(x.amount||0))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.members)+"|"+sig(State.transactions); }
@@ -1490,6 +1492,40 @@ document.getElementById("impFile").addEventListener("change",e=>{
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
 }
+</script>
+<script>
+/* ===== universal file saver — routes downloads to the app shell so they are not blocked ===== */
+var SEF_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent||"")||((navigator.platform==="MacIntel")&&navigator.maxTouchPoints>1);
+function sefAnchorSave(blob,filename){
+  try{
+    var u=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=u; a.download=filename; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); },4000); return true;
+  }catch(e){ try{ window.open(URL.createObjectURL(blob),"_blank"); return true; }catch(e2){ return false; } }
+}
+function sefLocalSave(blob,filename){
+  if(SEF_IOS){
+    try{ var f=new File([blob],filename,{type:(blob&&blob.type)||"application/octet-stream"});
+      if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){
+        navigator.share({files:[f],title:filename}).catch(function(){ sefAnchorSave(blob,filename); }); return true; }
+    }catch(e){}
+  }
+  return sefAnchorSave(blob,filename);
+}
+function sefSaveBlob(blob,filename){
+  try{ if(window.parent&&window.parent!==window&&typeof window.parent.__sefDownload==="function"){ return window.parent.__sefDownload(blob,filename); } }catch(e){}
+  return sefLocalSave(blob,filename);
+}
+/* every PDF save goes through it too */
+(function(){
+  function patch(){ try{ var J=window.jspdf&&window.jspdf.jsPDF;
+    if(J&&J.prototype&&!J.prototype.__sefPatched){ var P=J.prototype, orig=P.save;
+      P.save=function(fn){ try{ sefSaveBlob(this.output("blob"), fn||"document.pdf"); return this; }catch(e){ return orig.apply(this,arguments); } };
+      P.__sefPatched=true; } }catch(e){} }
+  patch(); setTimeout(patch,600); setTimeout(patch,2000); setTimeout(patch,5000);
+  document.addEventListener("click",patch,true);
+})();
 </script>
 </body>
 </html>
