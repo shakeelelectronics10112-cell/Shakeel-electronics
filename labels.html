@@ -457,6 +457,7 @@ function openForm(existing){
   const sp=document.getElementById("f-saveprint"); if(sp) sp.onclick=()=>commit(true);
   if(existing) document.getElementById("f-del").onclick=()=>{
     if(!confirm(`Delete ${existing.name}?`)) return;
+    if(window.__tombstone) window.__tombstone(existing.id);
     State.addresses=State.addresses.filter(x=>x.id!==existing.id);
     persist(); render(); closeScrim(); toast("Address deleted");
   };
@@ -513,9 +514,7 @@ function openSettings(){
 /* ---------- backup ---------- */
 function exportJson(){
   const b=new Blob([JSON.stringify(State,null,2)],{type:"application/json"});
-  const u=URL.createObjectURL(b); const a=document.createElement("a");
-  a.href=u; a.download=`labels-backup-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000);
+  sefSaveBlob(b, `labels-backup-${new Date().toISOString().slice(0,10)}.json`);
   toast("Backup downloaded");
 }
 function importJson(file){
@@ -559,7 +558,7 @@ document.getElementById("importFile").addEventListener("change",e=>{ if(e.target
 (function(){
   var FB={apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc",authDomain:"shakeel-shop.firebaseapp.com",projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="labels", SHOP="main";
-  var db=null, ready=false, pt=null, cloudHadData=false;
+  var db=null, ready=false, pt=null, cloudHadData=false, _serverSeen=false;
   function n(t){ var el=document.getElementById("storageNote"); if(el) el.innerHTML=t; }
   if(typeof firebase==="undefined") return;
   try{
@@ -574,29 +573,98 @@ document.getElementById("importFile").addEventListener("change",e=>{ if(e.target
       window.__cloudActive=true;
       if(s.exists){ var d=s.data()&&s.data().state;
         try{ if(d && Array.isArray(d.addresses) && d.addresses.length) cloudHadData=true; }catch(_){}
-        if(d){ var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
-          var localEmpty=!(State.addresses||[]).length;
-          var cloudHas=Array.isArray(d.addresses)&&d.addresses.length;
-          if(rt>lt || (localEmpty && cloudHas)){
-            applyLoaded(d);
-            if(localEmpty && cloudHas && !(rt>lt)) State.settings.updatedAt = rt || Date.now();
-            render(); try{lsSave();}catch(_){}
-          } }
-        ready=true; n("☁ Synced across your devices.");
-      } else { ready=true; push(); }
-    }, function(){ n("☁ Offline — saved on this device."); });
+        var _fc=!!(s.metadata&&s.metadata.fromCache);
+        if(d){ var _s0=JSON.stringify(State.addresses);
+          syncMergeState(d); try{lsSave();}catch(_){}
+          if(JSON.stringify(State.addresses)!==_s0) render(); }
+        if(!_fc){ _serverSeen=true; ready=true; n("☁ Synced across your devices."); }
+        else { n("\u2601 Checking cloud\u2026"); }
+      } else if(!(s.metadata&&s.metadata.fromCache)){ _serverSeen=true; ready=true; push(); }
+    }, function(err){ if(err && err.code==='permission-denied'){ n('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { n('\u2601 Offline \u2014 saved on this device'); } });
   }
   function push(){ if(!db) return;
-    if(!ready) return;
-    try{ if(cloudHadData && Array.isArray(State.addresses) && !State.addresses.length){
-      n('<span style="color:#B0492C">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
-    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-    ref().set({state:State,ts:Date.now()}).then(function(){ n("☁ Synced across your devices."); })
-      .catch(function(){ n("☁ Cloud save failed — saved on this device."); }); }catch(e){} }
+    if(!ready || !_serverSeen) return;
+    ref().get({source:"server"}).then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){ syncMergeState(d,true); if(syncAbsorb(d)){ try{ lsSave(); render(); }catch(_){} } }
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      return ref().set({state:State,ts:Date.now()});
+    }).then(function(){ n("☁ Synced across your devices."); try{lsSave();}catch(_){} })
+      .catch(function(){ n("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pt); pt=setTimeout(push,8000); }); }
+  window.addEventListener("online",function(){ clearTimeout(pt); pt=setTimeout(push,900); });
 })();
 </script>
 <script>
 if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
+</script>
+<script>
+/* ===== universal file saver — routes downloads to the app shell so they are not blocked ===== */
+var SEF_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent||"")||((navigator.platform==="MacIntel")&&navigator.maxTouchPoints>1);
+function sefAnchorSave(blob,filename){
+  try{
+    var u=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=u; a.download=filename; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); },4000); return true;
+  }catch(e){ try{ window.open(URL.createObjectURL(blob),"_blank"); return true; }catch(e2){ return false; } }
+}
+function sefLocalSave(blob,filename){
+  if(SEF_IOS){
+    try{ var f=new File([blob],filename,{type:(blob&&blob.type)||"application/octet-stream"});
+      if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){
+        navigator.share({files:[f],title:filename}).catch(function(){ sefAnchorSave(blob,filename); }); return true; }
+    }catch(e){}
+  }
+  return sefAnchorSave(blob,filename);
+}
+function sefSaveBlob(blob,filename){
+  try{ if(window.parent&&window.parent!==window&&typeof window.parent.__sefDownload==="function"){ return window.parent.__sefDownload(blob,filename); } }catch(e){}
+  return sefLocalSave(blob,filename);
+}
+/* every PDF save goes through it too */
+(function(){
+  function patch(){ try{ var J=window.jspdf&&window.jspdf.jsPDF;
+    if(J&&J.prototype&&!J.prototype.__sefPatched){ var P=J.prototype, orig=P.save;
+      P.save=function(fn){ try{ sefSaveBlob(this.output("blob"), fn||"document.pdf"); return this; }catch(e){ return orig.apply(this,arguments); } };
+      P.__sefPatched=true; } }catch(e){} }
+  patch(); setTimeout(patch,600); setTimeout(patch,2000); setTimeout(patch,5000);
+  document.addEventListener("click",patch,true);
+})();
+</script>
+<script>
+/* ===== data-loss protection: merge by id + remembered deletes ===== */
+var SYNC_ARR="addresses", SYNC_TOMB="labels:deleted";
+function _syncTomb(){ try{ return JSON.parse(localStorage.getItem(SYNC_TOMB)||"{}"); }catch(_){ return {}; } }
+window.__tombstone=function(id){ try{ var t=_syncTomb(); t[id]=Date.now(); localStorage.setItem(SYNC_TOMB,JSON.stringify(t)); }catch(_){} };
+function _syncApplyTomb(arr){ var t=_syncTomb(); return (arr||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+function _syncTs(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
+function _syncMerge(localArr,cloudArr,preferLocal){
+  localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+  var map={},order=[],noid=[];
+  function sg(x){ try{return JSON.stringify(x);}catch(_){return"";} }
+  localArr.forEach(function(x){ if(!x||x.id==null){noid.push(x);return;} var k=String(x.id); if(!(k in map)){map[k]=x;order.push(k);} });
+  cloudArr.forEach(function(x){ if(!x||x.id==null) return; var k=String(x.id);
+    if(!(k in map)){ map[k]=x; order.push(k); return; }
+    var cur=map[k], a=_syncTs(x), b=_syncTs(cur);
+    if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+  return order.map(function(k){return map[k];}).concat(noid);
+}
+function syncMergeState(d,preferLocal){
+  if(!d) return;
+  State[SYNC_ARR]=_syncApplyTomb(_syncMerge(State[SYNC_ARR],d[SYNC_ARR],preferLocal));
+  var cs=d.settings||{}, ls=State.settings||{};
+  if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+}
+/* pull back anything a save would drop that you did not delete */
+function syncAbsorb(d){
+  if(!d) return 0;
+  var t=_syncTomb(), ids={}, miss=[];
+  (State[SYNC_ARR]||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+  (d[SYNC_ARR]||[]).forEach(function(x){ if(!x||x.id==null) return; if(!ids[String(x.id)] && !t[x.id]) miss.push(x); });
+  if(miss.length) State[SYNC_ARR]=(State[SYNC_ARR]||[]).concat(miss);
+  return miss.length;
+}
 </script>
 </body>
 </html>

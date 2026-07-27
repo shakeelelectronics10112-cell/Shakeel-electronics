@@ -532,7 +532,7 @@ function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el
 (function(){
   var APP_KEY="contacts";
   var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com", projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app", messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
-  var db=null, ready=false, _dirty=false, pushTimer=null, cloudHadData=false;
+  var db=null, ready=false, _dirty=false, pushTimer=null, cloudHadData=false, _serverSeen=false;
 
   function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
   function ref(){ return db.collection("shops").doc("main").collection("apps").doc(APP_KEY); }
@@ -540,9 +540,9 @@ function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el
   try{ firebase.initializeApp(cfg); db=firebase.firestore(); }catch(e){ note("\u2601 Offline — saved on this device"); return; }
   try{ var _st=firebase.storage(); window.__uploadPhoto=function(path,dataUrl){ return fetch(dataUrl).then(function(r){return r.blob();}).then(function(b){ return _st.ref().child(path).put(b); }).then(function(s){ return s.ref.getDownloadURL(); }); }; }catch(_e){ window.__uploadPhoto=null; }
 
-  firebase.auth().signInAnonymously().catch(function(){});
+  /* use the account you signed into the app with — never anonymous,
+     which would sign you out of Ledger/Buy/Stock everywhere */
   firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
-  // also start immediately (rules may allow open access like other apps)
   start();
   var started=false;
   function start(){
@@ -555,10 +555,11 @@ function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el
           mergeCloudIntoState(d);
           try{lsSave();}catch(_){}
           if(!_typing()) render();
-          if(_dirty && _grew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+          if(!(snap.metadata&&snap.metadata.fromCache) && _dirty && _grew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
         }
-        ready=true; note("\u2601 Synced across your devices");
-      } else { ready=true; pushNow(); }
+        if(!(snap.metadata&&snap.metadata.fromCache)){ _serverSeen=true; ready=true; note("\u2601 Synced across your devices"); }
+        else { note("\u2601 Checking cloud\u2026"); }
+      } else if(!(snap.metadata&&snap.metadata.fromCache)){ _serverSeen=true; ready=true; pushNow(); }
     }, function(err){ ready=true; note(err&&err.code==="permission-denied"?"\u2601 Saved on this device":"\u2601 Offline — saved on this device"); });
   }
 
@@ -596,17 +597,29 @@ function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el
     return false;
   }
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
+  function _cMissing(cloudArr, localArr){
+    var t=_tomb(), ids={}, miss=[];
+    (localArr||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+    (cloudArr||[]).forEach(function(x){ if(!x||x.id==null) return;
+      if(!ids[String(x.id)] && !t[x.id]) miss.push(x); });
+    return miss;
+  }
   function pushNow(){
-    if(!db||!ready) return;
-    ref().get().then(function(s){
+    if(!db) return;
+    if(!ready || !_serverSeen){ _dirty=true; return; }
+    ref().get({source:"server"}).then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
-      if(d) mergeCloudIntoState(d,true);
+      if(d){ mergeCloudIntoState(d,true);
+        var miss=_cMissing(d.customers,State.customers);
+        if(miss.length){ State.customers=State.customers.concat(miss); try{ lsSave(); render(); }catch(_){} } }
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false;
       return ref().set({state:State, ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices"); try{lsSave();}catch(_){} })
-      .catch(function(){ note("\u2601 Cloud save failed — saved on this device"); });
+      .catch(function(){ _dirty=true; note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,8000); });
   }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,900); } });
 
   /* wrap persist so every add/edit/delete saves locally + pushes to cloud */
   window.persist=function(){ State.settings.updatedAt=Date.now(); lsSave(); _dirty=true; schedulePush(); };

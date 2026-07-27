@@ -353,7 +353,7 @@ function openQuote(id){
     if(pickSt==="quoted"&&!q.quotedAt) q.quotedAt=Date.now();
   };
   document.getElementById("q-save").onclick=()=>{ grab(); persist(); render(); closeScrim(); toast("Quote saved"); };
-  document.getElementById("q-del").onclick=()=>{ if(confirm("Delete this quote?")){ State.quotes=State.quotes.filter(x=>x.id!==q.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  document.getElementById("q-del").onclick=()=>{ if(confirm("Delete this quote?")){ if(window.__tombstone) window.__tombstone(q.id); State.quotes=State.quotes.filter(x=>x.id!==q.id); persist(); render(); closeScrim(); toast("Deleted"); } };
   document.getElementById("q-pdf").onclick=()=>{ grab(); persist(); quotePDF(q); };
   if(document.getElementById("q-wa")) document.getElementById("q-wa").onclick=()=>{
     grab(); if(!allPriced(q)){ if(!confirm("Some items have no price. Send anyway?")) return; }
@@ -648,7 +648,7 @@ document.getElementById("impFile").addEventListener("change",e=>{ if(e.target.fi
           projectId:"shakeel-shop",storageBucket:"shakeel-shop.firebasestorage.app",
           messagingSenderId:"60087476008",appId:"1:60087476008:web:73f7c946ae62a687a3ba1d"};
   var APP_KEY="quotes", SHOP="main";
-  var db=null, ready=false, pt=null, cloudHadData=false;
+  var db=null, ready=false, pt=null, cloudHadData=false, _serverSeen=false;
   function note(t){ var e=document.getElementById("note"); if(e) e.innerHTML=t; }
   if(typeof firebase==="undefined") return;
   try{ firebase.initializeApp(FB); db=firebase.firestore();
@@ -663,21 +663,26 @@ document.getElementById("impFile").addEventListener("change",e=>{ if(e.target.fi
       if(s.exists){ var d=s.data()&&s.data().state;
         if(d){
           try{ if(Array.isArray(d.quotes)&&d.quotes.length) cloudHadData=true; }catch(_){}
-          var rt=(d.settings&&d.settings.updatedAt)||0, lt=(State.settings&&State.settings.updatedAt)||0;
-          var localEmpty=!(State.quotes||[]).length, cloudHas=Array.isArray(d.quotes)&&d.quotes.length;
-          if(rt>lt || (localEmpty&&cloudHas)){ applyLoaded(d);
-            if(localEmpty&&cloudHas&&!(rt>lt)) State.settings.updatedAt=rt||Date.now();
-            render(); try{lsSave();}catch(_){} } }
-        ready=true; note("☁ Synced across your devices"); }
-      else { ready=true; push(); }
+          var _s0=JSON.stringify(State.quotes);
+          syncMergeState(d); try{lsSave();}catch(_){}
+          if(JSON.stringify(State.quotes)!==_s0) render(); }
+        if(!(s.metadata&&s.metadata.fromCache)){ _serverSeen=true; ready=true; note("☁ Synced across your devices"); }
+        else { note("\u2601 Checking cloud\u2026"); } }
+      else if(!(s.metadata&&s.metadata.fromCache)){ _serverSeen=true; ready=true; push(); }
     }, function(err){ if(err && err.code==='permission-denied'){ note('<span style="color:var(--warn)">This account can\'t open this section.</span>'); } else { note('\u2601 Offline \u2014 saved on this device'); } });
   }
-  function push(){ if(!db) return; if(!ready) return;
-    try{ if(cloudHadData && Array.isArray(State.quotes) && !State.quotes.length){ note('<span style="color:var(--warn)">Safety: refusing to overwrite cloud data</span>'); return; } }catch(_){}
-    try{ if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
-      ref().set({state:State,ts:Date.now()}).then(function(){ note("☁ Synced across your devices"); })
-        .catch(function(){ note("☁ Cloud save failed — saved on this device"); }); }catch(e){}
+  function push(){ if(!db) return;
+    if(!ready || !_serverSeen) return;
+    ref().get({source:"server"}).then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){ syncMergeState(d,true); if(syncAbsorb(d)){ try{ lsSave(); render(); }catch(_){} } }
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      return ref().set({state:State,ts:Date.now()});
+    }).then(function(){ note("☁ Synced across your devices"); try{lsSave();}catch(_){} })
+      .catch(function(){ note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pt); pt=setTimeout(push,8000); });
   }
+  window.addEventListener("online",function(){ clearTimeout(pt); pt=setTimeout(push,900); });
 })();
 </script>
 <script>
@@ -716,6 +721,40 @@ function sefSaveBlob(blob,filename){
   patch(); setTimeout(patch,600); setTimeout(patch,2000); setTimeout(patch,5000);
   document.addEventListener("click",patch,true);
 })();
+</script>
+<script>
+/* ===== data-loss protection: merge by id + remembered deletes ===== */
+var SYNC_ARR="quotes", SYNC_TOMB="quotes:deleted";
+function _syncTomb(){ try{ return JSON.parse(localStorage.getItem(SYNC_TOMB)||"{}"); }catch(_){ return {}; } }
+window.__tombstone=function(id){ try{ var t=_syncTomb(); t[id]=Date.now(); localStorage.setItem(SYNC_TOMB,JSON.stringify(t)); }catch(_){} };
+function _syncApplyTomb(arr){ var t=_syncTomb(); return (arr||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+function _syncTs(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
+function _syncMerge(localArr,cloudArr,preferLocal){
+  localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+  var map={},order=[],noid=[];
+  function sg(x){ try{return JSON.stringify(x);}catch(_){return"";} }
+  localArr.forEach(function(x){ if(!x||x.id==null){noid.push(x);return;} var k=String(x.id); if(!(k in map)){map[k]=x;order.push(k);} });
+  cloudArr.forEach(function(x){ if(!x||x.id==null) return; var k=String(x.id);
+    if(!(k in map)){ map[k]=x; order.push(k); return; }
+    var cur=map[k], a=_syncTs(x), b=_syncTs(cur);
+    if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+  return order.map(function(k){return map[k];}).concat(noid);
+}
+function syncMergeState(d,preferLocal){
+  if(!d) return;
+  State[SYNC_ARR]=_syncApplyTomb(_syncMerge(State[SYNC_ARR],d[SYNC_ARR],preferLocal));
+  var cs=d.settings||{}, ls=State.settings||{};
+  if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+}
+/* pull back anything a save would drop that you did not delete */
+function syncAbsorb(d){
+  if(!d) return 0;
+  var t=_syncTomb(), ids={}, miss=[];
+  (State[SYNC_ARR]||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+  (d[SYNC_ARR]||[]).forEach(function(x){ if(!x||x.id==null) return; if(!ids[String(x.id)] && !t[x.id]) miss.push(x); });
+  if(miss.length) State[SYNC_ARR]=(State[SYNC_ARR]||[]).concat(miss);
+  return miss.length;
+}
 </script>
 </body>
 </html>
