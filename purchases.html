@@ -139,6 +139,29 @@
   table.grid td.del button{color:var(--warn);padding:8px;width:100%}
   table.grid td.del button:hover{background:var(--warn-soft)}
   .cw-item{min-width:150px}.cw-cat{min-width:110px}.cw-vendor{min-width:120px}.cw-num{min-width:66px}.cw-status{min-width:120px}.cw-fwd{min-width:110px}.cw-date{min-width:130px}
+  /* ===== FIT TO SCREEN: show every column, no sideways scrolling ===== */
+  body.fitgrid .gridwrap{overflow-x:hidden}
+  body.fitgrid table.grid{width:100%;min-width:0;table-layout:fixed;font-size:11px}
+  body.fitgrid table.grid th{padding:6px 3px;font-size:8.5px;white-space:normal;line-height:1.2;letter-spacing:.01em}
+  body.fitgrid table.grid input,body.fitgrid table.grid select{font-size:11px;padding:7px 3px;min-width:0;text-overflow:ellipsis}
+  body.fitgrid table.grid td.calc{padding:7px 4px;font-size:10.5px;white-space:normal}
+  body.fitgrid table.grid td.num{width:26px;padding:0 2px}
+  body.fitgrid table.grid td.del{width:26px}
+  body.fitgrid .rowmenu{padding:9px 2px;font-size:10px}
+  body.fitgrid .rowmenu::after{display:none}
+  body.fitgrid .cw-item,body.fitgrid .cw-cat,body.fitgrid .cw-vendor,body.fitgrid .cw-num,
+  body.fitgrid .cw-status,body.fitgrid .cw-fwd,body.fitgrid .cw-date{min-width:0}
+  body.fitgrid .cw-item{width:15%}
+  body.fitgrid .cw-cat{width:10%}
+  body.fitgrid .cw-vendor{width:11%}
+  body.fitgrid .cw-num{width:7%}
+  body.fitgrid .cw-status{width:10%}
+  body.fitgrid .cw-fwd{width:9%}
+  body.fitgrid .cw-date{width:11%}
+  /* frozen first columns are not needed when nothing scrolls sideways */
+  body.fitgrid .grid th:first-child, body.fitgrid .grid td:first-child,
+  body.fitgrid .grid th:nth-child(2), body.fitgrid .grid td:nth-child(2){position:static;box-shadow:none}
+  body.fitgrid .fitBtn{background:var(--green);color:#fff;border-color:var(--green)}
   .gridbar{display:flex;gap:10px;align-items:center;margin:12px 0}
   .gridbar .cnt{font-size:12px;color:var(--faint);margin-left:auto}
 
@@ -439,7 +462,7 @@ function renderPurchases(){
   html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="psearch" placeholder="Search item, part no., vendor" value="${esc(ui.search)}"></div></div>
     <div class="seg" id="stFilter"><button class="${!ui.statusFilter?"on":""}" data-st="">All</button>${statuses.map(s=>`<button class="${ui.statusFilter===s?"on":""}" data-st="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
-  html+=`<div class="gridbar"><button class="btn primary sm" id="addRow">＋ Add row</button><span class="cnt">${list.length} rows in this shipment</span></div>`;
+  html+=`<div class="gridbar"><button class="btn primary sm" id="addRow">＋ Add row</button><button class="btn sm fitBtn" type="button" title="Show all columns on screen">⇔ Fit</button><span class="cnt">${list.length} rows in this shipment</span></div>`;
   if(State.purchases.length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">Empty sheet</div><p>Tap <b>Add row</b> and just start typing — like Excel. Fill in the product now; add the vendor, price, qty or status whenever you get them. Totals calculate automatically.</p><button class="btn primary" id="addRow2" style="margin:0 auto">Add first row</button></div></div>`;
   }else{
@@ -1175,7 +1198,7 @@ function renderTracking(){
   let html=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="tsearch" placeholder="Search tracking no., vendor, forwarder" value="${esc(ui.search)}"></div></div>
     <div class="seg" id="stFilterT"><button class="${!ui.statusFilter?"on":""}" data-st="">All</button>${statuses.map(s=>`<button class="${ui.statusFilter===s?"on":""}" data-st="${esc(s)}">${esc(s)}</button>`).join("")}</div>
-    <div class="gridbar"><button class="btn primary sm" id="addTrack">＋ Add shipment</button><span class="cnt">${list.length} in this invoice</span></div>`;
+    <div class="gridbar"><button class="btn primary sm" id="addTrack">＋ Add shipment</button><button class="btn sm fitBtn" type="button" title="Show all columns on screen">⇔ Fit</button><span class="cnt">${list.length} in this invoice</span></div>`;
   if(sTracking().length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">No shipments tracked</div><p>Track parcels moving <b>From a vendor → to your forwarder</b>. Add the tracking number and update the status as it travels (Ordered → Shipped → At Forwarder → In Transit → Customs → Received).</p><button class="btn primary" id="addTrack2" style="margin:0 auto">Add first shipment</button></div></div>`;
   }else{
@@ -1255,7 +1278,7 @@ function renderToBuy(){
     <div style="font-size:12.5px;color:var(--muted);margin-top:3px">Products you added but haven't set a <b>vendor</b> or <b>price</b> for yet. Fill those in and they leave this list automatically.</div></div>`;
   html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="tbsearch" placeholder="Search products to buy" value="${esc(ui.search)}"></div></div>
-    <div class="gridbar"><button class="btn primary sm" id="addRowTB">＋ Add product</button><button class="btn sm" id="rfqBtn">📋 Price request</button><span class="cnt">${list.length} to buy</span></div>`;
+    <div class="gridbar"><button class="btn primary sm" id="addRowTB">＋ Add product</button><button class="btn sm fitBtn" type="button" title="Show all columns on screen">⇔ Fit</button><button class="btn sm" id="rfqBtn">📋 Price request</button><span class="cnt">${list.length} to buy</span></div>`;
   if(list.length===0){
     html+=`<div class="card"><div class="empty"><div class="big grot">Nothing pending 🎉</div><p>Every product has a vendor and price. Add a new one here anytime — leave vendor/price blank and it'll wait here until you fill them.</p></div></div>`;
   }else{
@@ -2174,6 +2197,20 @@ function sefSaveBlob(blob,filename){
       P.__sefPatched=true; } }catch(e){} }
   patch(); setTimeout(patch,600); setTimeout(patch,2000); setTimeout(patch,5000);
   document.addEventListener("click",patch,true);
+})();
+</script>
+<script>
+/* ===== Fit-to-screen toggle for the Buy and Track tables ===== */
+(function(){
+  var KEY="purchases:fitgrid";
+  try{ if(localStorage.getItem(KEY)==="1") document.body.classList.add("fitgrid"); }catch(e){}
+  document.addEventListener("click",function(ev){
+    var b=ev.target&&ev.target.closest&&ev.target.closest(".fitBtn");
+    if(!b) return;
+    ev.preventDefault();
+    var on=document.body.classList.toggle("fitgrid");
+    try{ localStorage.setItem(KEY, on?"1":"0"); }catch(e){}
+  });
 })();
 </script>
 </body>
