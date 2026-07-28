@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counter — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3; --panel:#FFFFFF; --ink:#0F1917; --muted:#6B7975; --faint:#9AA6A2;
+  --line:#E4E8E4; --line-strong:#D2D8D3; --green:#0E4F44; --green-hi:#0A3E35; --green-soft:#E6F0EC;
+  --paid:#2E7D5B; --warn:#B0492C; --warn-soft:#F8EAE4; --gold:#B08A3E; --amber-soft:#FBF3E2;
+  --blue:#1F6F8B; --blue-soft:#E4F0F4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.4}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+button{font-family:inherit;cursor:pointer;border:none}
+
+header{background:var(--green);color:#fff;padding:11px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;font-weight:600}
+header .inv{font-family:"JetBrains Mono",monospace;font-size:13px;color:#BFE0D6}
+header .spacer{flex:1}
+header .daytot{font-size:12.5px;color:#BFE0D6}
+header .daytot b{color:#fff;font-family:"JetBrains Mono",monospace}
+.hbtn{background:rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600}
+.hbtn:hover{background:rgba(255,255,255,.22)}
+.status{font-size:11px;color:#BFE0D6;width:100%;margin-top:2px}
+
+.pos{display:grid;grid-template-columns:1fr 430px;gap:14px;padding:14px;align-items:start}
+@media(max-width:980px){ .pos{grid-template-columns:1fr} }
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.search{width:100%;border:2px solid var(--green);border-radius:12px;padding:14px 16px;font-size:17px;font-family:"JetBrains Mono",monospace;outline:none}
+.search::placeholder{font-family:"Inter",sans-serif;font-size:15px;color:var(--faint)}
+.shint{font-size:11.5px;color:var(--faint);margin-top:7px}
+
+.results{margin-top:12px;max-height:calc(100vh - 260px);overflow-y:auto}
+.res{display:flex;align-items:center;gap:12px;padding:10px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;cursor:pointer;background:#fff}
+.res:hover,.res.sel{border-color:var(--green);background:var(--green-soft)}
+.res .nm{flex:1;min-width:0;font-weight:600;font-size:14.5px;word-break:break-word}
+.res .meta{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:"JetBrains Mono",monospace}
+.res .qty{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;padding:4px 9px;border-radius:7px;background:var(--green-soft);color:var(--green);flex-shrink:0}
+.res .qty.low{background:var(--warn-soft);color:var(--warn)}
+.res .qty.zero{background:#EFEFEF;color:var(--faint)}
+.emptyres{text-align:center;color:var(--faint);padding:34px 10px;font-size:14px}
+
+.cart{max-height:44vh;overflow-y:auto;margin-bottom:12px}
+.crow{display:grid;grid-template-columns:1fr 62px 88px 84px 30px;gap:7px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.crow .cn{font-size:13.5px;font-weight:600;word-break:break-word;line-height:1.25}
+.crow .sub{font-size:10.5px;color:var(--faint);font-family:"JetBrains Mono",monospace}
+.cin{width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:8px 6px;font-size:13.5px;
+  font-family:"JetBrains Mono",monospace;text-align:right;outline:none}
+.cin:focus{border-color:var(--green)}
+.crow .lt{text-align:right;font-family:"JetBrains Mono",monospace;font-size:13.5px;font-weight:700}
+.xbtn{background:none;color:var(--warn);font-size:17px;line-height:1;padding:5px}
+.cartempty{text-align:center;color:var(--faint);padding:30px 10px;font-size:14px}
+
+.totals{border-top:2px solid var(--line-strong);padding-top:11px}
+.trow{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;margin-bottom:7px;color:var(--muted)}
+.trow .v{font-family:"JetBrains Mono",monospace;color:var(--ink);font-weight:600}
+.trow.big{font-size:20px;font-family:"Space Grotesk",sans-serif;font-weight:700;color:var(--ink);margin:11px 0 4px}
+.trow.big .v{font-size:23px;color:var(--green)}
+.discin{width:110px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;font-size:13.5px;
+  font-family:"JetBrains Mono",monospace;text-align:right;outline:none}
+
+.lbl{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:12px 0 6px;letter-spacing:.02em}
+.inp{width:100%;border:1.5px solid var(--line-strong);border-radius:10px;padding:11px 12px;font-size:14.5px;font-family:inherit;outline:none;background:#fff}
+.inp:focus{border-color:var(--green)}
+.pays{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pay{border:1.5px solid var(--line-strong);border-radius:10px;padding:10px 4px;font-size:12.5px;font-weight:700;color:var(--muted);background:#fff;text-align:center}
+.pay.on{background:var(--green);border-color:var(--green);color:#fff}
+.pay.credit.on{background:var(--gold);border-color:var(--gold)}
+
+.btn{border-radius:12px;padding:15px;font-size:16px;font-weight:700;font-family:"Space Grotesk",sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.btn.charge{background:var(--green);color:#fff;font-size:18px;padding:17px;margin-top:12px}
+.btn.charge:disabled{background:#C7D2CD;cursor:not-allowed}
+.btn.sm{padding:10px;font-size:13.5px;border-radius:10px}
+.btn.ghost{background:#F0F2F0;color:var(--ink)}
+.rowbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+
+.scrim{position:fixed;inset:0;background:rgba(15,25,23,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.scrim.on{display:flex}
+.sheet{background:#fff;border-radius:18px;width:min(520px,100%);max-height:88vh;overflow-y:auto;padding:20px}
+.sheet h2{font-size:18px;margin-bottom:14px}
+.pick{padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer}
+.pick:hover{border-color:var(--green);background:var(--green-soft)}
+.pick .n{font-weight:600;font-size:14.5px}
+.pick .b{font-size:12px;color:var(--muted);font-family:"JetBrains Mono",monospace}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:12px 22px;border-radius:11px;font-size:14.5px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;text-align:center}
+.toast.on{opacity:1}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:10px}
+
+/* ---------- receipt (printing) ---------- */
+#receipt{display:none}
+@media print{
+  body>*{display:none!important}
+  #receipt{display:block!important;font-family:"JetBrains Mono",monospace;color:#000;width:76mm;margin:0 auto;font-size:11px;line-height:1.45}
+  #receipt .c{text-align:center}
+  #receipt .sh{font-size:15px;font-weight:700;letter-spacing:.04em}
+  #receipt hr{border:none;border-top:1px dashed #000;margin:6px 0}
+  #receipt table{width:100%;border-collapse:collapse}
+  #receipt td{padding:1px 0;vertical-align:top}
+  #receipt .r{text-align:right}
+  #receipt .tot{font-size:14px;font-weight:700}
+  @page{margin:5mm}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Counter</h1>
+  <span class="inv" id="invNo">#—</span>
+  <span class="spacer"></span>
+  <span class="daytot">Today: <b id="dayTot">Rs 0</b> · <span id="dayCnt">0</span> bills</span>
+  <button class="hbtn" id="holdsBtn">Held (0)</button>
+  <button class="hbtn" id="dayBtn">Day sales</button>
+  <div class="status" id="status">Connecting…</div>
+</header>
+
+<div class="pos">
+  <!-- LEFT: find items -->
+  <div class="panel">
+    <input class="search" id="q" placeholder="Scan or type part number / name…" autocomplete="off" spellcheck="false">
+    <div class="shint">Enter = add first result &nbsp;·&nbsp; ↑ ↓ = choose &nbsp;·&nbsp; F2 = search &nbsp;·&nbsp; F4 = charge &nbsp;·&nbsp; F8 = hold</div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <!-- RIGHT: the bill -->
+  <div class="panel">
+    <div class="cart" id="cart"></div>
+    <div class="totals">
+      <div class="trow"><span>Items</span><span class="v" id="tItems">0</span></div>
+      <div class="trow"><span>Subtotal</span><span class="v" id="tSub">Rs 0</span></div>
+      <div class="trow"><span>Discount</span><input class="discin mono" id="disc" value="0" inputmode="decimal"></div>
+      <div class="trow big"><span>TOTAL</span><span class="v" id="tTot">Rs 0</span></div>
+
+      <label class="lbl">Customer (needed for credit)</label>
+      <div style="display:flex;gap:8px">
+        <input class="inp" id="custName" placeholder="Walk-in customer" autocomplete="off" readonly style="cursor:pointer;background:#FAFBFA">
+        <button class="btn ghost sm" id="custClear" style="width:auto;padding:11px 13px">✕</button>
+      </div>
+
+      <label class="lbl">Payment</label>
+      <div class="pays" id="pays">
+        <button class="pay on" data-p="cash">Cash</button>
+        <button class="pay" data-p="easypaisa">Easypaisa</button>
+        <button class="pay" data-p="jazzcash">JazzCash</button>
+        <button class="pay" data-p="bank">Bank</button>
+        <button class="pay credit" data-p="credit">Credit (Udhaar)</button>
+        <button class="pay" data-p="other">Other</button>
+      </div>
+
+      <div id="cashWrap">
+        <label class="lbl">Cash received</label>
+        <input class="inp mono" id="cashGiven" inputmode="decimal" placeholder="0" style="text-align:right">
+        <div class="trow" style="margin-top:8px"><span>Change to give</span><span class="v" id="changeV">Rs 0</span></div>
+      </div>
+
+      <div id="creditWarn" class="warnbox" style="display:none">Pick a customer — a credit bill is posted to their Ledger account.</div>
+
+      <button class="btn charge" id="chargeBtn">Charge &nbsp;·&nbsp; <span id="chargeAmt">Rs 0</span></button>
+      <div class="rowbtns">
+        <button class="btn ghost sm" id="holdBtn">Hold bill</button>
+        <button class="btn ghost sm" id="clearBtn">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- customer picker -->
+<div class="scrim" id="custScrim"><div class="sheet">
+  <h2>Choose customer</h2>
+  <input class="inp" id="custSearch" placeholder="Search name or phone…" autocomplete="off" style="margin-bottom:12px">
+  <div id="custList"></div>
+</div></div>
+
+<!-- held bills -->
+<div class="scrim" id="holdScrim"><div class="sheet">
+  <h2>Held bills</h2>
+  <div id="holdList"></div>
+  <button class="btn ghost sm" id="holdClose" style="margin-top:12px">Close</button>
+</div></div>
+
+<!-- day sales -->
+<div class="scrim" id="dayScrim"><div class="sheet">
+  <h2>Today's sales</h2>
+  <div id="dayList"></div>
+  <button class="btn ghost sm" id="dayClose" style="margin-top:12px">Close</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<div id="receipt"></div>
+
+<script>
+/* ==================== STATE ==================== */
+var SETKEY="pos:settings:v1";
+var Settings={ seq:0, shop:"SHAKEEL ELECTRONICS", phone:"0312-6617887",
+               footer:"Shukriya! Goods once sold are checked by buyer.", prices:{}, updatedAt:0 };
+var Month={ sales:[], holds:[], updatedAt:0 };   /* current month only */
+var STOCK={ items:[], locations:[] };            /* read from the Stock app */
+var MEMBERS=[];                                  /* customers from Ledger */
+var cart=[], pay="cash", custId=null, custLabel="", selIdx=0, curMonth=monthKey(new Date());
+
+function monthKey(d){ return "pos_"+d.getFullYear()+"_"+String(d.getMonth()+1).padStart(2,"0"); }
+function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function money(n){ return "Rs "+Math.round(n||0).toLocaleString("en-PK"); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
+function num(v){ var n=parseFloat(String(v).replace(/[^\d.\-]/g,"")); return isNaN(n)?0:n; }
+
+function saveSettings(){ try{ localStorage.setItem(SETKEY, JSON.stringify(Settings)); }catch(e){} }
+function loadSettings(){ try{ var s=localStorage.getItem(SETKEY); if(s) Settings=Object.assign(Settings,JSON.parse(s)); }catch(e){} }
+function saveMonth(){ try{ localStorage.setItem("pos:"+curMonth, JSON.stringify(Month)); }catch(e){} }
+function loadMonth(){ try{ var s=localStorage.getItem("pos:"+curMonth); if(s) Month=Object.assign({sales:[],holds:[]},JSON.parse(s)); }catch(e){} }
+
+/* ==================== FIND ITEMS ==================== */
+function matches(){
+  var q=document.getElementById("q").value.trim().toLowerCase();
+  var list=STOCK.items||[];
+  if(!q) return list.slice(0,40);
+  var starts=[], has=[];
+  list.forEach(function(it){
+    var n=(it.name||"").toLowerCase(), c=(it.code||"").toLowerCase();
+    if(n.indexOf(q)===0||c.indexOf(q)===0) starts.push(it);
+    else if(n.indexOf(q)>=0||c.indexOf(q)>=0) has.push(it);
+  });
+  return starts.concat(has).slice(0,40);
+}
+function renderResults(){
+  var list=matches(), el=document.getElementById("results");
+  if(!list.length){
+    el.innerHTML='<div class="emptyres">'+(STOCK.items.length?"Nothing found. Try a shorter part number.":"Loading your stock…")+'</div>';
+    return;
+  }
+  if(selIdx>=list.length) selIdx=0;
+  el.innerHTML=list.map(function(it,i){
+    var q=it.qty||0, cls=q<=0?"zero":(q<=5?"low":"");
+    var sell=Settings.prices[it.id];
+    return '<div class="res'+(i===selIdx?' sel':'')+'" data-add="'+it.id+'">'
+      +'<div class="nm">'+esc(it.name||"(no name)")
+        +'<div class="meta">'+(it.code?esc(it.code)+" · ":"")+"cost "+money(it.price)
+        +(sell?" · last sold "+money(sell):"")+'</div></div>'
+      +'<div class="qty '+cls+'">'+q+'</div></div>';
+  }).join("");
+  el.querySelectorAll("[data-add]").forEach(function(d){ d.onclick=function(){ addItem(d.dataset.add); }; });
+  var sel=el.querySelector(".res.sel"); if(sel&&sel.scrollIntoView) sel.scrollIntoView({block:"nearest"});
+}
+
+/* ==================== CART ==================== */
+function addItem(id){
+  var it=(STOCK.items||[]).filter(function(x){return x.id===id;})[0];
+  if(!it) return;
+  var ex=cart.filter(function(c){return c.itemId===id;})[0];
+  if(ex){ ex.qty+=1; }
+  else cart.push({ itemId:it.id, name:it.name, code:it.code||"", qty:1,
+                   price:Settings.prices[it.id]||0, cost:it.price||0, stockQty:it.qty||0 });
+  renderCart();
+  var qEl=document.getElementById("q"); qEl.value=""; selIdx=0; renderResults(); qEl.focus();
+}
+function renderCart(){
+  var el=document.getElementById("cart");
+  if(!cart.length){ el.innerHTML='<div class="cartempty">No items yet.<br>Scan or search on the left.</div>'; }
+  else{
+    el.innerHTML=cart.map(function(c,i){
+      var low = c.qty>c.stockQty;
+      var lossy = c.price>0 && c.price<c.cost;
+      return '<div class="crow">'
+        +'<div><div class="cn">'+esc(c.name)+'</div>'
+          +'<div class="sub">'+(low?'<span style="color:#B0492C">only '+c.stockQty+' in stock</span>':"stock "+c.stockQty)
+          +(lossy?' · <span style="color:#B0492C">below cost</span>':'')+'</div></div>'
+        +'<input class="cin" data-q="'+i+'" value="'+c.qty+'" inputmode="numeric">'
+        +'<input class="cin" data-p="'+i+'" value="'+(c.price||"")+'" inputmode="decimal" placeholder="price">'
+        +'<div class="lt">'+money(c.qty*c.price)+'</div>'
+        +'<button class="xbtn" data-x="'+i+'">×</button></div>';
+    }).join("");
+    el.querySelectorAll("[data-q]").forEach(function(x){
+      x.onchange=function(){ var i=+x.dataset.q; cart[i].qty=Math.max(0,num(x.value)); if(!cart[i].qty) cart.splice(i,1); renderCart(); };
+    });
+    el.querySelectorAll("[data-p]").forEach(function(x){
+      x.onchange=function(){ var i=+x.dataset.p; cart[i].price=num(x.value); renderCart(); };
+    });
+    el.querySelectorAll("[data-x]").forEach(function(x){
+      x.onclick=function(){ cart.splice(+x.dataset.x,1); renderCart(); };
+    });
+  }
+  updateTotals();
+}
+function subTotal(){ return cart.reduce(function(s,c){ return s+(c.qty*c.price); },0); }
+function grandTotal(){ return Math.max(0, subTotal()-num(document.getElementById("disc").value)); }
+function updateTotals(){
+  var sub=subTotal(), tot=grandTotal();
+  document.getElementById("tItems").textContent=cart.reduce(function(s,c){return s+c.qty;},0);
+  document.getElementById("tSub").textContent=money(sub);
+  document.getElementById("tTot").textContent=money(tot);
+  document.getElementById("chargeAmt").textContent=money(tot);
+  var given=num(document.getElementById("cashGiven").value);
+  document.getElementById("changeV").textContent=money(Math.max(0,given-tot));
+  document.getElementById("chargeBtn").disabled = !cart.length;
+  document.getElementById("cashWrap").style.display = pay==="cash" ? "" : "none";
+  document.getElementById("creditWarn").style.display = (pay==="credit"&&!custId) ? "" : "none";
+}
+
+/* ==================== CHARGE ==================== */
+function charge(){
+  if(!cart.length) return;
+  if(pay==="credit" && !custId){ toast("Pick a customer for a credit bill"); openCust(); return; }
+  var noPrice=cart.filter(function(c){return !c.price;});
+  if(noPrice.length){ toast("Set a price for: "+noPrice[0].name); return; }
+  var over=cart.filter(function(c){return c.qty>c.stockQty;});
+  if(over.length && !confirm(over[0].name+" — only "+over[0].stockQty+" in stock.\nSell anyway?")) return;
+
+  var tot=grandTotal(), given=num(document.getElementById("cashGiven").value);
+  Settings.seq=(Settings.seq||0)+1;
+  var sale={
+    id:uid(), no:Settings.seq, date:todayISO(), at:Date.now(),
+    items:cart.map(function(c){ return {itemId:c.itemId,name:c.name,qty:c.qty,price:c.price,cost:c.cost}; }),
+    sub:subTotal(), disc:num(document.getElementById("disc").value), total:tot,
+    pay:pay, cashGiven:pay==="cash"?given:0, change:pay==="cash"?Math.max(0,given-tot):0,
+    customerId:custId, customerName:custLabel||"Walk-in",
+    createdAt:Date.now(), updatedAt:Date.now()
+  };
+  cart.forEach(function(c){ Settings.prices[c.itemId]=c.price; });  /* remember last selling price */
+  Month.sales.unshift(sale);
+  saveSettings(); saveMonth();
+  if(window.__posSave) window.__posSave();
+
+  if(window.__deductStock) window.__deductStock(sale.items);
+  if(pay==="credit" && custId && window.__postLedger)
+    window.__postLedger(custId, tot, "Invoice #"+sale.no, sale.date);
+
+  printReceipt(sale);
+  newBill();
+  renderDay();
+  toast("Bill #"+sale.no+" saved · "+money(tot));
+}
+function newBill(){
+  cart=[]; custId=null; custLabel="";
+  document.getElementById("custName").value="";
+  document.getElementById("disc").value="0";
+  document.getElementById("cashGiven").value="";
+  setPay("cash"); renderCart(); nextInvNo();
+  document.getElementById("q").focus();
+}
+function nextInvNo(){ document.getElementById("invNo").textContent="#"+((Settings.seq||0)+1); }
+
+/* ==================== RECEIPT ==================== */
+function printReceipt(s){
+  var rows=s.items.map(function(i){
+    return '<tr><td colspan="3">'+esc(i.name)+'</td></tr>'
+      +'<tr><td>'+i.qty+' x '+Math.round(i.price)+'</td><td></td><td class="r">'+Math.round(i.qty*i.price)+'</td></tr>';
+  }).join("");
+  document.getElementById("receipt").innerHTML=
+     '<div class="c sh">'+esc(Settings.shop)+'</div>'
+    +'<div class="c">LED TV spare parts &amp; accessories</div>'
+    +'<div class="c">'+esc(Settings.phone)+'</div><hr>'
+    +'<table><tr><td>Bill #'+s.no+'</td><td class="r">'+s.date+'</td></tr>'
+    +'<tr><td colspan="2">Customer: '+esc(s.customerName)+'</td></tr></table><hr>'
+    +'<table>'+rows+'</table><hr>'
+    +'<table>'
+    +'<tr><td>Subtotal</td><td class="r">'+Math.round(s.sub)+'</td></tr>'
+    +(s.disc?'<tr><td>Discount</td><td class="r">-'+Math.round(s.disc)+'</td></tr>':'')
+    +'<tr class="tot"><td>TOTAL</td><td class="r">Rs '+Math.round(s.total)+'</td></tr>'
+    +'<tr><td>Paid by</td><td class="r">'+s.pay.toUpperCase()+'</td></tr>'
+    +(s.pay==="cash"&&s.cashGiven?'<tr><td>Cash</td><td class="r">'+Math.round(s.cashGiven)+'</td></tr>'
+      +'<tr><td>Change</td><td class="r">'+Math.round(s.change)+'</td></tr>':'')
+    +'</table><hr><div class="c">'+esc(Settings.footer)+'</div>';
+  setTimeout(function(){ try{ window.print(); }catch(e){} },120);
+}
+
+/* ==================== HOLD / DAY ==================== */
+function holdBill(){
+  if(!cart.length){ toast("Nothing to hold"); return; }
+  Month.holds.push({ id:uid(), at:Date.now(), cart:cart.slice(),
+    disc:num(document.getElementById("disc").value), custId:custId, custLabel:custLabel });
+  saveMonth(); if(window.__posSave) window.__posSave();
+  newBill(); renderHolds(); toast("Bill held");
+}
+function renderHolds(){
+  document.getElementById("holdsBtn").textContent="Held ("+(Month.holds||[]).length+")";
+  var el=document.getElementById("holdList");
+  if(!el) return;
+  if(!(Month.holds||[]).length){ el.innerHTML='<div class="emptyres">No held bills.</div>'; return; }
+  el.innerHTML=Month.holds.map(function(h){
+    var t=h.cart.reduce(function(s,c){return s+c.qty*c.price;},0);
+    return '<div class="pick" data-h="'+h.id+'"><div class="n">'+h.cart.length+' items · '+money(t)+'</div>'
+      +'<div class="b">'+(h.custLabel||"Walk-in")+' · '+new Date(h.at).toLocaleTimeString()+'</div></div>';
+  }).join("");
+  el.querySelectorAll("[data-h]").forEach(function(d){ d.onclick=function(){
+    var h=Month.holds.filter(function(x){return x.id===d.dataset.h;})[0]; if(!h) return;
+    cart=h.cart.slice(); custId=h.custId; custLabel=h.custLabel||"";
+    document.getElementById("custName").value=custLabel;
+    document.getElementById("disc").value=h.disc||0;
+    Month.holds=Month.holds.filter(function(x){return x.id!==h.id;});
+    saveMonth(); if(window.__posSave) window.__posSave();
+    renderCart(); renderHolds();
+    document.getElementById("holdScrim").classList.remove("on");
+  }; });
+}
+function todaySales(){ var t=todayISO(); return (Month.sales||[]).filter(function(s){return s.date===t;}); }
+function renderDay(){
+  var t=todaySales(), sum=t.reduce(function(s,x){return s+(x.total||0);},0);
+  document.getElementById("dayTot").textContent=money(sum);
+  document.getElementById("dayCnt").textContent=t.length;
+  var el=document.getElementById("dayList"); if(!el) return;
+  if(!t.length){ el.innerHTML='<div class="emptyres">No sales yet today.</div>'; return; }
+  el.innerHTML='<div class="pick" style="cursor:default"><div class="n">Total '+money(sum)+'</div>'
+    +'<div class="b">'+t.length+' bills</div></div>'
+    +t.map(function(s){
+      return '<div class="pick" data-r="'+s.id+'"><div class="n">#'+s.no+' · '+money(s.total)+'</div>'
+        +'<div class="b">'+esc(s.customerName)+' · '+s.pay+' · '+new Date(s.at).toLocaleTimeString()+'</div></div>';
+    }).join("");
+  el.querySelectorAll("[data-r]").forEach(function(d){ d.onclick=function(){
+    var s=(Month.sales||[]).filter(function(x){return x.id===d.dataset.r;})[0]; if(s) printReceipt(s); }; });
+}
+
+/* ==================== CUSTOMER ==================== */
+function openCust(){
+  document.getElementById("custScrim").classList.add("on");
+  document.getElementById("custSearch").value=""; renderCustList();
+  setTimeout(function(){ document.getElementById("custSearch").focus(); },80);
+}
+function renderCustList(){
+  var q=document.getElementById("custSearch").value.trim().toLowerCase();
+  var list=MEMBERS.filter(function(m){
+    if(!q) return true;
+    return (m.name||"").toLowerCase().indexOf(q)>=0 || String(m.phone||"").indexOf(q)>=0;
+  }).slice(0,60);
+  var el=document.getElementById("custList");
+  if(!list.length){ el.innerHTML='<div class="emptyres">'+(MEMBERS.length?"No match.":"No customers in your Ledger yet.")+'</div>'; return; }
+  el.innerHTML=list.map(function(m){
+    return '<div class="pick" data-c="'+m.id+'"><div class="n">'+esc(m.name)+'</div>'
+      +'<div class="b">'+esc(m.phone||"")+'</div></div>';
+  }).join("");
+  el.querySelectorAll("[data-c]").forEach(function(d){ d.onclick=function(){
+    var m=MEMBERS.filter(function(x){return x.id===d.dataset.c;})[0]; if(!m) return;
+    custId=m.id; custLabel=m.name;
+    document.getElementById("custName").value=m.name;
+    document.getElementById("custScrim").classList.remove("on");
+    updateTotals();
+  }; });
+}
+
+/* ==================== UI WIRING ==================== */
+function setPay(p){
+  pay=p;
+  document.querySelectorAll("#pays .pay").forEach(function(b){ b.classList.toggle("on", b.dataset.p===p); });
+  updateTotals();
+}
+document.querySelectorAll("#pays .pay").forEach(function(b){ b.onclick=function(){ setPay(b.dataset.p); }; });
+document.getElementById("q").addEventListener("input",function(){ selIdx=0; renderResults(); });
+document.getElementById("q").addEventListener("keydown",function(e){
+  var list=matches();
+  if(e.key==="ArrowDown"){ e.preventDefault(); selIdx=Math.min(selIdx+1,list.length-1); renderResults(); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); selIdx=Math.max(selIdx-1,0); renderResults(); }
+  else if(e.key==="Enter"){ e.preventDefault(); if(list[selIdx]) addItem(list[selIdx].id); }
+});
+document.getElementById("disc").addEventListener("input",updateTotals);
+document.getElementById("cashGiven").addEventListener("input",updateTotals);
+document.getElementById("chargeBtn").onclick=charge;
+document.getElementById("holdBtn").onclick=holdBill;
+document.getElementById("clearBtn").onclick=function(){ if(cart.length&&!confirm("Clear this bill?"))return; newBill(); };
+document.getElementById("custName").onclick=openCust;
+document.getElementById("custClear").onclick=function(){ custId=null; custLabel=""; document.getElementById("custName").value=""; updateTotals(); };
+document.getElementById("custSearch").addEventListener("input",renderCustList);
+document.getElementById("holdsBtn").onclick=function(){ renderHolds(); document.getElementById("holdScrim").classList.add("on"); };
+document.getElementById("holdClose").onclick=function(){ document.getElementById("holdScrim").classList.remove("on"); };
+document.getElementById("dayBtn").onclick=function(){ renderDay(); document.getElementById("dayScrim").classList.add("on"); };
+document.getElementById("dayClose").onclick=function(){ document.getElementById("dayScrim").classList.remove("on"); };
+document.querySelectorAll(".scrim").forEach(function(s){ s.addEventListener("click",function(e){ if(e.target===s) s.classList.remove("on"); }); });
+document.addEventListener("keydown",function(e){
+  if(e.key==="F2"){ e.preventDefault(); document.getElementById("q").focus(); document.getElementById("q").select(); }
+  else if(e.key==="F4"){ e.preventDefault(); charge(); }
+  else if(e.key==="F8"){ e.preventDefault(); holdBill(); }
+  else if(e.key==="Escape"){ document.querySelectorAll(".scrim.on").forEach(function(s){ s.classList.remove("on"); }); }
+});
+var toastT=null;
+function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el.classList.add("on");
+  clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("on"); },2100); }
+
+loadSettings(); loadMonth(); renderCart(); renderResults(); renderHolds(); renderDay(); nextInvNo();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com",
+            projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app",
+            messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
+  var db=null, ready=false, _dirty=false, pt=null, _serverSeen=false;
+  function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
+  try{ firebase.initializeApp(cfg); db=firebase.firestore(); }catch(e){ note("\u2601 Offline — saved on this device"); return; }
+  function appRef(k){ return db.collection("shops").doc("main").collection("apps").doc(k); }
+
+  /* ---- deleted-sale memory ---- */
+  function _tomb(){ try{ return JSON.parse(localStorage.getItem("pos:deleted")||"{}"); }catch(_){ return {}; } }
+  function _applyTomb(a){ var t=_tomb(); return (a||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+  function _ts(x){ return (x&&(x.updatedAt||x.createdAt||x.at))||0; }
+  function _merge(l,c,preferLocal){
+    l=Array.isArray(l)?l:[]; c=Array.isArray(c)?c:[];
+    var map={},order=[],noid=[];
+    function sg(x){ try{return JSON.stringify(x);}catch(_){return"";} }
+    l.forEach(function(x){ if(!x||x.id==null){noid.push(x);return;} var k=String(x.id); if(!(k in map)){map[k]=x;order.push(k);} });
+    c.forEach(function(x){ if(!x||x.id==null)return; var k=String(x.id);
+      if(!(k in map)){map[k]=x;order.push(k);return;}
+      var cur=map[k],a=_ts(x),b=_ts(cur);
+      if(a>b){map[k]=x;} else if(a<b){} else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+    return order.map(function(k){return map[k];}).concat(noid);
+  }
+  function mergeMonth(d,preferLocal){
+    if(!d) return;
+    Month.sales=_applyTomb(_merge(Month.sales,d.sales,preferLocal));
+    Month.holds=_merge(Month.holds,d.holds,preferLocal);
+  }
+  /* a save can never remove a bill you did not delete */
+  function absorb(d){
+    if(!d) return 0;
+    var t=_tomb(), ids={}, miss=[];
+    (Month.sales||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+    (d.sales||[]).forEach(function(x){ if(!x||x.id==null) return; if(!ids[String(x.id)] && !t[x.id]) miss.push(x); });
+    if(miss.length) Month.sales=Month.sales.concat(miss);
+    return miss.length;
+  }
+  function sig(){ try{ return JSON.stringify(Month.sales)+"|"+JSON.stringify(Month.holds); }catch(_){ return "x"+Math.random(); } }
+
+  firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
+  start();
+  var started=false;
+  function start(){
+    if(started) return; started=true;
+
+    /* live stock list */
+    appRef("stockbox").onSnapshot(function(s){
+      var st=s.exists&&s.data()&&s.data().state;
+      if(st&&Array.isArray(st.items)){
+        STOCK.items=st.items; STOCK.locations=st.locations||[];
+        cart.forEach(function(c){ var it=STOCK.items.filter(function(x){return x.id===c.itemId;})[0]; if(it) c.stockQty=it.qty||0; });
+        renderResults(); renderCart();
+      }
+    }, function(){});
+
+    /* customers from Ledger */
+    appRef("ledger").onSnapshot(function(s){
+      var st=s.exists&&s.data()&&s.data().state;
+      if(st&&Array.isArray(st.members)) MEMBERS=st.members;
+    }, function(){});
+
+    /* settings (invoice number + remembered prices) */
+    appRef("pos").onSnapshot(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){
+        if((d.updatedAt||0)>(Settings.updatedAt||0)){
+          if(typeof d.seq==="number" && d.seq>(Settings.seq||0)) Settings.seq=d.seq;
+          if(d.prices) Settings.prices=Object.assign({},d.prices,Settings.prices);
+          if(d.shop) Settings.shop=d.shop; if(d.phone) Settings.phone=d.phone; if(d.footer) Settings.footer=d.footer;
+          saveSettings(); nextInvNo();
+        }
+      }
+    }, function(){});
+
+    /* this month's bills */
+    appRef(curMonth).onSnapshot(function(s){
+      var fromCache=!!(s.metadata&&s.metadata.fromCache);
+      if(s.exists){
+        var d=s.data()&&s.data().state;
+        if(d){
+          var s0=sig();
+          mergeMonth(d);
+          saveMonth();
+          if(sig()!==s0){ renderDay(); renderHolds(); }
+        }
+        if(!fromCache){ _serverSeen=true; ready=true; note("\u2601 Synced across your devices"); }
+        else { note("\u2601 Checking cloud\u2026"); }
+      } else if(!fromCache){ _serverSeen=true; ready=true; push(); }
+    }, function(err){ ready=true; note(err&&err.code==="permission-denied"?"\u2601 Saved on this device":"\u2601 Offline — saved on this device"); });
+  }
+
+  function push(){
+    if(!db) return;
+    if(!ready || !_serverSeen){ _dirty=true; return; }
+    appRef(curMonth).get({source:"server"}).then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){ mergeMonth(d,true); if(absorb(d)){ saveMonth(); renderDay(); } }
+      Month.updatedAt=Date.now(); _dirty=false;
+      return appRef(curMonth).set({state:Month, ts:Date.now()});
+    }).then(function(){
+      Settings.updatedAt=Date.now();
+      return appRef("pos").set({state:{seq:Settings.seq, prices:Settings.prices, shop:Settings.shop,
+        phone:Settings.phone, footer:Settings.footer, updatedAt:Settings.updatedAt}, ts:Date.now()});
+    }).then(function(){ note("\u2601 Synced across your devices"); saveMonth(); })
+      .catch(function(){ _dirty=true; note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pt); pt=setTimeout(push,8000); });
+  }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pt); pt=setTimeout(push,900); } });
+  window.__posSave=function(){ _dirty=true; if(ready){ clearTimeout(pt); pt=setTimeout(push,500); } };
+
+  /* ---- take sold pieces out of Stock ---- */
+  window.__deductStock=function(items){
+    if(!db||!items||!items.length) return Promise.resolve(false);
+    var sref=appRef("stockbox");
+    return sref.get({source:"server"}).then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.items)) return false;
+      items.forEach(function(li){
+        var it=st.items.filter(function(x){return x.id===li.itemId;})[0];
+        if(it){ it.qty=Math.max(0,(it.qty||0)-(li.qty||0)); it.updatedAt=Date.now(); }
+      });
+      if(!st.settings) st.settings={};
+      st.settings.updatedAt=Date.now();
+      return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ toast("Stock not updated — check connection"); return false; });
+  };
+
+  /* ---- put a credit bill on the customer's Ledger account ---- */
+  window.__postLedger=function(memberId, amount, desc, dateISO){
+    if(!db) return Promise.resolve(false);
+    var lref=appRef("ledger");
+    return lref.get({source:"server"}).then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state); if(!st) return false;
+      if(!Array.isArray(st.transactions)) st.transactions=[];
+      st.transactions.push({ id:"pos"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        memberId:memberId, type:"charge", amount:Math.round(amount), description:desc,
+        date:dateISO, createdAt:Date.now(), updatedAt:Date.now() });
+      if(!st.settings) st.settings={};
+      st.settings.updatedAt=Date.now();
+      return lref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ toast("Ledger not updated — check connection"); return false; });
+  };
+})();
+</script>
+</body>
+</html>

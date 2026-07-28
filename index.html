@@ -505,6 +505,10 @@
         <div class="ic i-order"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg></div>
         <div><div class="t">Order Book</div><div class="d">Customer orders from request to delivery</div></div>
       </button>
+      <button class="app" data-go="pos" data-src="pos.html">
+        <div class="ic i-order" style="background:linear-gradient(135deg,#0E4F44,#2E7D5B)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg></div>
+        <div><div class="t">Counter (POS)</div><div class="d">Bill customers, print receipt, stock goes down</div></div>
+      </button>
       <button class="app" data-go="suppliers" data-src="suppliers.html">
         <div class="ic i-order" style="background:linear-gradient(135deg,#FF4400,#B08A3E)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
         <div><div class="t">Suppliers &amp; Links</div><div class="d">Save Taobao, 1688 &amp; Alibaba shop links</div></div>
@@ -558,7 +562,7 @@
 </nav>
 
 <script>
-var V = "70";  // cache-buster: bump when you upload new app files
+var V = "71";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -980,6 +984,7 @@ if("serviceWorker" in navigator){
     {key:"quotes",        ls:"quotes:data:v1"},
     {key:"contacts",      ls:"contacts:data:v1"},
     {key:"suppliers",     ls:"suppliers:data:v1"},
+    {key:"pos",           ls:"pos:settings:v1"},
     {key:"store",         ls:null},
     {key:"store_showcase",ls:null}
   ];
@@ -1000,6 +1005,12 @@ if("serviceWorker" in navigator){
     var out={ app:"Shakeel Electronics", type:"full-backup", version:1, exportedAt:new Date().toISOString(), apps:{} };
     // local copy first (instant, always available)
     APPS.forEach(function(a){ if(a.ls){ try{ var v=localStorage.getItem(a.ls); if(v){ out.apps[a.key]=out.apps[a.key]||{}; out.apps[a.key].local=JSON.parse(v); } }catch(e){} } });
+    /* every month of counter sales gets backed up too */
+    var _now=new Date();
+    for(var _i=0;_i<30;_i++){
+      var _d=new Date(_now.getFullYear(), _now.getMonth()-_i, 1);
+      APPS.push({key:"pos_"+_d.getFullYear()+"_"+String(_d.getMonth()+1).padStart(2,"0"), ls:null});
+    }
     var jobs = db ? APPS.map(function(a){
       return ref(db,a.key).get().then(function(s){
         if(s.exists){ var d=s.data(); out.apps[a.key]=out.apps[a.key]||{}; out.apps[a.key].cloud=(d&&d.state!==undefined)?d.state:d; out.apps[a.key].cloudTs=(d&&d.ts)||null; }
