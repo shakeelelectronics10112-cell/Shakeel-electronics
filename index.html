@@ -505,7 +505,7 @@
         <div class="ic i-order"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg></div>
         <div><div class="t">Order Book</div><div class="d">Customer orders from request to delivery</div></div>
       </button>
-      <button class="app" data-go="suppliers">
+      <button class="app" data-go="suppliers" data-src="suppliers.html">
         <div class="ic i-order" style="background:linear-gradient(135deg,#FF4400,#B08A3E)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
         <div><div class="t">Suppliers &amp; Links</div><div class="d">Save Taobao, 1688 &amp; Alibaba shop links</div></div>
       </button>
@@ -558,7 +558,7 @@
 </nav>
 
 <script>
-var V = "69";  // cache-buster: bump when you upload new app files
+var V = "70";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -592,6 +592,7 @@ document.querySelectorAll("[data-go]").forEach(function(el){
     var t = el.dataset.go;
     var btn = document.querySelector('#nav button[data-tab="' + t + '"]');
     if(btn) show(t, btn.dataset.src);
+    else if(el.dataset.src) show(t, el.dataset.src);   /* apps without a nav tab */
   });
 });
 document.getElementById("refreshBtn").onclick = function(){ location.reload(); };
