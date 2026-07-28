@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Suppliers &amp; Links — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3; --panel:#FFFFFF; --ink:#0F1917; --muted:#6B7975; --faint:#9AA6A2;
+  --line:#E4E8E4; --line-strong:#D2D8D3; --green:#0E4F44; --green-hi:#0A3E35; --green-soft:#E6F0EC;
+  --warn:#B0492C; --warn-soft:#F8EAE4; --gold:#B08A3E; --amber:#8A6A2A; --amber-soft:#FBF3E2;
+  --blue:#1F6F8B; --blue-soft:#E4F0F4; --wa:#25D366;
+  --tb:#FF4400; --tb-soft:#FDE9E2; --ali:#FF6A00; --al:#1688FF; --al-soft:#E4EEFB;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;padding-bottom:92px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+
+header{background:var(--green);color:#fff;padding:16px 18px 14px;position:sticky;top:0;z-index:40}
+header h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+header .sub{font-size:12px;color:#BFE0D6;margin-top:2px}
+.status{font-size:11px;color:#BFE0D6;margin-top:6px}
+
+.toolbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 16px;position:sticky;top:70px;z-index:35}
+.search{width:100%;border:1.5px solid var(--line-strong);border-radius:12px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.search:focus{border-color:var(--green)}
+.chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line-strong);background:#fff;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip .n{font-size:11px;opacity:.8;margin-left:3px}
+
+.wrap{padding:14px 16px}
+.stat{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.group{margin-bottom:18px}
+.ghead{display:flex;align-items:center;gap:8px;margin:0 2px 8px}
+.ghead .nm{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:15px}
+.ghead .cnt{font-size:11.5px;color:var(--faint)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+.crow{display:flex;align-items:flex-start;gap:10px}
+.plat{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;font-family:"Space Grotesk",sans-serif;letter-spacing:.02em}
+.p-taobao{background:var(--tb-soft);color:var(--tb)}
+.p-1688{background:var(--al-soft);color:var(--al)}
+.p-alibaba{background:var(--amber-soft);color:var(--ali)}
+.p-other{background:var(--green-soft);color:var(--green)}
+.cinfo{flex:1;min-width:0}
+.cinfo .t{font-weight:600;font-size:14.5px;word-break:break-word}
+.cinfo .u{font-size:11.5px;color:var(--faint);font-family:"JetBrains Mono",monospace;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr}
+.cinfo .nt{font-size:12.5px;color:var(--muted);margin-top:5px;word-break:break-word}
+.acts{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.mini{border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:5px;font-family:inherit}
+.mini.open{background:var(--green);color:#fff}
+.mini.copy{background:#F0F2F0;color:var(--ink)}
+.mini.wa{background:var(--wa);color:#fff}
+.mini.ed{background:#F0F2F0;color:var(--muted);margin-left:auto}
+.empty{text-align:center;padding:52px 20px;color:var(--faint)}
+.empty svg{width:52px;height:52px;opacity:.4;margin-bottom:12px}
+
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;z-index:45}
+.btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;font-family:"Space Grotesk",sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--green);color:#fff;flex:1}
+.btn.ghost{background:#F0F2F0;color:var(--ink)}
+.btn.del{background:var(--warn-soft);color:var(--warn)}
+.btn:active{transform:scale(.985)}
+
+.scrim{position:fixed;inset:0;background:rgba(15,25,23,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.scrim.on{display:flex}
+.sheet{background:#fff;border-radius:22px 22px 0 0;width:min(560px,100%);max-height:93vh;overflow-y:auto;padding:20px 20px 30px}
+.sheet h2{font-size:18px;margin-bottom:16px}
+.fld{display:block;margin-bottom:14px}
+.fld .lt{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.inp{width:100%;border:1.5px solid var(--line-strong);border-radius:11px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.inp:focus{border-color:var(--green)}
+textarea.inp{resize:vertical;min-height:70px}
+.urlrow{display:flex;gap:8px}
+.urlrow .inp{flex:1;font-family:"JetBrains Mono",monospace;font-size:13px}
+.sheetacts{display:flex;gap:10px;margin-top:6px}
+.sheetacts .btn{flex:1}
+.hint{font-size:12px;color:var(--faint);margin:-8px 0 14px}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;letter-spacing:.03em;text-transform:uppercase;margin-top:6px}
+.toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:11px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;max-width:90vw}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Suppliers &amp; Links</h1>
+  <div class="sub">Taobao · 1688 · Alibaba shop &amp; product links</div>
+  <div class="status" id="status">Connecting…</div>
+</header>
+
+<div class="toolbar">
+  <input class="search" id="search" placeholder="Search supplier, item or note…" autocomplete="off">
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="wrap">
+  <div class="stat" id="count">0 links</div>
+  <div id="list"></div>
+</div>
+
+<div class="bottombar">
+  <button class="btn primary" id="addBtn">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add link
+  </button>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="sheet">
+    <h2 id="shTitle">Add link</h2>
+    <label class="fld"><span class="lt">Link (paste here)</span>
+      <div class="urlrow">
+        <input class="inp mono" id="f-url" placeholder="https://item.taobao.com/…" autocomplete="off" inputmode="url">
+        <button class="btn ghost" id="pasteBtn" type="button" style="padding:12px 14px">Paste</button>
+      </div></label>
+    <div class="hint" id="platHint">Taobao, 1688 and Alibaba links are recognised automatically.</div>
+    <label class="fld"><span class="lt">What is it?</span>
+      <input class="inp" id="f-title" placeholder="e.g. COF reels shop, TCON boards" autocomplete="off"></label>
+    <label class="fld"><span class="lt">Supplier name</span>
+      <input class="inp" id="f-sup" placeholder="e.g. Chen Electronics" autocomplete="off" list="supList">
+      <datalist id="supList"></datalist></label>
+    <label class="fld"><span class="lt">Note (optional)</span>
+      <textarea class="inp" id="f-note" placeholder="e.g. WeChat id, min order, price agreed"></textarea></label>
+    <div class="sheetacts">
+      <button class="btn del" id="f-del" style="display:none;flex:0 0 auto;padding:14px 18px">Delete</button>
+      <button class="btn ghost" id="f-cancel">Cancel</button>
+      <button class="btn primary" id="f-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+var KEY="suppliers:data:v1";
+var State={ links:[], settings:{ updatedAt:0 } };
+var ui={ filter:"all", search:"", editId:null };
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function lsSave(){ try{ localStorage.setItem(KEY, JSON.stringify(State)); return true; }catch(e){ return false; } }
+function lsLoad(){ try{ var s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
+
+/* ================= PLATFORM ================= */
+function platOf(url){
+  var u=String(url||"").toLowerCase();
+  if(u.indexOf("taobao")>=0||u.indexOf("tmall")>=0) return "taobao";
+  if(u.indexOf("1688")>=0) return "1688";
+  if(u.indexOf("alibaba")>=0) return "alibaba";
+  return "other";
+}
+function platName(p){ return p==="taobao"?"Taobao":p==="1688"?"1688":p==="alibaba"?"Alibaba":"Other"; }
+function tidyUrl(u){
+  u=String(u||"").trim();
+  if(!u) return "";
+  if(!/^https?:\/\//i.test(u)) u="https://"+u.replace(/^\/+/,"");
+  return u;
+}
+function shortUrl(u){
+  var s=String(u||"").replace(/^https?:\/\//i,"").replace(/^www\./i,"");
+  return s.length>52?s.slice(0,52)+"…":s;
+}
+
+/* ================= RENDER ================= */
+var PLATS=[["all","All"],["taobao","Taobao"],["1688","1688"],["alibaba","Alibaba"],["other","Other"]];
+function platCount(p){ return p==="all"?State.links.length:State.links.filter(function(x){return platOf(x.url)===p;}).length; }
+
+function renderChips(){
+  var el=document.getElementById("chips");
+  el.innerHTML=PLATS.map(function(c){
+    var n=platCount(c[0]);
+    if(c[0]!=="all" && !n) return "";
+    return '<button class="chip'+(ui.filter===c[0]?' on':'')+'" data-f="'+c[0]+'">'+c[1]+'<span class="n">'+n+'</span></button>';
+  }).join("");
+  el.querySelectorAll("[data-f]").forEach(function(b){ b.onclick=function(){ ui.filter=b.dataset.f; render(); }; });
+}
+
+function filtered(){
+  var q=ui.search.trim().toLowerCase();
+  return State.links.filter(function(x){
+    if(ui.filter!=="all" && platOf(x.url)!==ui.filter) return false;
+    if(!q) return true;
+    return (x.title||"").toLowerCase().indexOf(q)>=0
+        || (x.supplier||"").toLowerCase().indexOf(q)>=0
+        || (x.note||"").toLowerCase().indexOf(q)>=0
+        || (x.url||"").toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function render(){
+  renderChips();
+  var list=filtered();
+  document.getElementById("count").textContent=list.length+" link"+(list.length===1?"":"s")
+    +(ui.filter!=="all"?" · "+platName(ui.filter):"");
+  var el=document.getElementById("list");
+  if(!list.length){
+    el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><div>'
+      +(State.links.length?"Nothing matches that.":"No links saved yet. Tap Add link and paste a Taobao or 1688 link.")+'</div></div>';
+    return;
+  }
+  /* group by supplier */
+  var groups={}, order=[];
+  list.forEach(function(x){
+    var k=(x.supplier||"").trim()||"Not set";
+    if(!groups[k]){ groups[k]=[]; order.push(k); }
+    groups[k].push(x);
+  });
+  order.sort(function(a,b){ if(a==="Not set") return 1; if(b==="Not set") return -1; return a.localeCompare(b); });
+
+  el.innerHTML=order.map(function(sup){
+    var rows=groups[sup].map(function(x){
+      var p=platOf(x.url);
+      return '<div class="card">'
+        +'<div class="crow">'
+          +'<div class="plat p-'+p+'">'+esc(platName(p).slice(0,6))+'</div>'
+          +'<div class="cinfo">'
+            +'<div class="t">'+esc(x.title||"(no name)")+'</div>'
+            +'<div class="u">'+esc(shortUrl(x.url))+'</div>'
+            +(x.note?'<div class="nt">'+esc(x.note)+'</div>':'')
+          +'</div>'
+        +'</div>'
+        +'<div class="acts">'
+          +'<button class="mini open" data-open="'+x.id+'">Open</button>'
+          +'<button class="mini copy" data-copy="'+x.id+'">Copy</button>'
+          +'<button class="mini wa" data-wa="'+x.id+'">WhatsApp</button>'
+          +'<button class="mini ed" data-ed="'+x.id+'">Edit</button>'
+        +'</div>'
+      +'</div>';
+    }).join("");
+    return '<div class="group"><div class="ghead"><span class="nm">'+esc(sup)+'</span>'
+      +'<span class="cnt">'+groups[sup].length+' link'+(groups[sup].length===1?"":"s")+'</span></div>'+rows+'</div>';
+  }).join("");
+
+  el.querySelectorAll("[data-open]").forEach(function(b){ b.onclick=function(){ var x=find(b.dataset.open); if(x) window.open(tidyUrl(x.url),"_blank","noopener"); }; });
+  el.querySelectorAll("[data-copy]").forEach(function(b){ b.onclick=function(){ var x=find(b.dataset.copy); if(x) copyText(tidyUrl(x.url)); }; });
+  el.querySelectorAll("[data-wa]").forEach(function(b){ b.onclick=function(){ var x=find(b.dataset.wa); if(!x) return;
+    var msg=(x.title?x.title+"\n":"")+tidyUrl(x.url);
+    window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank"); }; });
+  el.querySelectorAll("[data-ed]").forEach(function(b){ b.onclick=function(){ openSheet(b.dataset.ed); }; });
+}
+function find(id){ return State.links.filter(function(x){return x.id===id;})[0]; }
+
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast("Link copied"); }).catch(function(){ fallbackCopy(t); });
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  try{ var a=document.createElement("textarea"); a.value=t; a.style.position="fixed"; a.style.opacity="0";
+    document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); toast("Link copied"); }
+  catch(e){ toast("Could not copy"); }
+}
+
+/* ================= ADD / EDIT ================= */
+function refreshSupList(){
+  var seen={},out=[];
+  State.links.forEach(function(x){ var s=(x.supplier||"").trim(); if(s&&!seen[s.toLowerCase()]){ seen[s.toLowerCase()]=1; out.push(s); } });
+  out.sort();
+  document.getElementById("supList").innerHTML=out.map(function(s){ return '<option value="'+esc(s)+'">'; }).join("");
+}
+function openSheet(id){
+  ui.editId=id||null;
+  var x=id?find(id):null;
+  document.getElementById("shTitle").textContent=x?"Edit link":"Add link";
+  document.getElementById("f-url").value=x?x.url:"";
+  document.getElementById("f-title").value=x?(x.title||""):"";
+  document.getElementById("f-sup").value=x?(x.supplier||""):"";
+  document.getElementById("f-note").value=x?(x.note||""):"";
+  document.getElementById("f-del").style.display=x?"block":"none";
+  refreshSupList(); updatePlatHint();
+  document.getElementById("scrim").classList.add("on");
+  setTimeout(function(){ document.getElementById(x?"f-title":"f-url").focus(); },110);
+}
+function updatePlatHint(){
+  var u=document.getElementById("f-url").value.trim();
+  var el=document.getElementById("platHint");
+  if(!u){ el.textContent="Taobao, 1688 and Alibaba links are recognised automatically."; return; }
+  el.textContent="Recognised as: "+platName(platOf(u));
+}
+document.getElementById("f-url").addEventListener("input",updatePlatHint);
+
+document.getElementById("pasteBtn").onclick=function(){
+  if(navigator.clipboard&&navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(t){
+      if(t){ document.getElementById("f-url").value=t.trim(); updatePlatHint(); }
+      else toast("Clipboard is empty");
+    }).catch(function(){ toast("Long-press the box and choose Paste"); });
+  } else toast("Long-press the box and choose Paste");
+};
+
+document.getElementById("addBtn").onclick=function(){ openSheet(null); };
+document.getElementById("f-cancel").onclick=function(){ document.getElementById("scrim").classList.remove("on"); };
+document.getElementById("scrim").addEventListener("click",function(e){ if(e.target===this) this.classList.remove("on"); });
+
+document.getElementById("f-save").onclick=function(){
+  var url=tidyUrl(document.getElementById("f-url").value);
+  var title=document.getElementById("f-title").value.trim();
+  var sup=document.getElementById("f-sup").value.trim();
+  var note=document.getElementById("f-note").value.trim();
+  if(!url){ toast("Paste the link first"); return; }
+  if(ui.editId){
+    var x=find(ui.editId);
+    if(x){ x.url=url; x.title=title; x.supplier=sup; x.note=note; x.updatedAt=Date.now(); }
+  } else {
+    State.links.unshift({ id:uid(), url:url, title:title, supplier:sup, note:note, createdAt:Date.now(), updatedAt:Date.now() });
+  }
+  persist(); render();
+  document.getElementById("scrim").classList.remove("on");
+  toast(ui.editId?"Link updated":"Link saved");
+};
+document.getElementById("f-del").onclick=function(){
+  if(!ui.editId) return;
+  if(!confirm("Delete this link?")) return;
+  if(window.__tombstone) window.__tombstone(ui.editId);
+  State.links=State.links.filter(function(x){return x.id!==ui.editId;});
+  persist(); render();
+  document.getElementById("scrim").classList.remove("on");
+  toast("Deleted");
+};
+
+document.getElementById("search").addEventListener("input",function(e){ ui.search=e.target.value; render(); });
+
+var toastT=null;
+function toast(m){ var el=document.getElementById("toast"); el.textContent=m; el.classList.add("on");
+  clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("on"); },1900); }
+
+window.persist=function(){ State.settings.updatedAt=Date.now(); lsSave(); };
+
+(function(){
+  var d=lsLoad();
+  if(d){ if(Array.isArray(d.links)) State.links=d.links; if(d.settings) State.settings=d.settings; }
+  render();
+})();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  var APP_KEY="suppliers";
+  var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com",
+            projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app",
+            messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
+  var db=null, ready=false, _dirty=false, pushTimer=null, _serverSeen=false;
+
+  function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
+  function ref(){ return db.collection("shops").doc("main").collection("apps").doc(APP_KEY); }
+  try{ firebase.initializeApp(cfg); db=firebase.firestore(); }catch(e){ note("\u2601 Offline — saved on this device"); return; }
+
+  /* remembered deletes */
+  function _tomb(){ try{ return JSON.parse(localStorage.getItem("suppliers:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__tombstone=function(id){ try{ var t=_tomb(); t[id]=Date.now(); localStorage.setItem("suppliers:deleted",JSON.stringify(t)); }catch(_){ } };
+  function _applyTomb(arr){ var t=_tomb(); return (arr||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+
+  /* order-stable merge by id — nothing is ever dropped */
+  function _merge(localArr,cloudArr,preferLocal){
+    localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+    var map={},order=[],noid=[];
+    function ts(x){ return (x&&(x.updatedAt||x.createdAt))||0; }
+    function sg(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    cloudArr.forEach(function(x){ if(!x||x.id==null) return; var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push(k); return; }
+      var cur=map[k], a=ts(x), b=ts(cur);
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+    return order.map(function(k){ return map[k]; }).concat(noid);
+  }
+  function mergeCloudIntoState(d,preferLocal){
+    if(!d) return;
+    State.links=_applyTomb(_merge(State.links,d.links,preferLocal));
+    var cs=d.settings||{}, ls=State.settings||{};
+    if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+  }
+  /* a save can never remove a link you did not delete */
+  function _absorb(d){
+    if(!d) return 0;
+    var t=_tomb(), ids={}, miss=[];
+    (State.links||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+    (d.links||[]).forEach(function(x){ if(!x||x.id==null) return; if(!ids[String(x.id)] && !t[x.id]) miss.push(x); });
+    if(miss.length) State.links=State.links.concat(miss);
+    return miss.length;
+  }
+  function _grew(d){
+    var a=State.links||[], b=d.links||[];
+    if(a.length>b.length) return true;
+    var ids={}; b.forEach(function(x){ if(x&&x.id!=null) ids[x.id]=1; });
+    for(var i=0;i<a.length;i++){ if(a[i]&&a[i].id!=null&&!ids[a[i].id]) return true; }
+    return false;
+  }
+  function _typing(){ var a=document.activeElement; return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"); }
+  function _sig(){ try{ return JSON.stringify(State.links); }catch(_){ return "x"+Math.random(); } }
+
+  firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
+  start();
+  var started=false;
+  function start(){
+    if(started) return; started=true;
+    ref().onSnapshot(function(snap){
+      var fromCache=!!(snap.metadata&&snap.metadata.fromCache);
+      if(snap.exists){
+        var d=snap.data()&&snap.data().state;
+        if(d){
+          var s0=_sig();
+          mergeCloudIntoState(d);
+          try{lsSave();}catch(_){}
+          if(_sig()!==s0 && !_typing()) render();
+          if(!fromCache && _dirty && _grew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+        }
+        if(!fromCache){ _serverSeen=true; ready=true; note("\u2601 Synced across your devices"); }
+        else { note("\u2601 Checking cloud\u2026"); }
+      } else if(!fromCache){ _serverSeen=true; ready=true; pushNow(); }
+    }, function(err){ ready=true; note(err&&err.code==="permission-denied"?"\u2601 Saved on this device":"\u2601 Offline — saved on this device"); });
+  }
+
+  function pushNow(){
+    if(!db) return;
+    if(!ready || !_serverSeen){ _dirty=true; return; }
+    ref().get({source:"server"}).then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){ mergeCloudIntoState(d,true);
+        if(_absorb(d)){ try{ lsSave(); render(); }catch(_){} } }
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      _dirty=false;
+      return ref().set({state:State, ts:Date.now()});
+    }).then(function(){ note("\u2601 Synced across your devices"); try{lsSave();}catch(_){} })
+      .catch(function(){ _dirty=true; note("\u2601 Offline \u2014 saved here, will sync when back online");
+        clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,8000); });
+  }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,900); } });
+
+  var _p=window.persist;
+  window.persist=function(){ _p(); _dirty=true; if(ready){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); } };
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
