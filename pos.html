@@ -268,6 +268,12 @@ table.rep tr.tot td{font-weight:700;border-top:2px solid var(--line-strong);bord
       <button data-w="80" class="on">80 mm (3 inch)</button>
       <button data-w="58">58 mm (2 inch)</button>
     </div>
+    <label class="lbl">Exact paper size</label>
+    <div class="seg" id="forceSeg">
+      <button data-f="0" class="on">Let printer decide (safer)</button>
+      <button data-f="1">Force exact width</button>
+    </div>
+    <div style="font-size:12px;color:var(--faint);margin:-6px 0 4px">If printing fails, keep this on "Let printer decide".</div>
     <label class="lbl">Logo on receipt</label>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <img id="logoPrev" style="height:46px;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff">
@@ -347,7 +353,7 @@ var Settings={ seq:0, shop:"SHAKEEL ELECTRONICS", tagline:"LED TV SPARE PARTS ·
   footer:"Shukriya! Goods once sold are checked by the buyer.",
   accounts:[{provider:"Easypaisa",number:"0328-0995780",title:"Husnain Ali"},
             {provider:"JazzCash",number:"0310-1666888",title:"Husnain Ali"}],
-  paper:"80", logo:"logo_512.png", prices:{}, updatedAt:0 };
+  paper:"80", forceSize:false, logo:"logo_512.png", prices:{}, updatedAt:0 };
 var Month={ sales:[], returns:[], holds:[], updatedAt:0 };
 var curMonth=monthKey(new Date());
 var CACHE={};                      /* other months loaded on demand */
@@ -617,7 +623,7 @@ function doPrint(inner){
   var narrow = Settings.paper==="58";
   var w = narrow ? "54mm" : "74mm";
   var css =
-     "@page{margin:3mm;size:"+(narrow?"58mm":"80mm")+" auto}"
+     "@page{margin:3mm;"+(Settings.forceSize?("size:"+(narrow?"58mm":"80mm")+" auto;"):"")+"}"
     +"html,body{margin:0;padding:0;background:#fff}"
     +"body{font-family:'JetBrains Mono',ui-monospace,Consolas,'Courier New',monospace;color:#000;"
     +"font-size:"+(narrow?"10px":"11.5px")+";line-height:1.45;-webkit-print-color-adjust:exact}"
@@ -995,6 +1001,7 @@ function fillSettings(){
   $("s-addr").value=Settings.address||""; $("s-phone").value=Settings.phone||"";
   $("s-footer").value=Settings.footer||"";
   document.querySelectorAll("#paperSeg button").forEach(function(b){ b.classList.toggle("on", b.dataset.w===(Settings.paper||"80")); });
+  document.querySelectorAll("#forceSeg button").forEach(function(b){ b.classList.toggle("on", b.dataset.f===(Settings.forceSize?"1":"0")); });
   $("logoPrev").src=Settings.logo||""; $("logoPrev").style.display=Settings.logo?"":"none";
   renderAccs();
 }
@@ -1014,6 +1021,9 @@ function renderAccs(){
 $("accAdd").onclick=function(){ Settings.accounts=Settings.accounts||[]; Settings.accounts.push({provider:"",number:"",title:""}); renderAccs(); };
 document.querySelectorAll("#paperSeg button").forEach(function(b){
   b.onclick=function(){ document.querySelectorAll("#paperSeg button").forEach(function(x){x.classList.toggle("on",x===b);}); Settings.paper=b.dataset.w; applyPaper(); };
+});
+document.querySelectorAll("#forceSeg button").forEach(function(b){
+  b.onclick=function(){ document.querySelectorAll("#forceSeg button").forEach(function(x){x.classList.toggle("on",x===b);}); Settings.forceSize=(b.dataset.f==="1"); };
 });
 $("logoBtn").onclick=function(){
   var inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.style.display="none"; document.body.appendChild(inp);
@@ -1162,7 +1172,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
       if(d&&(d.updatedAt||0)>(Settings.updatedAt||0)){
         if(typeof d.seq==="number"&&d.seq>(Settings.seq||0)) Settings.seq=d.seq;
         if(d.prices) Settings.prices=Object.assign({},d.prices,Settings.prices);
-        ["shop","tagline","address","phone","footer","paper"].forEach(function(k){ if(d[k]!=null) Settings[k]=d[k]; });
+        ["shop","tagline","address","phone","footer","paper","forceSize"].forEach(function(k){ if(d[k]!=null) Settings[k]=d[k]; });
         if(d.logo!=null) Settings.logo=d.logo;
         if(Array.isArray(d.accounts)) Settings.accounts=d.accounts;
         Settings.updatedAt=d.updatedAt; saveSettings(); nextInvNo(); applyPaper();
@@ -1192,7 +1202,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
       Settings.updatedAt=Date.now();
       return appRef("pos").set({state:{seq:Settings.seq,prices:Settings.prices,shop:Settings.shop,tagline:Settings.tagline,
         address:Settings.address,phone:Settings.phone,footer:Settings.footer,accounts:Settings.accounts,
-        paper:Settings.paper,logo:Settings.logo,updatedAt:Settings.updatedAt}, ts:Date.now()});
+        paper:Settings.paper,forceSize:!!Settings.forceSize,logo:Settings.logo,updatedAt:Settings.updatedAt}, ts:Date.now()});
     }).then(function(){ note("\u2601 Synced across your devices"); saveMonth(); })
       .catch(function(){ _dirty=true; note("\u2601 Offline \u2014 saved here, will sync when back online");
         clearTimeout(pt); pt=setTimeout(push,8000); });
