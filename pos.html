@@ -607,8 +607,51 @@ function receiptHTML(s, kind){
     +'<div class="c tag" style="margin-top:3px">'+(isRet?"Return accepted":"Thank you for your business")+'</div>';
 }
 function applyPaper(){ document.body.className = Settings.paper==="58"?"p58":"p80"; }
-function printReceipt(s){ applyPaper(); $("receipt").innerHTML=receiptHTML(s,"sale"); setTimeout(function(){ try{ window.print(); }catch(e){} },120); }
-function printReturn(r){ applyPaper(); $("receipt").innerHTML=receiptHTML(r,"return"); setTimeout(function(){ try{ window.print(); }catch(e){} },120); }
+function printReceipt(s){ doPrint(receiptHTML(s,"sale")); }
+function printReturn(r){ doPrint(receiptHTML(r,"return")); }
+
+/* Receipts print from their own window — printing from inside the app screen
+   is blocked or sent to the wrong page by most browsers. */
+function doPrint(inner){
+  applyPaper();
+  var narrow = Settings.paper==="58";
+  var w = narrow ? "54mm" : "74mm";
+  var css =
+     "@page{margin:3mm;size:"+(narrow?"58mm":"80mm")+" auto}"
+    +"html,body{margin:0;padding:0;background:#fff}"
+    +"body{font-family:'JetBrains Mono',ui-monospace,Consolas,'Courier New',monospace;color:#000;"
+    +"font-size:"+(narrow?"10px":"11.5px")+";line-height:1.45;-webkit-print-color-adjust:exact}"
+    +"#receipt{width:"+w+";margin:0 auto}"
+    +".c{text-align:center}.r{text-align:right}"
+    +".logo{display:block;margin:0 auto 4px;max-width:"+(narrow?"28mm":"38mm")+";max-height:18mm;filter:grayscale(1) contrast(1.6)}"
+    +".sh{font-size:"+(narrow?"13px":"15px")+";font-weight:700;letter-spacing:.08em}"
+    +".tag{font-size:9.5px;letter-spacing:.03em}"
+    +".rule{border-top:1px solid #000;margin:5px 0}"
+    +".dash{border-top:1px dashed #000;margin:5px 0}"
+    +"table{width:100%;border-collapse:collapse}td{padding:1px 0;vertical-align:top}"
+    +".it{font-weight:700}"
+    +".tot{font-size:"+(narrow?"13px":"15px")+";font-weight:700}"
+    +".box{border:1px solid #000;padding:3px 5px;margin:5px 0}"
+    +".acc{font-size:9.5px}.thx{font-size:10.5px}"
+    +"@media screen{body{background:#eee;padding:14px}#receipt{background:#fff;padding:10px;box-shadow:0 2px 10px rgba(0,0,0,.2)}}";
+  var doc = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Receipt</title><style>"
+    + css + "</style></head><body><div id=\"receipt\">" + inner + "</div>"
+    + "<scr"+"ipt>function go(){setTimeout(function(){try{window.print();}catch(e){}},300);}"
+    + "if(document.readyState===\"complete\"){go();}else{window.addEventListener(\"load\",go);}"
+    + "window.onafterprint=function(){setTimeout(function(){try{window.close();}catch(e){}},400);};<\/scr"+"ipt>"
+    + "</body></html>";
+  var win=null;
+  try{ win=window.open("", "_blank", "width=420,height=680"); }catch(e){ win=null; }
+  if(!win){
+    /* popup blocked — fall back to printing this screen */
+    $("receipt").innerHTML=inner;
+    setTimeout(function(){ try{ window.print(); }catch(e){} },150);
+    toast("Allow pop-ups for this site so receipts print properly");
+    return;
+  }
+  try{ win.document.open(); win.document.write(doc); win.document.close(); win.focus(); }
+  catch(e){ $("receipt").innerHTML=inner; setTimeout(function(){ try{ window.print(); }catch(e2){} },150); }
+}
 
 /* ---- PDF ---- */
 function pdfReceipt(s, kind){
