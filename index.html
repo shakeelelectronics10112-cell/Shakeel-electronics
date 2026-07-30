@@ -56,6 +56,11 @@
   .install{display:none;align-items:center;gap:6px;background:var(--gold);color:#241D0B;font-weight:700;
            font-size:12.5px;padding:7px 12px;border-radius:9px;white-space:nowrap}
   .install:hover{background:#C39A4B}
+  /* always visible header buttons (the .install class is hidden until Windows offers to install) */
+  .hdrbtn{display:inline-flex;align-items:center;gap:6px;color:#fff;font-weight:700;
+          font-size:12.5px;padding:7px 12px;border-radius:9px;white-space:nowrap;border:none;cursor:pointer}
+  .hdrbtn:hover{filter:brightness(1.08)}
+  .hdrbtn:active{transform:scale(.96)}
 
   .netbar{flex:0 0 auto;display:none;background:#8A6A2A;color:#fff;font-size:12px;font-weight:600;
           text-align:center;padding:6px 10px}
@@ -421,9 +426,9 @@
     <div class="btag">Faisalabad</div>
   </div>
   <div class="tb-actions">
-    <button class="install" id="webBtn" title="Open my public website" style="background:linear-gradient(135deg,#12594B,#0A3E35)">🌐 Website</button>
+    <button class="hdrbtn" id="webBtn" title="Open my public website" style="background:linear-gradient(135deg,#12594B,#0A3E35)">🌐 Website</button>
     <button class="install" id="installBtn">⬇ Install</button>
-    <button class="install" id="backupBtn" title="Backup all your data" style="background:linear-gradient(135deg,#B08A3E,#8A6A2A)">💾 Backup</button>
+    <button class="hdrbtn" id="backupBtn" title="Backup all your data" style="background:linear-gradient(135deg,#B08A3E,#8A6A2A)">💾 Backup</button>
     <button class="iconbtn" id="outBtn" title="Sign out">
       <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
     </button>
@@ -562,7 +567,7 @@
 </nav>
 
 <script>
-var V = "79";  // cache-buster: bump when you upload new app files
+var V = "80";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
