@@ -567,7 +567,7 @@
 </nav>
 
 <script>
-var V = "80";  // cache-buster: bump when you upload new app files
+var V = "81";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -1065,8 +1065,9 @@ if("serviceWorker" in navigator){
     var db=fdb();
     if(!db){ msg.textContent="No cloud connection — check the internet."; return; }
     if(!confirm("Send everything on this device up to the cloud?\n\nThis ADDS anything missing. It never deletes.")) return;
-    msg.textContent="Sending your data…";
-    var added=0;
+    msg.innerHTML="Sending your data…";
+    var LIMIT=1000000;   /* one cloud record holds about 1 MB */
+    var report=[];
     var jobs=APPS.filter(function(a){ return a.ls; }).map(function(a){
       var local=null;
       try{ var s=localStorage.getItem(a.ls); if(s) local=JSON.parse(s); }catch(e){}
@@ -1074,17 +1075,36 @@ if("serviceWorker" in navigator){
       return ref(db,a.key).get().then(function(sn){
         var cloud=(sn.exists&&sn.data()&&sn.data().state)||{};
         var merged=mergeStates(cloud, local);
+        var size=0; try{ size=JSON.stringify(merged).length; }catch(e){ size=0; }
+        var kb=Math.round(size/1024);
+        var addedHere=0;
         try{
           Object.keys(merged).forEach(function(k){
-            if(Array.isArray(merged[k])) added += merged[k].length - ((Array.isArray(cloud[k])?cloud[k].length:0));
+            if(Array.isArray(merged[k])) addedHere += merged[k].length - ((Array.isArray(cloud[k])?cloud[k].length:0));
           });
         }catch(e){}
-        return ref(db,a.key).set({state:merged, ts:Date.now()},{merge:true});
-      }).catch(function(){});
+        if(size>LIMIT){
+          report.push("<b>"+a.key+"</b> "+kb+" KB — <span style=\"color:#E79A7A\">TOO BIG for one record</span>");
+          return null;
+        }
+        return ref(db,a.key).set({state:merged, ts:Date.now()},{merge:true}).then(function(){
+          report.push("<b>"+a.key+"</b> "+kb+" KB — sent"+(addedHere>0?(", "+addedHere+" added"):""));
+        }).catch(function(err){
+          var m=(err&&err.message)||"";
+          var why = (m.indexOf("longer than")>=0||m.indexOf("1048")>=0||m.indexOf("exceeds")>=0) ? "too big"
+                  : (m.indexOf("permission")>=0||m.indexOf("PERMISSION")>=0) ? "not allowed for this account"
+                  : "failed";
+          report.push("<b>"+a.key+"</b> "+kb+" KB — <span style=\"color:#E79A7A\">"+why+"</span>");
+        });
+      }).catch(function(err){
+        var m=(err&&err.message)||"";
+        report.push("<b>"+a.key+"</b> — <span style=\"color:#E79A7A\">"+((m.indexOf("permission")>=0)?"not allowed for this account":"could not read cloud")+"</span>");
+      });
     });
     Promise.all(jobs).then(function(){
-      msg.textContent="\u2713 Sent"+(added>0?(" — "+added+" entries added to the cloud"):"")+". Now open the app on your other device.";
-    }).catch(function(){ msg.textContent="Some apps could not be sent — check the internet and try again."; });
+      report.sort();
+      msg.innerHTML="<div style=\"text-align:left;line-height:1.7\">"+report.join("<br>")+"</div>";
+    });
   };
 
   // ---------- RESTORE ----------
