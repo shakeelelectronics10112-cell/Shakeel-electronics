@@ -562,7 +562,7 @@
 </nav>
 
 <script>
-var V = "78";  // cache-buster: bump when you upload new app files
+var V = "79";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -967,6 +967,8 @@ if("serviceWorker" in navigator){
     <div style="font-size:13px;color:#A7C0B6;line-height:1.5;margin-bottom:16px">Save a copy of <b>all your data</b> — Ledger, Buy, Stock, Labels, Quotes, Orders, Customers and Store — to one file on this device. Keep it safe. You can restore from it any time.</div>
     <button id="bkDownload" style="width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:linear-gradient(135deg,#2E7D5B,#1F6B4C);color:#fff;margin-bottom:10px">⬇ Download backup file now</button>
     <button id="bkRestore" style="width:100%;border:1px solid rgba(203,165,75,.4);border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:transparent;color:#E7CD85;margin-bottom:10px">↺ Restore from a backup file</button>
+    <button id="bkPush" style="width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:linear-gradient(135deg,#B08A3E,#8A6A2A);color:#fff;margin-bottom:10px">⬆ Send this device's data to the cloud</button>
+    <div style="font-size:12px;color:#A7C0B6;margin:-4px 0 12px;line-height:1.45">Use this if another device shows less data than this one. It <b>adds</b> what is missing — it never deletes anything.</div>
     <input type="file" id="bkFile" accept="application/json,.json" style="display:none">
     <div id="bkMsg" style="font-size:12.5px;color:#A7C0B6;min-height:16px;margin:4px 0 12px;text-align:center"></div>
     <button id="bkClose" style="width:100%;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;background:rgba(255,255,255,.08);color:#EAF3EE">Close</button>
@@ -1025,6 +1027,59 @@ if("serviceWorker" in navigator){
       try{ localStorage.setItem("shakeel:lastBackup", d.toISOString()); }catch(e){}
       msg.textContent="✓ Backup saved ("+count+" apps). Keep the file safe.";
     }).catch(function(){ msg.textContent="Could not read cloud — saved local copy only."; });
+  };
+
+  // ---------- SEND THIS DEVICE'S DATA UP (adds only, never deletes) ----------
+  function _ts(x){ return (x&&(x.updatedAt||x.createdAt||x.date))||0; }
+  function unionById(cloudArr, localArr){
+    var map={}, order=[], extra=[];
+    function add(arr){
+      (arr||[]).forEach(function(x){
+        if(!x || x.id==null){ extra.push(x); return; }
+        var k=String(x.id);
+        if(!(k in map)){ map[k]=x; order.push(k); }
+        else if(_ts(x)>_ts(map[k])) map[k]=x;
+      });
+    }
+    add(cloudArr); add(localArr);
+    return order.map(function(k){ return map[k]; }).concat(extra);
+  }
+  function mergeStates(cloud, local){
+    var out={}, keys={};
+    Object.keys(cloud||{}).forEach(function(k){ keys[k]=1; });
+    Object.keys(local||{}).forEach(function(k){ keys[k]=1; });
+    Object.keys(keys).forEach(function(k){
+      var c=cloud?cloud[k]:undefined, l=local?local[k]:undefined;
+      if(Array.isArray(c)||Array.isArray(l)) out[k]=unionById(Array.isArray(c)?c:[], Array.isArray(l)?l:[]);
+      else if(c&&l&&typeof c==="object"&&typeof l==="object") out[k]=Object.assign({},c,l);
+      else out[k]=(l!==undefined?l:c);
+    });
+    return out;
+  }
+  document.getElementById("bkPush").onclick=function(){
+    var db=fdb();
+    if(!db){ msg.textContent="No cloud connection — check the internet."; return; }
+    if(!confirm("Send everything on this device up to the cloud?\n\nThis ADDS anything missing. It never deletes.")) return;
+    msg.textContent="Sending your data…";
+    var added=0;
+    var jobs=APPS.filter(function(a){ return a.ls; }).map(function(a){
+      var local=null;
+      try{ var s=localStorage.getItem(a.ls); if(s) local=JSON.parse(s); }catch(e){}
+      if(!local) return Promise.resolve();
+      return ref(db,a.key).get().then(function(sn){
+        var cloud=(sn.exists&&sn.data()&&sn.data().state)||{};
+        var merged=mergeStates(cloud, local);
+        try{
+          Object.keys(merged).forEach(function(k){
+            if(Array.isArray(merged[k])) added += merged[k].length - ((Array.isArray(cloud[k])?cloud[k].length:0));
+          });
+        }catch(e){}
+        return ref(db,a.key).set({state:merged, ts:Date.now()},{merge:true});
+      }).catch(function(){});
+    });
+    Promise.all(jobs).then(function(){
+      msg.textContent="\u2713 Sent"+(added>0?(" — "+added+" entries added to the cloud"):"")+". Now open the app on your other device.";
+    }).catch(function(){ msg.textContent="Some apps could not be sent — check the internet and try again."; });
   };
 
   // ---------- RESTORE ----------
