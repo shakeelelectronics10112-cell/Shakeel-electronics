@@ -554,6 +554,8 @@ function manageShipment(no){
     if(!confirm(`Delete "${shipLabel(no)}"?\n\nThis permanently removes its ${rows.length} item${rows.length===1?"":"s"}. This cannot be undone.`)) return;
     if(window.__pTombstone) State.purchases.forEach(function(p){ if(p.shipment===no) window.__pTombstone("purchase",p.id); });
     State.purchases=State.purchases.filter(p=>p.shipment!==no);
+    State.payments.filter(p=>p.shipment===no).forEach(p=>{ if(window.__pTombstone) window.__pTombstone("payment",p.id); });
+    State.pos.filter(p=>p.shipment===no).forEach(p=>{ if(window.__pTombstone) window.__pTombstone("po",p.id); });
     State.payments=State.payments.filter(p=>p.shipment!==no);
     State.pos=State.pos.filter(p=>p.shipment!==no);
     State.tracking=State.tracking.filter(p=>p.shipment!==no);
@@ -775,7 +777,7 @@ function openPayment(existing, presetVendor){
     if(existing) Object.assign(existing,data); else State.payments.push(Object.assign({id:uid(),shipment:curShip(),createdAt:Date.now()},data));
     persist(); render(); closeScrim(); toast(existing?"Payment updated":"Payment recorded");
   };
-  if(existing) document.getElementById("p-del").onclick=()=>{ if(confirm("Delete this payment?")){ State.payments=State.payments.filter(y=>y.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  if(existing) document.getElementById("p-del").onclick=()=>{ if(confirm("Delete this payment?")){ if(window.__pTombstone) window.__pTombstone("payment",existing.id); State.payments=State.payments.filter(y=>y.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
 }
 
 /* ---------- vendor detail ---------- */
@@ -874,7 +876,7 @@ function openNeed(existing){
     if(existing) Object.assign(existing,data); else State.needs.push(Object.assign({id:uid(),createdAt:Date.now()},data));
     persist(); render(); closeScrim(); toast(existing?"Updated":"Added to buy-list");
   };
-  if(existing) document.getElementById("n-del").onclick=()=>{ if(confirm("Remove from buy-list?")){ State.needs=State.needs.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Removed"); } };
+  if(existing) document.getElementById("n-del").onclick=()=>{ if(confirm("Remove from buy-list?")){ if(window.__pTombstone) window.__pTombstone("need",existing.id); State.needs=State.needs.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Removed"); } };
 }
 
 /* ---------- PURCHASE ORDERS ---------- */
@@ -941,7 +943,7 @@ function openPO(existing, prefillVendor, prefillLines){
     else{ const num="PO-"+String(State.settings.nextPO||1).padStart(3,"0"); State.settings.nextPO=(State.settings.nextPO||1)+1; State.pos.push(Object.assign({id:uid(),number:num,shipment:curShip(),createdAt:Date.now()},data)); toast("PO "+num+" created"); }
     persist(); render(); closeScrim();
   };
-  if(existing) document.getElementById("po-del").onclick=()=>{ if(confirm("Delete this purchase order?")){ State.pos=State.pos.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  if(existing) document.getElementById("po-del").onclick=()=>{ if(confirm("Delete this purchase order?")){ if(window.__pTombstone) window.__pTombstone("po",existing.id); State.pos=State.pos.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
 }
 function openPOView(po){
   if(!po) return; const cur=C(); const t=poTotal(po); const rate=po.rate||State.settings.rate;
@@ -956,7 +958,7 @@ function openPOView(po){
   document.getElementById("po-pdf").onclick=()=>poPDF(po);
   document.getElementById("po-wa").onclick=()=>{ const txt=`${State.settings.org} — ${po.number}\nVendor: ${po.vendor}\n`+po.lines.map(l=>`• ${l.qty}× ${l.item} @¥${money2(l.priceRMB)}`).join("\n")+`\nTotal: ¥${money2(t)}`; const a=document.createElement("a"); a.href=`https://wa.me/?text=${encodeURIComponent(txt)}`; a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove(); };
   document.getElementById("po-edit").onclick=()=>openPO(po);
-  document.getElementById("po-del2").onclick=()=>{ if(confirm("Delete this PO?")){ State.pos=State.pos.filter(x=>x.id!==po.id); persist(); render(); closeScrim(); toast("Deleted"); } };
+  document.getElementById("po-del2").onclick=()=>{ if(confirm("Delete this PO?")){ if(window.__pTombstone) window.__pTombstone("po",po.id); State.pos=State.pos.filter(x=>x.id!==po.id); persist(); render(); closeScrim(); toast("Deleted"); } };
 }
 
 /* ================= PROFESSIONAL DOCUMENT ENGINE ================= */
@@ -2081,7 +2083,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   function _pTyping(){ var a=document.activeElement; return a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"); }
   var _pPending=false;
   function _pSig(){ function sig(arr){ arr=arr||[]; var mx=0,sum=0; for(var i=0;i<arr.length;i++){ var x=arr[i]; var t=(x&&(x.updatedAt||x.createdAt||x.date))||0; if(t>mx)mx=t; sum+=(x&&((x.qty||0)+(x.priceRMB||0)))||0; } return arr.length+":"+mx+":"+Math.round(sum); } return sig(State.purchases)+"|"+sig(State.shipments)+"|"+sig(State.receives); }
-  function _pGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.purchases,d.purchases)||has(State.shipments,d.shipments)||has(State.receives,d.receives)||has(State.tracking,d.tracking); }
+  function _pGrew(d){ function has(a,b){a=a||[];b=b||[];if(a.length>b.length)return true;var ids={};b.forEach(function(x){if(x&&x.id!=null)ids[x.id]=1;});for(var i=0;i<a.length;i++){if(a[i]&&a[i].id!=null&&!ids[a[i].id])return true;}return false;} return has(State.purchases,d.purchases)||has(State.shipments,d.shipments)||has(State.receives,d.receives)||has(State.tracking,d.tracking)||has(State.payments,d.payments)||has(State.needs,d.needs)||has(State.pos,d.pos); }
   document.addEventListener("focusout",function(){ setTimeout(function(){ if(_pPending&&!_pTyping()&&typeof render==="function"){ _pPending=false; render(); } },200); });
   document.addEventListener("visibilitychange",function(){ if(!document.hidden&&_pPending&&typeof render==="function"){ _pPending=false; render(); } });
   function _pTomb(){ try{ return JSON.parse(localStorage.getItem("purchases:deleted")||"{}"); }catch(_){ return {}; } }
@@ -2107,6 +2109,9 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     (function(){ var byNo={}, out=[]; (State.shipments||[]).forEach(function(s){ if(!s||s.no==null){ out.push(s); return; } var k=String(s.no); if(!byNo[k]){ byNo[k]=s; out.push(s); } else { var keep=byNo[k]; if((s.openedAt||0)<(keep.openedAt||0)){ keep.openedAt=s.openedAt; } if(s.name&&!keep.name) keep.name=s.name; if(s.closedAt&&!keep.closedAt) keep.closedAt=s.closedAt; } }); State.shipments=out; })();
     if(Array.isArray(d.receives)) State.receives=_pApplyTomb(_pMerge(State.receives,d.receives,preferLocal),"receive");
     if(Array.isArray(d.tracking)) State.tracking=_pApplyTomb(_pMerge(State.tracking,d.tracking,preferLocal),"tracking");
+    if(Array.isArray(d.payments)) State.payments=_pApplyTomb(_pMerge(State.payments,d.payments,preferLocal),"payment");
+    if(Array.isArray(d.needs))    State.needs   =_pApplyTomb(_pMerge(State.needs,   d.needs,   preferLocal),"need");
+    if(Array.isArray(d.pos))      State.pos     =_pApplyTomb(_pMerge(State.pos,     d.pos,     preferLocal),"po");
     var cs=d.settings||{}, ls=State.settings||{};
     if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
   }
@@ -2117,12 +2122,18 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     _pSafeWrite({ purchases:_pApplyTomb(_pMerge(s.purchases||[],State.purchases,false),"purchase"),
                   shipments:_pApplyTomb(_pMerge(s.shipments||[],State.shipments,false),"shipment"),
                   receives:_pApplyTomb(_pMerge(s.receives||[],State.receives,false),"receive"),
-                  tracking:_pApplyTomb(_pMerge(s.tracking||[],State.tracking,false),"tracking") }); }
+                  tracking:_pApplyTomb(_pMerge(s.tracking||[],State.tracking,false),"tracking"),
+                  payments:_pApplyTomb(_pMerge(s.payments||[],State.payments,false),"payment"),
+                  needs:_pApplyTomb(_pMerge(s.needs||[],State.needs,false),"need"),
+                  pos:_pApplyTomb(_pMerge(s.pos||[],State.pos,false),"po") }); }
   function _safeRestore(){ var s=_pSafeRead();
     State.purchases=_pApplyTomb(_pMerge(State.purchases,s.purchases||[],true),"purchase");
     State.shipments=_pApplyTomb(_pMerge(State.shipments,s.shipments||[],true),"shipment");
     State.receives=_pApplyTomb(_pMerge(State.receives,s.receives||[],true),"receive");
-    State.tracking=_pApplyTomb(_pMerge(State.tracking,s.tracking||[],true),"tracking"); }
+    State.tracking=_pApplyTomb(_pMerge(State.tracking,s.tracking||[],true),"tracking");
+    State.payments=_pApplyTomb(_pMerge(State.payments,s.payments||[],true),"payment");
+    State.needs=_pApplyTomb(_pMerge(State.needs,s.needs||[],true),"need");
+    State.pos=_pApplyTomb(_pMerge(State.pos,s.pos||[],true),"po"); }
   function schedulePush(){ if(!ready) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
   /* SHRINK GUARD: a save can never remove an entry you did not delete */
   function _pMissing(cloudArr, localArr, kind){
@@ -2138,6 +2149,9 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
     var b=_pMissing(d.shipments,State.shipments,"shipment"); if(b.length){ State.shipments=State.shipments.concat(b); n+=b.length; }
     var c=_pMissing(d.receives,State.receives,"receive");    if(c.length){ State.receives=State.receives.concat(c);   n+=c.length; }
     var e=_pMissing(d.tracking,State.tracking,"tracking");   if(e.length){ State.tracking=State.tracking.concat(e);   n+=e.length; }
+    var f=_pMissing(d.payments,State.payments,"payment");    if(f.length){ State.payments=State.payments.concat(f);  n+=f.length; }
+    var g=_pMissing(d.needs,State.needs,"need");             if(g.length){ State.needs=State.needs.concat(g);        n+=g.length; }
+    var i2=_pMissing(d.pos,State.pos,"po");                  if(i2.length){ State.pos=State.pos.concat(i2);          n+=i2.length; }
     return n;
   }
   function pushNow(){ if(!db) return;
