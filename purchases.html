@@ -40,6 +40,21 @@
   .btn svg{width:16px;height:16px}.btn.sm{padding:6px 11px;font-size:12.5px}
   .tabs{display:flex;gap:4px;background:#E9ECE8;padding:4px;border-radius:12px;margin:14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
+  .act{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+  .act .top{display:flex;align-items:flex-start;gap:10px}
+  .act .who{flex:1;min-width:0}
+  .act .nm{font-weight:600;font-size:14.5px;word-break:break-word}
+  .act .sub{font-size:11.5px;color:var(--faint);margin-top:2px}
+  .act .amt{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14.5px;white-space:nowrap}
+  .act .amt.up{color:var(--warn)}
+  .act .amt.down{color:var(--paid,#2E7D5B)}
+  .act .bal{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .act .bal b{font-family:"JetBrains Mono",monospace;color:var(--ink)}
+  .kind{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.03em;margin-right:6px;background:#EEF2F0;color:#5A6B66}
+  .dev{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.03em;margin-left:6px}
+  .dev.pc{background:#E4F0F4;color:#1F6F8B}
+  .dev.phone{background:#E6F0EC;color:#0E4F44}
+  .dev.other{background:#EFEFEF;color:#8A8A8A}
   .tabs button{flex:0 0 auto;min-width:62px;font-size:13px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;transition:.15s;user-select:none;white-space:nowrap}
   .tabs button.on{background:#fff;color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.07)}
   .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
@@ -259,6 +274,7 @@ setTimeout(function(){ document.documentElement.classList.remove("boot"); },1500
     <button data-tab="tracking">Track</button>
     <button data-tab="vendors">Vendors</button>
     <button data-tab="payments">Pay</button>
+    <button data-tab="activity">Activity</button>
     <button data-tab="summary">More</button>
   </div>
   <div id="view"></div>
@@ -344,6 +360,44 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const C=()=>State.settings.currency;
 function money(n){ const s=Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}); return (n<0?"-":"")+s; }
+/* which device made a change */
+var DEVICE=(function(){
+  try{ var s=localStorage.getItem("sef:device"); if(s) return s; }catch(e){}
+  var ua=navigator.userAgent||"", name="PC";
+  if(/Android|iPhone|iPod|Windows Phone|Mobile/i.test(ua)) name="Phone";
+  else if(/iPad|Tablet/i.test(ua) || (/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)) name="Tablet";
+  try{ localStorage.setItem("sef:device",name); }catch(e){}
+  return name;
+})();
+function stampDev(r){ if(r){ r.dev=DEVICE; } return r; }
+/* when each entry first appeared ON THIS DEVICE — kept locally, never synced */
+function seenMap(){
+  var raw=null; try{ raw=localStorage.getItem("purchases:seen"); }catch(e){}
+  var m=null, first=false;
+  try{ m=raw?JSON.parse(raw):null; }catch(e){ m=null; }
+  if(!m){ m={}; first=true; }
+  var now=Date.now(), ch=false;
+  ["purchases","payments","needs","pos","tracking"].forEach(function(k){
+    (State[k]||[]).forEach(function(r){
+      if(r&&r.id&&!m[r.id]){ m[r.id]= first ? (r.updatedAt||r.createdAt||now) : now; ch=true; }
+    });
+  });
+  if(ch){ try{ localStorage.setItem("purchases:seen", JSON.stringify(m)); }catch(e){} }
+  return m;
+}
+function devTag(d){
+  if(!d) return '<span class="dev other">older entry</span>';
+  var k=d==="PC"?"pc":(d==="Phone"?"phone":"other");
+  return '<span class="dev '+k+'">'+esc(d)+'</span>';
+}
+function whenText(ts){
+  if(!ts) return "";
+  var d=new Date(ts), now=new Date();
+  var t=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  if(d.toDateString()===now.toDateString()) return "Today "+t;
+  if(new Date(now.getTime()-86400000).toDateString()===d.toDateString()) return "Yesterday "+t;
+  return d.toLocaleDateString()+" "+t;
+}
 function money2(n){ const s=Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); return (n<0?"-":"")+s; }
 function localISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 const todayISO=()=>localISO(new Date());
@@ -368,6 +422,7 @@ function render(){
   else if(ui.tab==="tracking") renderTracking();
   else if(ui.tab==="vendors") renderVendors();
   else if(ui.tab==="payments") renderPayments();
+  else if(ui.tab==="activity") renderActivity();
   else renderSummary();
 }
 function statTiles(){
@@ -657,6 +712,72 @@ function renderPayments(){
   v.querySelectorAll("[data-pay]").forEach(r=>r.onclick=()=>openPayment(State.payments.find(p=>p.id===r.dataset.pay)));
 }
 
+function renderActivity(){
+  const cur=C();
+  /* what we still owe suppliers, in RMB */
+  let boughtRMB=0, paidRMB=0;
+  State.purchases.forEach(p=>{ boughtRMB += (p.qty||0)*(p.priceRMB||0) + (p.qty||0)*(p.freightPP||0); });
+  State.payments.forEach(p=>{ paidRMB += (p.paidRMB||0); });
+  const oweRMB = boughtRMB - paidRMB;
+
+  const t = r => (r.updatedAt||r.createdAt||0);
+  let feed=[];
+  State.purchases.forEach(r=>feed.push({t:t(r),kind:"Purchase",rec:r,
+    title:(r.item||"(no item)"), sub:(r.vendor||"")+(r.qty?" · "+r.qty+" pcs":""),
+    amt:((r.qty||0)*(r.priceRMB||0)+(r.qty||0)*(r.freightPP||0)), dir:"up", edited:(r.updatedAt||0)>((r.createdAt||0)+2000)}));
+  State.payments.forEach(r=>feed.push({t:t(r),kind:"Payment",rec:r,
+    title:"Paid "+(r.vendor||""), sub:(r.method||"")+(r.ref?" · "+r.ref:""),
+    amt:(r.paidRMB||0), dir:"down", edited:(r.updatedAt||0)>((r.createdAt||0)+2000)}));
+  (State.needs||[]).forEach(r=>feed.push({t:t(r),kind:"To-buy",rec:r,
+    title:(r.item||"(no item)"), sub:(r.vendor||"")+(r.qty?" · "+r.qty+" pcs":""), amt:0, dir:"", edited:false}));
+  (State.pos||[]).forEach(r=>feed.push({t:t(r),kind:"PO",rec:r,
+    title:"Purchase order "+(r.number||""), sub:(r.vendor||""), amt:0, dir:"", edited:false}));
+  (State.tracking||[]).forEach(r=>feed.push({t:t(r),kind:"Track",rec:r,
+    title:(r.item||r.description||"Parcel"), sub:(r.forwarder||"")+(r.status?" · "+r.status:""), amt:0, dir:"", edited:false}));
+
+  const seen=seenMap(), now=Date.now(), DAY7=7*24*3600*1000;
+  const arrived = feed.filter(f=>{
+    const s=seen[f.rec.id]||0;
+    return s && (now-s)<DAY7 && (s-f.t)>6*3600*1000;
+  }).sort((a,b)=>(seen[b.rec.id]||0)-(seen[a.rec.id]||0)).slice(0,10);
+  const arrivedHTML = arrived.length ? `
+    <div class="hint" style="background:#FBF3E2;color:#8A6A2A;border-radius:12px;padding:11px 13px;margin-bottom:12px">
+      <b>Arrived recently from another device</b> — entered earlier elsewhere, reached this device in the last few days.
+    </div>` + arrived.map(f=>`
+      <div class="act" style="border-color:#E7CD85">
+        <div class="top"><div class="who">
+          <div class="nm"><span class="kind">${f.kind}</span>${esc(f.title)}</div>
+          <div class="sub">${esc(f.sub||"")}${devTag(f.rec.dev)}</div>
+          <div class="sub">appeared here ${whenText(seen[f.rec.id])}</div>
+        </div>${f.amt?`<div class="amt ${f.dir}">${f.dir==="down"?"−":"+"} ¥${money(f.amt)}</div>`:""}</div>
+      </div>`).join("") + `<div style="height:14px"></div>` : "";
+
+  feed = feed.filter(f=>f.t>0).sort((a,b)=>b.t-a.t).slice(0,20);
+
+  const rows = feed.length ? feed.map(f=>`
+    <div class="act">
+      <div class="top">
+        <div class="who">
+          <div class="nm"><span class="kind">${f.kind}</span>${esc(f.title)}</div>
+          <div class="sub">${esc(f.sub||"")}${f.edited?" · edited":""}${devTag(f.rec.dev)}</div>
+          <div class="sub">${whenText(f.t)}</div>
+        </div>
+        ${f.amt?`<div class="amt ${f.dir}">${f.dir==="down"?"−":"+"} ¥${money(f.amt)}</div>`:""}
+      </div>
+    </div>`).join("") : `<div class="empty">No changes recorded yet.</div>`;
+
+  document.getElementById("view").innerHTML = `
+    <div class="summary">
+      <div class="stat"><div class="l">You still owe</div><div class="v">¥ ${money(oweRMB)}</div><div class="s">≈ Rs ${money(oweRMB*(State.settings.rate||1))}</div></div>
+      <div class="stat"><div class="l">Total purchased</div><div class="v">¥ ${money(boughtRMB)}</div><div class="s">${State.purchases.length} lines</div></div>
+      <div class="stat"><div class="l">Paid to vendors</div><div class="v">¥ ${money(paidRMB)}</div><div class="s">${State.payments.length} payments</div></div>
+      <div class="stat"><div class="l">This device</div><div class="v" style="font-size:18px">${esc(DEVICE)}</div><div class="s">changes you make are tagged</div></div>
+    </div>
+    ${arrivedHTML}
+    <div class="hint" style="margin-bottom:10px">The last 20 changes, newest first — across purchases, payments, to-buy, POs and tracking.</div>
+    ${rows}`;
+}
+
 function renderSummary(){
   const v=document.getElementById("view"); const cur=C();
   // by category
@@ -711,7 +832,7 @@ function openPurchase(existing, prefill){
     const forwarder=document.getElementById("f-fwd").value.trim();
     if(forwarder && !State.settings.forwarders.includes(forwarder)) State.settings.forwarders.push(forwarder);
     const data={ item, vendor, category, forwarder, qty:parseFloat(document.getElementById("f-qty").value)||0, priceRMB:parseFloat(document.getElementById("f-price").value)||0, freightPP:parseFloat(document.getElementById("f-freight").value)||0, rate:parseFloat(document.getElementById("f-rate").value)||State.settings.rate, status:document.getElementById("f-status").value, date:document.getElementById("f-date").value };
-    if(existing) Object.assign(existing,data,{updatedAt:Date.now()}); else State.purchases.push(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},data));
+    if(existing){ Object.assign(existing,data,{updatedAt:Date.now()}); stampDev(existing); } else State.purchases.push(stampDev(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},data)));
     if(needId) State.needs=State.needs.filter(n=>n.id!==needId);
     persist(); render(); closeScrim(); toast(existing?"Purchase updated":(needId?"Moved to purchases":"Purchase added"));
   };
@@ -774,7 +895,7 @@ function openPayment(existing, presetVendor){
     const vendor=document.getElementById("p-vendor").value; if(!vendor){ flash("Choose a vendor"); return; }
     const paidRMB=parseFloat(document.getElementById("p-rmb").value)||0; if(!(paidRMB>0)){ flash("Enter amount in ¥"); return; }
     const data={ vendor, paidRMB, rate:parseFloat(document.getElementById("p-rate").value)||State.settings.rate, type:document.getElementById("p-type").value, method:document.getElementById("p-method").value, ref:document.getElementById("p-ref").value.trim(), date:document.getElementById("p-date").value, notes:document.getElementById("p-notes").value.trim() };
-    if(existing) Object.assign(existing,data); else State.payments.push(Object.assign({id:uid(),shipment:curShip(),createdAt:Date.now()},data));
+    if(existing){ Object.assign(existing,data,{updatedAt:Date.now()}); stampDev(existing); } else State.payments.push(stampDev(Object.assign({id:uid(),shipment:curShip(),createdAt:Date.now(),updatedAt:Date.now()},data)));
     persist(); render(); closeScrim(); toast(existing?"Payment updated":"Payment recorded");
   };
   if(existing) document.getElementById("p-del").onclick=()=>{ if(confirm("Delete this payment?")){ if(window.__pTombstone) window.__pTombstone("payment",existing.id); State.payments=State.payments.filter(y=>y.id!==existing.id); persist(); render(); closeScrim(); toast("Deleted"); } };
@@ -873,7 +994,7 @@ function openNeed(existing){
   document.getElementById("n-save").onclick=()=>{
     const item=document.getElementById("n-item").value.trim(); if(!item){ flash("Enter the product"); return; }
     const data={ item, category:document.getElementById("n-cat").value, qty:parseFloat(document.getElementById("n-qty").value)||0, targetRMB:parseFloat(document.getElementById("n-target").value)||0, note:document.getElementById("n-note").value.trim() };
-    if(existing) Object.assign(existing,data); else State.needs.push(Object.assign({id:uid(),createdAt:Date.now()},data));
+    if(existing){ Object.assign(existing,data,{updatedAt:Date.now()}); stampDev(existing); } else State.needs.push(stampDev(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},data)));
     persist(); render(); closeScrim(); toast(existing?"Updated":"Added to buy-list");
   };
   if(existing) document.getElementById("n-del").onclick=()=>{ if(confirm("Remove from buy-list?")){ if(window.__pTombstone) window.__pTombstone("need",existing.id); State.needs=State.needs.filter(x=>x.id!==existing.id); persist(); render(); closeScrim(); toast("Removed"); } };

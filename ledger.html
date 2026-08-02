@@ -45,8 +45,24 @@
   .btn.dn:hover{background:var(--warn-soft)}
   .btn.sm{padding:6px 10px;font-size:12px}
 
-  .tabs{display:flex;gap:4px;background:#E9ECE8;padding:4px;border-radius:12px;margin:14px 0}
-  .tabs button{flex:1;font-size:13px;font-weight:600;color:var(--muted);padding:9px 4px;border-radius:9px}
+  .tabs{display:flex;gap:4px;background:#E9ECE8;padding:4px;border-radius:12px;margin:14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:1 0 auto;min-width:66px;white-space:nowrap;font-size:13px;font-weight:600;color:var(--muted);padding:9px 8px;border-radius:9px}
+  /* recent changes list */
+  .act{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:9px}
+  .act .top{display:flex;align-items:flex-start;gap:10px}
+  .act .who{flex:1;min-width:0}
+  .act .nm{font-weight:600;font-size:14.5px;word-break:break-word}
+  .act .sub{font-size:11.5px;color:var(--faint);margin-top:2px}
+  .act .amt{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14.5px;white-space:nowrap}
+  .act .amt.up{color:var(--warn,#B0492C)}
+  .act .amt.down{color:var(--paid,#2E7D5B)}
+  .act .bal{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .act .bal b{font-family:"JetBrains Mono",monospace;color:var(--ink,#0F1917)}
+  .dev{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.03em;margin-left:6px}
+  .dev.pc{background:#E4F0F4;color:#1F6F8B}
+  .dev.phone{background:#E6F0EC;color:#0E4F44}
+  .dev.other{background:#EFEFEF;color:#8A8A8A}
   .tabs button.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(0,0,0,.07)}
 
   .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
@@ -261,6 +277,7 @@ setTimeout(function(){ document.documentElement.classList.remove("boot"); },1500
     <button data-t="people">Customers</button>
     <button data-t="risk">Risk</button>
     <button data-t="money">Money in</button>
+    <button data-t="activity">Activity</button>
   </div>
   <div id="view"></div>
   <div class="foot">
@@ -417,6 +434,44 @@ function riskOf(id){
 }
 function limitOf(m){ return (m.limit!=null && m.limit>0) ? m.limit : (State.settings.defaultLimit||0); }
 
+/* which device made a change */
+var DEVICE=(function(){
+  try{ var s=localStorage.getItem("sef:device"); if(s) return s; }catch(e){}
+  var ua=navigator.userAgent||"", name="PC";
+  if(/Android|iPhone|iPod|Windows Phone|Mobile/i.test(ua)) name="Phone";
+  else if(/iPad|Tablet/i.test(ua) || (/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)) name="Tablet";
+  try{ localStorage.setItem("sef:device",name); }catch(e){}
+  return name;
+})();
+function stampDev(r){ if(r){ r.dev=DEVICE; } return r; }
+/* when each entry first appeared ON THIS DEVICE — kept locally, never synced */
+function seenMap(){
+  var raw=null; try{ raw=localStorage.getItem("ledger:seen"); }catch(e){}
+  var m=null, first=false;
+  try{ m=raw?JSON.parse(raw):null; }catch(e){ m=null; }
+  if(!m){ m={}; first=true; }
+  var now=Date.now(), ch=false;
+  (State.transactions||[]).forEach(function(t){
+    if(t&&t.id&&!m[t.id]){ m[t.id]= first ? (t.updatedAt||t.createdAt||now) : now; ch=true; }
+  });
+  if(ch){ try{ localStorage.setItem("ledger:seen", JSON.stringify(m)); }catch(e){} }
+  return m;
+}
+function devTag(d){
+  if(!d) return '<span class="dev other">older entry</span>';
+  var k=d==="PC"?"pc":(d==="Phone"?"phone":"other");
+  return '<span class="dev '+k+'">'+esc(d)+'</span>';
+}
+function whenText(ts){
+  if(!ts) return "";
+  var d=new Date(ts), now=new Date();
+  var same=d.toDateString()===now.toDateString();
+  var y=new Date(now.getTime()-86400000).toDateString()===d.toDateString();
+  var t=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  if(same) return "Today "+t;
+  if(y) return "Yesterday "+t;
+  return d.toLocaleDateString()+" "+t;
+}
 function totals(){
   let owed=0, overdue=0, count=0;
   const now=Date.now();
@@ -449,6 +504,7 @@ function render(){
   if(ui.tab==="chase") viewChase();
   else if(ui.tab==="people") viewPeople();
   else if(ui.tab==="risk") viewRisk();
+  else if(ui.tab==="activity") viewActivity();
   else viewMoney();
 }
 function kpiHTML(){
@@ -610,6 +666,64 @@ function payTime(t){
   var d=parseTxDate(t.date); if(!isNaN(d)) return d;
   return t.createdAt||0;
 }
+function viewActivity(){
+  const cur=C(), t=totals();
+  const nameOf=id=>{ const m=State.members.find(x=>x.id===id); return m?m.name:"(deleted customer)"; };
+  const seen=seenMap(), DAY7=7*24*3600*1000, now=Date.now();
+  /* entries made elsewhere that only reached this device recently */
+  const arrived=State.transactions.filter(x=>{
+    const s=seen[x.id]||0, made=(x.updatedAt||x.createdAt||0);
+    return s && (now-s)<DAY7 && (s-made)>6*3600*1000;
+  }).sort((a,b)=>(seen[b.id]||0)-(seen[a.id]||0)).slice(0,10);
+  const arrivedHTML = arrived.length ? `
+    <div class="hint" style="background:#FBF3E2;color:#8A6A2A;border-radius:12px;padding:11px 13px;margin-bottom:12px">
+      <b>Arrived recently from another device</b> — entered earlier elsewhere, reached this device in the last few days.
+    </div>` + arrived.map(x=>{
+      const isCh=x.type==="charge";
+      return `<div class="act" style="border-color:#E7CD85">
+        <div class="top"><div class="who">
+          <div class="nm">${esc(nameOf(x.memberId))}</div>
+          <div class="sub">${isCh?"Added to their account":"Payment received"} · entered ${esc(x.date||"")}${x.description?" · "+esc(x.description):""}</div>
+          <div class="sub">appeared here ${whenText(seen[x.id])}${devTag(x.dev)}</div>
+        </div>
+        <div class="amt ${isCh?"up":"down"}">${isCh?"+":"−"} ${cur} ${money(x.amount||0)}</div></div>
+        <div class="bal"><span>Their balance now</span><b>${cur} ${money(balanceOf(x.memberId))}</b></div>
+      </div>`;
+    }).join("") + `<div style="height:14px"></div>` : "";
+  const list=State.transactions.slice()
+    .sort((a,b)=>((b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0)))
+    .slice(0,20);
+
+  const rows = list.length ? list.map(tx=>{
+    const isCh = tx.type==="charge";
+    const when = tx.updatedAt||tx.createdAt||0;
+    const edited = (tx.updatedAt||0) > ((tx.createdAt||0)+2000);
+    const bal = balanceOf(tx.memberId);
+    return `<div class="act">
+      <div class="top">
+        <div class="who">
+          <div class="nm">${esc(nameOf(tx.memberId))}</div>
+          <div class="sub">${isCh?"Added to their account":"Payment received"}${edited?" · edited":""}
+            ${devTag(tx.dev)}</div>
+          <div class="sub">${whenText(when)}${tx.description?" · "+esc(tx.description):""}</div>
+        </div>
+        <div class="amt ${isCh?"up":"down"}">${isCh?"+":"−"} ${cur} ${money(tx.amount||0)}</div>
+      </div>
+      <div class="bal"><span>Their balance now</span><b>${cur} ${money(bal)}</b></div>
+    </div>`;
+  }).join("") : `<div class="empty">No changes recorded yet.</div>`;
+
+  document.getElementById("view").innerHTML = `
+    <div class="kpis">
+      <div class="kpi a"><div class="l">Total owed to you</div><div class="v">${cur} ${money(t.owed)}</div><div class="s">${t.count} customer${t.count===1?"":"s"}</div></div>
+      <div class="kpi c"><div class="l">Changes shown</div><div class="v">${list.length}</div><div class="s">most recent first</div></div>
+      <div class="kpi b"><div class="l">This device</div><div class="v" style="font-size:18px">${esc(DEVICE)}</div><div class="s">changes you make are tagged</div></div>
+    </div>
+    ${arrivedHTML}
+    <div class="hint" style="margin-bottom:10px">Newest change first. “Their balance now” is what that customer owes today.</div>
+    ${rows}`;
+}
+
 function viewMoney(){
   const v=document.getElementById("view"); const cur=C();
   const B=moneyRange();
@@ -864,8 +978,8 @@ function memberForm(existing){
     const d={ name, phone:document.getElementById("m-p").value.trim(),
       limit:parseFloat(document.getElementById("m-l").value)||0,
       note:document.getElementById("m-o").value.trim() };
-    if(existing) Object.assign(existing,d,{updatedAt:Date.now()});
-    else State.members.push(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},d));
+    if(existing){ Object.assign(existing,d,{updatedAt:Date.now()}); stampDev(existing); }
+    else State.members.push(stampDev(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},d)));
     persist(); render(); closeScrim(); toast(existing?"Customer updated":"Customer added");
   };
   if(existing) document.getElementById("m-del").onclick=()=>{
@@ -914,8 +1028,8 @@ function entryForm(existing, type, memberId){
       date:document.getElementById("e-dt").value||todayISO() };
     if(isCh) d.dueDate=(document.getElementById("e-du")||{}).value||"";
     else d.accountId=(document.getElementById("e-ac")||{}).value||null;
-    if(existing){ Object.assign(existing,d,{updatedAt:Date.now()}); }
-    else { State.transactions.push(Object.assign({id:uid(),type:isCh?"charge":"payment",createdAt:Date.now(),updatedAt:Date.now()},d)); }
+    if(existing){ Object.assign(existing,d,{updatedAt:Date.now()}); stampDev(existing); }
+    else { State.transactions.push(stampDev(Object.assign({id:uid(),type:isCh?"charge":"payment",createdAt:Date.now(),updatedAt:Date.now()},d))); }
     // credit limit warning
     if(isCh && !existing){
       const m=State.members.find(x=>x.id===mid); const lim=limitOf(m||{});
