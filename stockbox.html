@@ -854,6 +854,22 @@ function openItemForm(existing, presetLoc){
       <div class="calc" id="i-valcalc" style="margin:-4px 0 8px"></div>
       <label class="fld"><span class="lt">Box / sub-box</span><select class="inp" id="i-loc">${locationOptions(loc)}</select></label>
       <label class="fld"><span class="lt">Note <span style="font-weight:400;color:var(--faint)">(optional)</span></span><input class="inp" id="i-note" value="${esc(it.note||"")}" placeholder="Colour, rating, shelf, etc."></label>
+
+      <div style="border-top:1px solid var(--line);margin:14px 0 10px"></div>
+      <label class="fld"><span class="lt">🌐 Show this product on my website</span>
+        <select class="inp" id="i-web">
+          <option value="0"${it.web?"":" selected"}>No — keep it private</option>
+          <option value="1"${it.web?" selected":""}>Yes — show it live on my website</option>
+        </select></label>
+      <div id="i-webbox" style="display:${it.web?"block":"none"}">
+        <label class="fld"><span class="lt">Selling price Rs / pc <span style="font-weight:400;color:var(--faint)">(what customers see)</span></span>
+          <input class="inp mono" id="i-wprice" inputmode="decimal" value="${it.webPrice!=null&&it.webPrice!==""?it.webPrice:""}" placeholder="0"></label>
+        <label class="fld"><span class="lt">Website category</span><select class="inp" id="i-wcat"></select></label>
+        <label class="fld"><span class="lt">Minimum order (pcs)</span><input class="inp mono" id="i-wmoq" inputmode="numeric" value="${it.webMoq||1}"></label>
+        <label class="fld"><span class="lt">Short line for customers <span style="font-weight:400;color:var(--faint)">(optional)</span></span>
+          <input class="inp" id="i-wnote" value="${esc(it.webNote||"")}" placeholder="e.g. Original, tested, ready to ship"></label>
+        <div class="hint">Your stock quantity is never shown to customers. Leave the price at 0 and the site says “Contact on WhatsApp for price”.</div>
+      </div>
     </div>
     <div class="m-foot">
       ${existing?`<button class="btn danger" id="i-del" style="margin-right:auto">Delete</button>`:""}
@@ -863,6 +879,17 @@ function openItemForm(existing, presetLoc){
   const vcalc=()=>{ var q=parseInt(document.getElementById("i-qty").value,10)||0; var pr=parseFloat(document.getElementById("i-price").value)||0; var el=document.getElementById("i-valcalc"); if(el) el.innerHTML = pr? '<div class="r big" style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--muted)">Stock value</span><span class="mono" style="font-weight:700;color:var(--green)">Rs '+Math.round(q*pr).toLocaleString()+'</span></div>' : ''; };
   var _iq=document.getElementById("i-qty"), _ip=document.getElementById("i-price");
   if(_iq) _iq.oninput=vcalc; if(_ip) _ip.oninput=vcalc; vcalc();
+  (function(){
+    var BASE=["T-CON boards","COF / TAB IC","Scaler / Mainboard","Modification","4K","Cables","Tapes",
+              "LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
+    var cats=(window.__STORE_CATS&&window.__STORE_CATS.length)?window.__STORE_CATS:BASE;
+    var cur=it.webCat||"Other parts";
+    if(cats.indexOf(cur)<0) cats=cats.concat([cur]);
+    var sel=document.getElementById("i-wcat");
+    if(sel) sel.innerHTML=cats.map(function(c){ return '<option value="'+esc(c)+'"'+(c===cur?" selected":"")+'>'+esc(c)+'</option>'; }).join("");
+    var wsel=document.getElementById("i-web"), wbox=document.getElementById("i-webbox");
+    if(wsel&&wbox) wsel.onchange=function(){ wbox.style.display = wsel.value==="1" ? "block" : "none"; };
+  })();
   document.getElementById("i-name").focus();
   document.getElementById("i-save").onclick=()=>{
     const name=document.getElementById("i-name").value.trim();
@@ -870,7 +897,13 @@ function openItemForm(existing, presetLoc){
     const qty=Math.max(0, parseInt(document.getElementById("i-qty").value,10)||0);
     if(!name){ flash("Enter a product name"); return; }
     if(!locId){ flash("Choose a box"); return; }
-    const data={ name, code:document.getElementById("i-code").value.trim(), qty, price:parseFloat(document.getElementById("i-price").value)||0, locationId:locId, note:document.getElementById("i-note").value.trim() };
+    const onWeb = document.getElementById("i-web").value==="1";
+    const data={ name, code:document.getElementById("i-code").value.trim(), qty, price:parseFloat(document.getElementById("i-price").value)||0, locationId:locId, note:document.getElementById("i-note").value.trim(),
+      web:onWeb,
+      webPrice: onWeb ? (parseFloat((document.getElementById("i-wprice")||{}).value)||0) : (existing?existing.webPrice:0),
+      webCat:   onWeb ? ((document.getElementById("i-wcat")||{}).value||"Other parts") : (existing?existing.webCat:""),
+      webMoq:   onWeb ? Math.max(1, parseInt((document.getElementById("i-wmoq")||{}).value,10)||1) : (existing?existing.webMoq:1),
+      webNote:  onWeb ? ((document.getElementById("i-wnote")||{}).value||"").trim() : (existing?existing.webNote:"") };
     if(existing){ Object.assign(existing,data,{updatedAt:Date.now()}); toast("Item updated"); }
     else{ State.items.push(Object.assign({id:uid(),createdAt:Date.now(),updatedAt:Date.now()},data)); toast("Item added"); }
     ui.flashItemId=existing?existing.id:null;
@@ -1044,6 +1077,11 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
     firebase.auth().onAuthStateChanged(function(user){ if(user && !user.isAnonymous) start(); });
   }catch(e){ return; }
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
+  /* the website's category list, so the picker matches your site */
+  db.collection("shops").doc(SHOP).collection("apps").doc("store").onSnapshot(function(s){
+    var d=s.exists&&s.data()&&s.data().state;
+    if(d&&Array.isArray(d.cats)&&d.cats.length) window.__STORE_CATS=d.cats;
+  }, function(){});
   function start(){
     window.__cloudActive=true; note("\u2601 Connecting\u2026");
     var _op=persist; persist=function(){ _op(); _dirty=true; schedulePush(); };
@@ -1105,9 +1143,30 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
     var b=_sbMissing(d.locations,State.locations,"loc");      if(b.length){ State.locations=State.locations.concat(b); n+=b.length; }
     return n;
   }
+  /* copy ONLY the customer-safe fields of web-enabled items into the public
+     store record — cost price and stock quantity never leave this app */
+  function publishWeb(){
+    if(!db||!ready) return;
+    var pub=(State.items||[]).filter(function(it){ return it && it.web===true && it.name; })
+      .map(function(it){
+        return { id:"stk_"+it.id, name:it.name, code:it.code||"",
+                 price:Number(it.webPrice||0), cat:it.webCat||"Other parts",
+                 note:it.webNote||"", moq:Number(it.webMoq||1),
+                 createdAt:it.createdAt||0, updatedAt:it.updatedAt||0 };
+      });
+    var sref=db.collection("shops").doc(SHOP).collection("apps").doc("store");
+    sref.get({source:"server"}).then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state)||{};
+      var before=""; try{ before=JSON.stringify(st.stockProducts||[]); }catch(_){}
+      var after=""; try{ after=JSON.stringify(pub); }catch(_){}
+      if(before===after) return;
+      st.stockProducts=pub; st.updatedAt=Date.now();
+      return sref.set({state:st, ts:Date.now()},{merge:true});
+    }).catch(function(){});
+  }
   function pushNow(){
     if(!db) return;
-    if(!ready || !_serverSeen){ _dirty=true; return; }
+    if(!ready || !_serverSeen){ _dirty=true; publishWeb(); return; }
     ref().get({source:"server"}).then(function(s){
       var d=s.exists&&s.data()&&s.data().state;
       if(d){ mergeCloudIntoState(d,true);
@@ -1115,7 +1174,7 @@ function hideReconnectBar(){ const b=document.getElementById("reconnectBar"); if
         if(saved){ try{ lsSave(); if(typeof render==="function") render(); }catch(_){} } }
       if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
       _dirty=false; return ref().set({state:State, ts:Date.now()});
-    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} })
+    }).then(function(){ note("\u2601 Synced across your devices."); try{lsSave();}catch(_){} publishWeb(); })
       .catch(function(){ _dirty=true; note('\u2601 Offline \u2014 saved here, will sync when back online');
         clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,8000); });
   }

@@ -978,6 +978,7 @@ const PHOTOS = [
   var section=document.getElementById("catalog");
   if(!grid) return;
   var all=[], activeCat="All";
+  var ADMIN_PRODUCTS=[], STOCK_PRODUCTS=[];   /* website admin list + products switched on in Stock */
   var CAT_IMG={};       /* borrowed: first photo in that category */
   var CAT_IMG_SET={};   /* explicit category photos stored in the main record (legacy) */
   var MEDIA={};         /* photos kept in their own records: key = product id, or "cat::<category>" */
@@ -1105,7 +1106,9 @@ const PHOTOS = [
     }, function(){});
     db.collection("shops").doc("main").collection("apps").doc("store").onSnapshot(function(s){
     var d=s.exists?s.data():null;
-    all=(d&&Array.isArray(d.products))?d.products:[];
+    ADMIN_PRODUCTS=(d&&Array.isArray(d.products))?d.products:[];
+    if(d&&Array.isArray(d.stockProducts)) applyStockProducts(d.stockProducts);
+    all=ADMIN_PRODUCTS.concat(STOCK_PRODUCTS);
     CAT_IMG_SET={}; var _ci=(d&&d.catImg&&typeof d.catImg==="object")?d.catImg:{};
     Object.keys(_ci).forEach(function(k){ if(_ci[k]) CAT_IMG_SET[String(k).trim().toLowerCase()]=_ci[k]; });
     buildCatImg();
@@ -1127,6 +1130,21 @@ const PHOTOS = [
     buildFilter(); renderGrid();
     loadStoreMedia();
   }, function(){ section.style.display = all.length ? "" : "none"; });
+
+  /* products you switched on inside the Stock app */
+  /* items switched on in Stock arrive through the public store record —
+     the app never exposes cost price or quantity to customers */
+  function applyStockProducts(list){
+    STOCK_PRODUCTS=(Array.isArray(list)?list:[]).filter(function(x){ return x&&x.name; })
+      .map(function(x){ return { id:x.id||("stk_"+Math.random()), name:x.name, code:x.code||"",
+        price:Number(x.price||0), cat:x.cat||"Other parts", note:x.note||"",
+        moq:Number(x.moq||1), img:"", createdAt:x.createdAt||0, updatedAt:x.updatedAt||0 }; });
+    all=ADMIN_PRODUCTS.concat(STOCK_PRODUCTS);
+    buildCatImg();
+    window.LIVE_PRODUCTS=all; if(window.refreshHeroSearch) window.refreshHeroSearch();
+    section.style.display = all.length ? "" : "none";
+    buildFilter(); renderGrid(); loadStoreMedia();
+  }
 
   function mediaDocId(key){ return "store_ph_"+String(key).replace(/[^a-z0-9]+/gi,"_"); }
   function loadStoreMedia(){
