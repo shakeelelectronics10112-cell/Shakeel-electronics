@@ -1767,9 +1767,10 @@ function buildPurchaseSummaryDoc(shipNo, groupBy){
       for(const p of list){ const t=drawRow(p); sPkr+=t.pkr; sRmb+=t.rmb; sQty+=(p.qty||0); }
       /* group subtotal */
       if(y>706){ doc.addPage(); y=head(); doc.setFont("helvetica","normal"); doc.setFontSize(9.2); }
-      doc.setDrawColor(...BRAND.line); doc.setLineWidth(0.7); doc.line(300,y-9,555,y-9);
+      doc.setDrawColor(...BRAND.line); doc.setLineWidth(0.7); doc.line(45,y-9,555,y-9);
       doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(...BRAND.ink);
-      doc.text(`Subtotal — ${String(nme).slice(0,26)}`, 300, y+3);
+      /* label sits in the item column so it can never collide with the numbers */
+      doc.text(`Subtotal — ${String(nme).slice(0,24)}`, 72, y+3);
       doc.text(String(sQty), 312, y+3, {align:"right"});
       doc.text(money(sPkr), 550, y+3, {align:"right"});
       doc.setFont("helvetica","normal");
