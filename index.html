@@ -571,7 +571,7 @@
 </nav>
 
 <script>
-var V = "87";  // cache-buster: bump when you upload new app files
+var V = "91";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
@@ -1006,7 +1006,34 @@ if("serviceWorker" in navigator){
   function ref(db,key){ return db.collection("shops").doc("main").collection("apps").doc(key); }
   function open(){ msg.textContent=""; scrim.style.display="flex"; }
   function close(){ scrim.style.display="none"; }
-  document.getElementById("backupBtn").onclick=open;
+  /* remind gently when the last backup is more than a week old */
+  function backupAge(){
+    try{ var v=localStorage.getItem("shakeel:lastBackup"); if(!v) return null;
+      return Math.floor((Date.now()-new Date(v).getTime())/86400000); }catch(e){ return null; }
+  }
+  function markBackupBtn(){
+    var b=document.getElementById("backupBtn"); if(!b) return;
+    var d=backupAge();
+    if(d===null||d>=7){
+      b.style.boxShadow="0 0 0 2px #E7CD85";
+      b.title = d===null ? "You have never saved a backup file" : ("Last backup was "+d+" days ago");
+      if(!document.getElementById("bkDot")){
+        var s=document.createElement("span"); s.id="bkDot";
+        s.style.cssText="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-left:5px;vertical-align:middle";
+        b.appendChild(s);
+      }
+    } else { b.style.boxShadow=""; b.title="Last backup "+(d===0?"today":d+" day"+(d===1?"":"s")+" ago");
+      var dot=document.getElementById("bkDot"); if(dot) dot.remove(); }
+  }
+  markBackupBtn();
+  document.getElementById("backupBtn").onclick=function(){
+    open();
+    var d=backupAge();
+    msg.innerHTML = d===null
+      ? '<span style="color:#E7CD85">You have not saved a backup file yet — do it now and keep it safe.</span>'
+      : (d>=7 ? '<span style="color:#E7CD85">Last backup was '+d+' days ago.</span>'
+              : 'Last backup '+(d===0?"today":d+" day"+(d===1?"":"s")+" ago")+'.');
+  };
   document.getElementById("bkClose").onclick=close;
   scrim.addEventListener("click",function(e){ if(e.target===scrim) close(); });
 
@@ -1037,6 +1064,7 @@ if("serviceWorker" in navigator){
       var fname="shakeel-backup-"+d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"_"+pad(d.getHours())+pad(d.getMinutes())+".json";
       window.__sefDownload(blob, fname);
       try{ localStorage.setItem("shakeel:lastBackup", d.toISOString()); }catch(e){}
+      markBackupBtn();
       msg.textContent="✓ Backup saved ("+count+" apps). Keep the file safe.";
     }).catch(function(){ msg.textContent="Could not read cloud — saved local copy only."; });
   };

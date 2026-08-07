@@ -97,6 +97,7 @@ textarea.inp{min-height:64px;resize:vertical}
     <button class="hb" id="openSite">🌐 Open my catalog</button>
     <button class="hb" id="shareSite">📤 Share link</button>
     <button class="hb" id="checkBtn">⚙ Photo storage check</button>
+    <button class="hb" id="hostBtn">🖼 Photo storage setup</button>
   </div>
 </header>
 
@@ -168,6 +169,33 @@ textarea.inp{min-height:64px;resize:vertical}
   <button class="btn primary full" id="b-save" style="margin-top:14px">Save</button>
 </div></div>
 
+<!-- photo storage -->
+<div class="scrim" id="hScrim"><div class="sheet">
+  <h2>Where your photos are kept</h2>
+  <div class="note" style="margin-bottom:12px">Google now charges for Firebase Storage. Cloudinary gives you <b>25 GB free</b> — about 150,000 photos — with no card needed.</div>
+  <label class="lbl">Photo storage</label>
+  <select class="inp" id="h-host">
+    <option value="cloudinary">Cloudinary — free, 25 GB (recommended)</option>
+    <option value="firebase">Firebase Storage — needs a paid Google plan</option>
+  </select>
+  <div id="h-cloud">
+    <label class="lbl">Cloud name</label><input class="inp mono" id="h-cn" placeholder="e.g. dxyz123ab" autocomplete="off">
+    <label class="lbl">Upload preset name</label><input class="inp mono" id="h-up" placeholder="e.g. shakeel_catalog" autocomplete="off">
+    <div class="okbox" style="margin-top:12px">
+      <b>One-time setup — about 3 minutes, no card</b><br>
+      1. Go to <b>cloudinary.com</b> and sign up free<br>
+      2. On the dashboard, copy your <b>Cloud name</b> and paste it above<br>
+      3. Open <b>Settings → Upload → Upload presets</b> → <b>Add upload preset</b><br>
+      4. Set <b>Signing Mode</b> to <b>Unsigned</b>, give it a name, and Save<br>
+      5. Paste that preset name above, then tap Save &amp; test
+    </div>
+  </div>
+  <div class="rowb" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">
+    <button class="btn ghost" id="h-cancel">Cancel</button>
+    <button class="btn primary" id="h-save">Save &amp; test</button>
+  </div>
+</div></div>
+
 <!-- categories -->
 <div class="scrim" id="cScrim"><div class="sheet">
   <h2>Categories</h2>
@@ -190,7 +218,7 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 function batchKey(d){ d=d||new Date(); return "catalog_"+d.getFullYear()+"_"+String(d.getMonth()+1).padStart(2,"0"); }
 
 var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","Modification","4K","Cables","Tapes","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
-var Index={ cats:BASE_CATS.slice(), batches:[], updatedAt:0 };
+var Index={ cats:BASE_CATS.slice(), batches:[], host:"cloudinary", cloudName:"", preset:"", updatedAt:0 };
 var ITEMS=[];          /* every item, each carries ._b = its batch */
 var ui={ cat:"all", q:"", editId:null, drafts:[] };
 var SITE="";
@@ -450,51 +478,101 @@ function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("on"); 
 
   /* ---- photo upload: file goes to Firebase Storage, only the link is stored ---- */
   window.__catUpload=null;
+  function cloudinaryUpload(fullBlob){
+    var cn=(Index.cloudName||"").trim(), up=(Index.preset||"").trim();
+    if(!cn||!up) return Promise.resolve(null);
+    var fd=new FormData();
+    fd.append("file", fullBlob, "photo.jpg");
+    fd.append("upload_preset", up);
+    return fetch("https://api.cloudinary.com/v1_1/"+encodeURIComponent(cn)+"/image/upload",{method:"POST",body:fd})
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){
+        if(!j||!j.secure_url) return null;
+        /* Cloudinary makes the small version for us, straight from the same photo */
+        var thumb=j.secure_url.replace("/image/upload/","/image/upload/w_600,c_limit,q_auto,f_auto/");
+        return {url:j.secure_url, thumb:thumb, path:j.public_id||""};
+      }).catch(function(){ return null; });
+  }
+  function firebaseUpload(fullBlob, thumbBlob){
+    if(!st) return Promise.resolve(null);
+    var id=uid(), base="catalog/"+id;
+    return st.ref().child(base+".jpg").put(fullBlob)
+      .then(function(s){ return s.ref.getDownloadURL(); })
+      .then(function(url){
+        return st.ref().child(base+"_t.jpg").put(thumbBlob)
+          .then(function(s2){ return s2.ref.getDownloadURL(); })
+          .then(function(turl){ return {url:url, thumb:turl, path:base}; })
+          .catch(function(){ return {url:url, thumb:url, path:base}; });
+      }).catch(function(){ return null; });
+  }
   function enableUpload(){
     window.__catUpload=function(fullBlob, thumbBlob){
-      var id=uid(), base="catalog/"+id;
-      return st.ref().child(base+".jpg").put(fullBlob)
-        .then(function(s){ return s.ref.getDownloadURL(); })
-        .then(function(url){
-          return st.ref().child(base+"_t.jpg").put(thumbBlob)
-            .then(function(s2){ return s2.ref.getDownloadURL(); })
-            .then(function(turl){ return {url:url, thumb:turl, path:base}; })
-            .catch(function(){ return {url:url, thumb:url, path:base}; });
-        })
-        .catch(function(){ return null; });
+      if(Index.host==="cloudinary") return cloudinaryUpload(fullBlob);
+      return firebaseUpload(fullBlob, thumbBlob);
     };
   }
-  if(st) enableUpload();
+  enableUpload();
 
   /* ---- storage health check with clear instructions ---- */
   function storageCheck(silent){
     var box=document.getElementById("setupWarn");
-    if(!st){ box.innerHTML=setupHTML("Firebase Storage is not switched on yet."); return Promise.resolve(false); }
+    if(Index.host==="cloudinary"){
+      if(!Index.cloudName||!Index.preset){ box.innerHTML=setupHTML("Cloudinary is chosen but not set up yet."); return Promise.resolve(false); }
+      /* a 1x1 test image */
+      var cv=document.createElement("canvas"); cv.width=cv.height=1;
+      cv.getContext("2d").fillStyle="#fff"; cv.getContext("2d").fillRect(0,0,1,1);
+      return new Promise(function(res){ cv.toBlob(res,"image/jpeg",0.5); }).then(function(b){
+        return cloudinaryUpload(b);
+      }).then(function(r){
+        if(r&&r.url){ box.innerHTML=""; enableUpload(); if(!silent) toast("Photo storage is working"); return true; }
+        box.innerHTML=setupHTML("Cloudinary refused the upload — check the cloud name and that the preset is set to Unsigned.");
+        if(!silent) toast("Photo storage is not ready"); return false;
+      }).catch(function(){ box.innerHTML=setupHTML("Could not reach Cloudinary."); return false; });
+    }
+    if(!st){ box.innerHTML=setupHTML("Firebase Storage is not switched on."); return Promise.resolve(false); }
     var probe=new Blob(["ok"],{type:"text/plain"});
     return st.ref().child("catalog/_check.txt").put(probe).then(function(){
       box.innerHTML=""; enableUpload();
       if(!silent) toast("Photo storage is working");
       return true;
     }).catch(function(err){
-      var why=(err&&err.code==="storage/unauthorized")?"Firebase Storage is on, but the rules are blocking uploads.":"Firebase Storage could not be reached.";
+      var why=(err&&err.code==="storage/unauthorized")?"Firebase Storage is on, but the rules are blocking uploads."
+        :"Firebase Storage is not available — Google now asks for a paid plan for this.";
       box.innerHTML=setupHTML(why);
       if(!silent) toast("Photo storage is not ready");
       return false;
     });
   }
   function setupHTML(why){
-    return '<div class="warnbox"><b>'+esc(why)+'</b><br>'
-      +'Photos need Firebase Storage. One-time setup, about 2 minutes:<br><br>'
-      +'1. Open <b>console.firebase.google.com</b> and sign in with your owner email<br>'
-      +'2. Open project <b>shakeel-shop</b> → left menu <b>Build → Storage</b> → <b>Get started</b> → accept the defaults<br>'
-      +'3. Open the <b>Rules</b> tab there (it must say <span class="mono">service firebase.storage</span>, NOT cloud.firestore) and publish:<br>'
-      +'<div class="mono" style="background:#fff;border-radius:8px;padding:9px;margin:7px 0;font-size:11px;white-space:pre-wrap">'
-      +"rules_version = '2';\nservice firebase.storage {\n  match /b/{bucket}/o {\n    match /{allPaths=**} {\n      allow read: if true;\n      allow write: if request.auth != null;\n    }\n  }\n}"
-      +'</div>'
-      +'4. Come back here and tap <b>Photo storage check</b>.'
-      +'<br><br>The free plan includes 5 GB — roughly 30,000 photos at this quality.</div>';
+    return '<div class="warnbox"><b>'+esc(why)+'</b><br><br>'
+      +'Photos need somewhere to live. Tap <b>🖼 Photo storage setup</b> above and pick one:<br><br>'
+      +'<b>Cloudinary — free, 25 GB, no card.</b> Sign up at cloudinary.com, copy your cloud name, '
+      +'make an <i>Unsigned</i> upload preset, and paste both in. About 3 minutes, once.<br><br>'
+      +'<b>Firebase Storage — needs a paid Google plan.</b> Google now asks you to upgrade to Blaze (pay-as-you-go). '
+      +'It has a free monthly allowance that your shop would very likely stay inside, but it does need a credit card on file.'
+      +'</div>';
   }
   document.getElementById("checkBtn").onclick=function(){ storageCheck(false); };
+  function drawHostSheet(){
+    document.getElementById("h-host").value=Index.host||"cloudinary";
+    document.getElementById("h-cn").value=Index.cloudName||"";
+    document.getElementById("h-up").value=Index.preset||"";
+    document.getElementById("h-cloud").style.display=(document.getElementById("h-host").value==="cloudinary")?"block":"none";
+  }
+  document.getElementById("hostBtn").onclick=function(){ drawHostSheet(); document.getElementById("hScrim").classList.add("on"); };
+  document.getElementById("h-host").onchange=function(){
+    document.getElementById("h-cloud").style.display=(this.value==="cloudinary")?"block":"none";
+  };
+  document.getElementById("h-cancel").onclick=function(){ document.getElementById("hScrim").classList.remove("on"); };
+  document.getElementById("h-save").onclick=function(){
+    Index.host=document.getElementById("h-host").value;
+    Index.cloudName=document.getElementById("h-cn").value.trim();
+    Index.preset=document.getElementById("h-up").value.trim();
+    enableUpload();
+    saveIndex().then(function(){ return storageCheck(false); }).then(function(okk){
+      if(okk) document.getElementById("hScrim").classList.remove("on");
+    });
+  };
 
   /* ---- load everything ---- */
   function loadAll(){
@@ -503,7 +581,11 @@ function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("on"); 
       if(d){
         if(Array.isArray(d.cats)&&d.cats.length) Index.cats=d.cats;
         if(Array.isArray(d.batches)) Index.batches=d.batches;
+        if(d.host) Index.host=d.host;
+        if(d.cloudName) Index.cloudName=d.cloudName;
+        if(d.preset) Index.preset=d.preset;
         Index.updatedAt=d.updatedAt||0;
+        enableUpload();
       }
       var keys=Index.batches.slice();
       if(keys.indexOf(batchKey())<0) keys.push(batchKey());
@@ -544,7 +626,8 @@ function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("on"); 
   window.saveIndex=function(){
     if(!db) return Promise.resolve();
     Index.updatedAt=Date.now();
-    return ref("catalog_index").set({state:{cats:Index.cats,batches:Index.batches,updatedAt:Index.updatedAt}, ts:Date.now()},{merge:true}).catch(function(){});
+    return ref("catalog_index").set({state:{cats:Index.cats,batches:Index.batches,host:Index.host,
+      cloudName:Index.cloudName,preset:Index.preset,updatedAt:Index.updatedAt}, ts:Date.now()},{merge:true}).catch(function(){});
   };
 
   firebase.auth().onAuthStateChanged(function(u){ if(u){ loadAll(); storageCheck(true); } });

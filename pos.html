@@ -519,9 +519,11 @@ function charge(){
   cart.forEach(function(c){ S.prices[c.itemId]=c.price; });
   M.sales.unshift(sale); lastSale=sale; saveS(); saveM();
   if(window.__deductStock) window.__deductStock(sale.items.map(function(i){ return {itemId:i.itemId,qty:i.qty}; }));
-  if(pay==="credit"&&custId&&window.__postLedger){
-    window.__postLedger(custId,tot,"Invoice #"+sale.no,sale.date).then(function(t){ if(t){ sale.ledgerTxId=t; sale.updatedAt=Date.now(); saveM(); pushNow(); } });
-    if(adv>0) window.__payLedger(custId,adv,"Advance on Invoice #"+sale.no,sale.date).then(function(t){ if(t){ sale.ledgerPayId=t; saveM(); pushNow(); } });
+  if(pay==="credit"&&custId&&window.__postSale){
+    window.__postSale(custId,tot,adv,sale.no,sale.date).then(function(r){
+      if(r&&r.txId){ sale.ledgerTxId=r.txId; sale.ledgerPayId=r.payId||null; sale.updatedAt=Date.now(); saveM(); pushNow(); }
+      else toast("Ledger not updated — open the bill and tap “Post to Ledger”");
+    });
   }
   pushNow(); deliver(sale); newBill(); refreshHeader();
   toast("Bill #"+sale.no+" saved · "+money(tot));
@@ -603,16 +605,34 @@ function retTotal(){
   if(retSale&&retSale.disc&&retSale.sub) t=t-(retSale.disc*(t/retSale.sub));
   $("retTot").textContent=money(t);
   var dmg=lines.filter(function(l){return l.mode==="damage";});
-  $("retNote").style.display=dmg.length?"":"none";
-  if(dmg.length) $("retNote").textContent="Damaged pieces are not put back in stock — their cost shows as a loss in the Profit report.";
+  var msg=dmg.length?"Damaged pieces are not put back in stock — their cost shows as a loss in the Profit report.":"";
+  if(retSale&&retSale.pay==="credit"&&t>0){
+    var already=(M.returns||[]).filter(function(x){return x.saleId===retSale.id;})
+      .reduce(function(a,x){ return a+(x.ledgerAmt!=null?x.ledgerAmt:(x.origPay==="credit"?x.total:0)); },0);
+    var outst=Math.max(0,(retSale.total||0)-(retSale.paidNow||0)-already);
+    var led=Math.min(t,outst), csh=t-led;
+    msg=(msg?msg+" ":"")+"Refund: "+money(led)+" comes off their account"+(csh>0?", and "+money(csh)+" is cash back to them.":".");
+  }
+  $("retNote").style.display=msg?"":"none";
+  $("retNote").textContent=msg;
   return t;
 }
 $("retCancel").onclick=function(){ $("retScrim").classList.remove("on"); };
 $("retDo").onclick=function(){
   var lines=retLines(); if(!lines.length){ toast("Set a quantity to return"); return; }
   var refund=retTotal();
+  /* how much of this refund comes off their account, and how much is cash back */
+  var ledgerAmt=0, cashAmt=refund;
+  if(retSale.pay==="credit"){
+    var already=(M.returns||[]).filter(function(x){return x.saleId===retSale.id;})
+      .reduce(function(a,x){ return a+(x.ledgerAmt!=null?x.ledgerAmt:(x.origPay==="credit"?x.total:0)); },0);
+    var outstanding=Math.max(0,(retSale.total||0)-(retSale.paidNow||0)-already);
+    ledgerAmt=Math.min(refund,outstanding);
+    cashAmt=refund-ledgerAmt;
+  }
   var rec={ id:uid(), saleId:retSale.id, saleNo:retSale.no, date:todayISO(), at:Date.now(),
-    items:lines, total:refund, customerId:retSale.customerId, customerName:retSale.customerName,
+    items:lines, total:refund, ledgerAmt:ledgerAmt, cashAmt:cashAmt,
+    customerId:retSale.customerId, customerName:retSale.customerName,
     customerPhone:retSale.customerPhone||"", origPay:retSale.pay, ledgerTxId:null,
     createdAt:Date.now(), updatedAt:Date.now() };
   M.returns.unshift(rec);
@@ -621,12 +641,16 @@ $("retDo").onclick=function(){
   saveM();
   var back=lines.filter(function(l){return l.mode==="stock";}).map(function(l){ return {itemId:l.itemId,qty:-l.qty}; });
   if(back.length&&window.__deductStock) window.__deductStock(back);
-  if(retSale.pay==="credit"&&retSale.customerId&&window.__payLedger)
-    window.__payLedger(retSale.customerId,refund,"Return against Invoice #"+retSale.no,rec.date)
+  if(ledgerAmt>0&&retSale.customerId&&window.__payLedger)
+    window.__payLedger(retSale.customerId,ledgerAmt,"Return against Invoice #"+retSale.no,rec.date)
       .then(function(t){ if(t){ rec.ledgerTxId=t; saveM(); pushNow(); } });
   pushNow(); $("retScrim").classList.remove("on");
   deliverReturn(rec); renderHist(); refreshHeader();
-  toast("Return saved · refund "+money(refund)+(retSale.pay==="credit"?" taken off their account":""));
+  var msg="Return saved · refund "+money(refund);
+  if(ledgerAmt>0&&cashAmt>0) msg+=" — "+money(ledgerAmt)+" off their account, "+money(cashAmt)+" cash back";
+  else if(ledgerAmt>0) msg+=" taken off their account";
+  else if(retSale.pay==="credit") msg+=" — give "+money(cashAmt)+" cash back";
+  toast(msg);
 };
 
 /* ==================== HOLDS ==================== */
@@ -715,7 +739,10 @@ function calc(range){
     c.rev+=rRev; c.prof+=rProf;
     var dd=days[r.date]||(days[r.date]={date:r.date,bills:0,rev:0,prof:0});
     dd.rev+=rRev; dd.prof+=rProf;
-    if(r.origPay!=="credit") cashIn-=r.total;
+    /* older returns have no split saved — work it out from the original payment */
+    var rLed=(r.ledgerAmt!=null)?r.ledgerAmt:((r.origPay==="credit")?r.total:0);
+    var rCash=(r.cashAmt!=null)?r.cashAmt:((r.origPay==="credit")?0:r.total);
+    creditGiven-=rLed; cashIn-=rCash;
   });
   var expTot=g.expenses.reduce(function(a,x){return a+(x.amount||0);},0);
   var expCash=g.expenses.filter(function(x){return x.pay==="cash";}).reduce(function(a,x){return a+(x.amount||0);},0);
@@ -815,7 +842,6 @@ function renderHist(){
   $("histList").querySelectorAll("[data-open]").forEach(function(b){ b.onclick=function(){ openBill(b.dataset.open, mk); }; });
 }
 function openBillById(id){
-  for(var mk in {}){}
   var found=null, mkey=curMonth;
   (M.sales||[]).forEach(function(s){ if(s.id===id) found=s; });
   if(!found){ Object.keys(CACHE).forEach(function(k){ (CACHE[k].sales||[]).forEach(function(s){ if(s.id===id){ found=s; mkey=k; } }); }); }
@@ -837,6 +863,7 @@ function openBill(id, mk){
     +(s.disc?'<tr><td>Discount</td><td class="r"></td><td class="r neg-n">-'+rs(s.disc)+'</td></tr>':'')
     +'</tbody></table>'
     +(rets.length?'<div class="warnbox">Returns: '+rets.map(function(r){return money(r.total)+" on "+r.date;}).join(", ")+'</div>':'')
+    +(s.pay==="credit"?'<div id="ledChk"></div>':'')
     +'<div class="rowb" style="margin-top:12px">'
     +'<button class="btn ghost sm" id="bPrint">Print again</button><button class="btn ghost sm" id="bPdf">Save PDF</button></div>'
     +'<button class="btn sm full" id="bWA" style="background:#25D366;color:#fff;margin-top:7px">Send on WhatsApp</button>'
@@ -851,6 +878,29 @@ function openBill(id, mk){
   $("bClose").onclick=function(){ $("billScrim").classList.remove("on"); };
   if(isCur){ $("bRet").onclick=function(){ $("billScrim").classList.remove("on"); openReturn(s); };
              $("bEdit").onclick=function(){ startEdit(s); }; }
+  if(s.pay==="credit") checkLedger(s);
+}
+/* make sure a credit bill really reached the customer's Ledger account */
+function checkLedger(s){
+  var box=$("ledChk"); if(!box) return;
+  var show=function(okTx){
+    if(okTx){ box.innerHTML='<div class="okbox">✓ Posted to '+esc(s.customerName)+"'s Ledger account.</div>"; return; }
+    box.innerHTML='<div class="warnbox"><b>This bill is not on the customer\'s Ledger.</b><br>'
+      +'Tap below to post Rs '+rs(s.total)+' to '+esc(s.customerName)+"'s account"+(s.paidNow?" (with the Rs "+rs(s.paidNow)+" advance)":"")+'.</div>'
+      +'<button class="btn gold sm full" id="ledFix" style="margin-top:7px">Post to Ledger now</button>';
+    var b=$("ledFix"); if(b) b.onclick=function(){
+      if(!s.customerId){ toast("This bill has no customer — edit it and pick one"); return; }
+      b.disabled=true; b.textContent="Posting…";
+      window.__postSale(s.customerId, s.total, s.paidNow||0, s.no, s.date).then(function(r){
+        if(r&&r.txId){ s.ledgerTxId=r.txId; s.ledgerPayId=r.payId||null; s.updatedAt=Date.now(); saveM(); pushNow();
+          toast("Posted to Ledger"); checkLedger(s); }
+        else { b.disabled=false; b.textContent="Post to Ledger now"; toast("Could not post — check connection"); }
+      });
+    };
+  };
+  if(!s.ledgerTxId){ show(false); return; }
+  box.innerHTML='<div class="infobox">Checking the Ledger…</div>';
+  if(window.__hasLedgerTx) window.__hasLedgerTx(s.ledgerTxId).then(show); else show(true);
 }
 $("hSearch").addEventListener("input",renderHist);
 $("hMonth").addEventListener("change",renderHist);
@@ -1520,6 +1570,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
   window.__deductStock=function(moves){
     if(!db||!moves||!moves.length) return Promise.resolve(false);
     var r=ref("stockbox");
+    return inTurn("stockbox",function(){
     return r.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.items)) return false;
       moves.forEach(function(m){ var it=st.items.filter(function(x){return x.id===m.itemId;})[0];
@@ -1527,10 +1578,12 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
       if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
       return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
     }).catch(function(){ toast("Stock not updated — check connection"); return false; });
+    });
   };
   window.__addStockItem=function(rec){
     if(!db) return Promise.resolve(null);
     var r=ref("stockbox");
+    return inTurn("stockbox",function(){
     return r.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state)||{items:[],locations:[],settings:{}};
       if(!Array.isArray(st.items)) st.items=[]; if(!Array.isArray(st.locations)) st.locations=[];
@@ -1545,30 +1598,67 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
       if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
       return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return id; });
     }).catch(function(){ return null; });
+    });
   };
-  function ledgerWrite(memberId, amount, desc, dateISO, type){
-    if(!db) return Promise.resolve(null);
-    var r=ref("ledger"), txid="pos"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    return r.get({source:"server"}).then(function(s){
-      var st=(s.exists&&s.data()&&s.data().state); if(!st) return null;
-      if(!Array.isArray(st.transactions)) st.transactions=[];
-      st.transactions.push({ id:txid, memberId:memberId, type:type, amount:Math.round(amount),
-        description:desc, date:dateISO, dev:"Counter", createdAt:Date.now(), updatedAt:Date.now() });
-      if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
-      return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return txid; });
-    }).catch(function(){ toast("Ledger not updated — check connection"); return null; });
+  /* every cloud write waits its turn — two writes can never read the same
+     copy and overwrite each other (this is what dropped a credit charge before) */
+  var QUEUE={};
+  function inTurn(key,fn){
+    QUEUE[key]=(QUEUE[key]||Promise.resolve()).then(fn,fn);
+    var p=QUEUE[key];
+    QUEUE[key]=p.catch(function(){});
+    return p;
   }
-  window.__postLedger=function(id,amt,desc,d){ return ledgerWrite(id,amt,desc,d,"charge"); };
-  window.__payLedger =function(id,amt,desc,d){ return ledgerWrite(id,amt,desc,d,"payment"); };
+  /* add one or more entries to the Ledger in a single read-and-write */
+  function ledgerAdd(entries){
+    if(!db||!entries||!entries.length) return Promise.resolve(null);
+    return inTurn("ledger",function(){
+      var r=ref("ledger");
+      return r.get({source:"server"}).then(function(s){
+        var st=(s.exists&&s.data()&&s.data().state); if(!st) return null;
+        if(!Array.isArray(st.transactions)) st.transactions=[];
+        var ids=[];
+        entries.forEach(function(e,k){
+          var txid="pos"+Date.now().toString(36)+k+Math.random().toString(36).slice(2,6);
+          ids.push(txid);
+          st.transactions.push({ id:txid, memberId:e.memberId, type:e.type, amount:Math.round(e.amount),
+            description:e.desc, date:e.date, dev:"Counter", createdAt:Date.now(), updatedAt:Date.now() });
+        });
+        if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
+        return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return ids; });
+      }).catch(function(){ toast("Ledger not updated — check connection"); return null; });
+    });
+  }
+  window.__postLedger=function(id,amt,desc,d){ return ledgerAdd([{memberId:id,amount:amt,desc:desc,date:d,type:"charge"}]).then(function(r){ return r?r[0]:null; }); };
+  window.__payLedger =function(id,amt,desc,d){ return ledgerAdd([{memberId:id,amount:amt,desc:desc,date:d,type:"payment"}]).then(function(r){ return r?r[0]:null; }); };
+  /* a credit sale: the charge and the advance go in together, or neither does */
+  window.__postSale=function(memberId, total, adv, no, date){
+    var list=[{memberId:memberId,amount:total,desc:"Invoice #"+no,date:date,type:"charge"}];
+    if(adv>0) list.push({memberId:memberId,amount:adv,desc:"Advance on Invoice #"+no,date:date,type:"payment"});
+    return ledgerAdd(list).then(function(ids){
+      if(!ids) return null;
+      return {txId:ids[0], payId:ids[1]||null};
+    });
+  };
   window.__updateLedger=function(txId,amount,desc){
     if(!db||!txId) return Promise.resolve(false);
     var r=ref("ledger");
+    return inTurn("ledger",function(){
     return r.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.transactions)) return false;
       var t=st.transactions.filter(function(x){return x.id===txId;})[0]; if(!t) return false;
       t.amount=Math.round(amount); if(desc) t.description=desc; t.updatedAt=Date.now();
       if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
       return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
+    }).catch(function(){ return false; });
+    });
+  };
+  /* check whether a bill's charge actually reached the Ledger */
+  window.__hasLedgerTx=function(txId){
+    if(!db||!txId) return Promise.resolve(false);
+    return ref("ledger").get({source:"server"}).then(function(s){
+      var st=(s.exists&&s.data()&&s.data().state);
+      return !!(st&&Array.isArray(st.transactions)&&st.transactions.some(function(t){return t.id===txId;}));
     }).catch(function(){ return false; });
   };
 })();

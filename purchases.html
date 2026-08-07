@@ -2208,13 +2208,20 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
   var _serverSeen=false;
   function ref(){ return db.collection("shops").doc(SHOP).collection("apps").doc(APP_KEY); }
   function appRef(k){ return db.collection("shops").doc(SHOP).collection("apps").doc(k); }
+  /* writes to a shared record wait their turn, so Buy and the Counter
+     can never read the same copy of Stock and overwrite each other */
+  var WQ={};
+  function inTurn(key,fn){
+    WQ[key]=(WQ[key]||Promise.resolve()).then(fn,fn);
+    var q=WQ[key]; WQ[key]=q.catch(function(){}); return q;
+  }
   window.__SB=null;
   function watchStockbox(){ appRef("stockbox").onSnapshot(function(s){ window.__SB=(s.exists&&s.data()&&s.data().state)||null; }, function(){}); }
   // write items into StockBox at chosen locations; tag with receiveId for undo
   window.ensureNewArrivalLoc=function(){
     if(!db) return Promise.resolve(null);
     var sref=appRef("stockbox");
-    return sref.get().then(function(s){
+    return inTurn("stockbox",function(){ return sref.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state) || {items:[],locations:[],settings:{}};
       if(!Array.isArray(st.locations)) st.locations=[];
       var na=st.locations.find(function(l){ return (l.name||"").toLowerCase()==="new arrival" && !l.parentId; });
@@ -2223,12 +2230,12 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       st.locations.push({id:id,name:"New Arrival",parentId:null,note:"Just arrived — place into boxes",createdAt:Date.now()});
       if(!st.settings) st.settings={}; st.settings.updatedAt=Date.now();
       return sref.set({state:st,ts:Date.now()},{merge:true}).then(function(){ return id; });
-    }).catch(function(){ return null; });
+    }).catch(function(){ return null; }); });
   };
   window.receiveToStockBox=function(rows, receiveId){
     if(!db) return Promise.resolve(false);
     var sref=appRef("stockbox");
-    return sref.get().then(function(s){
+    return inTurn("stockbox",function(){ return sref.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state) || {items:[],locations:[],settings:{}};
       if(!Array.isArray(st.items)) st.items=[];
       if(!Array.isArray(st.locations)) st.locations=[];
@@ -2243,13 +2250,13 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       if(!st.settings) st.settings={};
       st.settings.updatedAt=Date.now();
       return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
-    }).catch(function(){ return false; });
+    }).catch(function(){ return false; }); });
   };
   // undo a receive: subtract the exact quantities tagged with receiveId
   window.undoReceive=function(receiveId){
     if(!db) return Promise.resolve(false);
     var sref=appRef("stockbox");
-    return sref.get().then(function(s){
+    return inTurn("stockbox",function(){ return sref.get({source:"server"}).then(function(s){
       var st=(s.exists&&s.data()&&s.data().state); if(!st||!Array.isArray(st.items)) return false;
       st.items.forEach(function(it){
         if(!Array.isArray(it.receiveIds)) return;
@@ -2263,7 +2270,7 @@ document.getElementById("orgName").addEventListener("click",function(){ const n=
       if(!st.settings) st.settings={};
       st.settings.updatedAt=Date.now();
       return sref.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return true; });
-    }).catch(function(){ return false; });
+    }).catch(function(){ return false; }); });
   };
   function start(){ window.__cloudActive=true; note("\u2601 Connecting\u2026");
     try{ var _s0=_pVisSig(); _safeRestore(); _safeGrow(); lsSave(); if(_pVisSig()!==_s0 && typeof render==="function") render(); }catch(_){}
