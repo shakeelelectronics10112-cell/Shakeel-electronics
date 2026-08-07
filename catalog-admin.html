@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3; --panel:#FFFFFF; --ink:#0F1917; --muted:#6B7975; --faint:#9AA6A2;
+  --line:#E4E8E4; --line-strong:#D2D8D3; --green:#0E4F44; --green-hi:#0A3E35; --green-soft:#E6F0EC;
+  --paid:#2E7D5B; --warn:#B0492C; --warn-soft:#F8EAE4; --gold:#B08A3E; --amber-soft:#FBF3E2; --wa:#25D366;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;padding-bottom:96px}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+button{font-family:inherit;cursor:pointer;border:none}
+.mono{font-family:"JetBrains Mono",monospace}
+
+header{background:var(--green);color:#fff;padding:14px 16px}
+header h1{font-size:18px;font-weight:600}
+header .sub{font-size:12px;color:#BFE0D6;margin-top:2px}
+.status{font-size:11px;color:#BFE0D6;margin-top:6px}
+.hbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.hb{background:rgba(255,255,255,.15);color:#fff;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:600}
+
+.wrap{padding:14px 16px;max-width:1100px;margin:0 auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .l{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.kpi .v{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700;margin-top:3px}
+
+.big{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--green);color:#fff;
+  border-radius:14px;padding:18px;font-size:16px;font-weight:700;font-family:"Space Grotesk",sans-serif}
+.big.gold{background:linear-gradient(135deg,var(--gold),#8A6A2A)}
+.btn{border-radius:11px;padding:11px 14px;font-size:14px;font-weight:600;font-family:"Space Grotesk",sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn.primary{background:var(--green);color:#fff}
+.btn.ghost{background:#F0F2F0;color:var(--ink)}
+.btn.warn{background:var(--warn-soft);color:var(--warn)}
+.btn.sm{padding:8px 12px;font-size:13px;border-radius:9px}
+.btn.full{width:100%}
+
+.lbl{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:12px 0 6px;letter-spacing:.02em}
+.inp{width:100%;border:1.5px solid var(--line-strong);border-radius:10px;padding:11px 12px;font-size:14.5px;outline:none;background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--green)}
+textarea.inp{min-height:64px;resize:vertical}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1.5px solid var(--line-strong);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip .n{font-size:11px;opacity:.8;margin-left:4px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;position:relative}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#EEF1EF}
+.card .no{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#EEF1EF;color:var(--faint);font-size:12px}
+.card .b{padding:9px 10px}
+.card .nm{font-size:13.5px;font-weight:600;line-height:1.3;word-break:break-word}
+.card .cd{font-size:11px;color:var(--faint);font-family:"JetBrains Mono",monospace;margin-top:2px}
+.card .pr{font-size:12.5px;font-weight:700;color:var(--green);margin-top:4px}
+.card .tag{position:absolute;top:8px;left:8px;background:var(--gold);color:#fff;font-size:9.5px;font-weight:700;
+  padding:3px 8px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+.card .hide{position:absolute;top:8px;right:8px;background:rgba(15,25,23,.72);color:#fff;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:6px}
+.card .cnt{position:absolute;bottom:52px;right:8px;background:rgba(15,25,23,.72);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+
+.scrim{position:fixed;inset:0;background:rgba(15,25,23,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:14px}
+.scrim.on{display:flex}
+.sheet{background:#fff;border-radius:18px;width:min(560px,100%);max-height:92vh;overflow-y:auto;padding:18px}
+.sheet h2{font-size:18px;margin-bottom:12px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.thumbs .t{position:relative;width:76px;height:76px;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+.thumbs .t img{width:100%;height:100%;object-fit:cover}
+.thumbs .t button{position:absolute;top:2px;right:2px;background:rgba(176,73,44,.92);color:#fff;border-radius:6px;width:20px;height:20px;font-size:13px;line-height:1}
+.rowb{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+
+.bar{height:8px;background:#E7ECE9;border-radius:5px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--paid),#57b98a);transition:width .25s}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:11px;padding:11px 13px;font-size:12.5px;line-height:1.5;margin-bottom:12px}
+.okbox{background:var(--green-soft);color:var(--green-hi);border-radius:11px;padding:11px 13px;font-size:12.5px;line-height:1.5;margin-bottom:12px}
+.empty{text-align:center;color:var(--faint);padding:44px 16px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:11px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;text-align:center}
+.toast.on{opacity:1}
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:11px 16px;display:flex;gap:9px;z-index:60}
+</style>
+</head>
+<body>
+<header>
+  <h1>Catalog</h1>
+  <div class="sub">Photos your customers see — new arrivals &amp; stock</div>
+  <div class="status" id="status">Connecting…</div>
+  <div class="hbtns">
+    <button class="hb" id="openSite">🌐 Open my catalog</button>
+    <button class="hb" id="shareSite">📤 Share link</button>
+    <button class="hb" id="checkBtn">⚙ Photo storage check</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="setupWarn"></div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Products</div><div class="v" id="k-items">0</div></div>
+    <div class="kpi"><div class="l">Photos</div><div class="v" id="k-photos">0</div></div>
+    <div class="kpi"><div class="l">New arrivals</div><div class="v" id="k-new">0</div></div>
+    <div class="kpi"><div class="l">Hidden</div><div class="v" id="k-hidden">0</div></div>
+  </div>
+
+  <button class="big" id="addBtn">＋ Add photos</button>
+  <div class="note" style="text-align:center;margin:8px 0 16px">
+    Pick one photo or many at once. Each becomes a catalog product.
+  </div>
+
+  <div class="panel">
+    <input class="inp" id="search" placeholder="Search product, part number or note…" style="margin-bottom:10px">
+    <div class="chips" id="chips"></div>
+    <div id="grid" class="grid"></div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <button class="btn ghost sm" id="catsBtn" style="flex:1">Categories</button>
+  <button class="btn primary sm" id="addBtn2" style="flex:2">＋ Add photos</button>
+</div>
+
+<!-- upload / edit sheet -->
+<div class="scrim" id="edScrim"><div class="sheet">
+  <h2 id="edTitle">Product</h2>
+  <div id="upProg" style="display:none">
+    <div class="note" id="upTxt">Uploading…</div>
+    <div class="bar"><i id="upBar"></i></div>
+  </div>
+  <div class="thumbs" id="edThumbs"></div>
+  <button class="btn ghost sm" id="edMore" style="margin-bottom:6px">＋ Add more photos to this product</button>
+  <label class="lbl">Product name</label><input class="inp" id="e-name" placeholder="e.g. TCON board 6870-0442B">
+  <label class="lbl">Part number (optional)</label><input class="inp mono" id="e-code" placeholder="6870-0442B">
+  <label class="lbl">Category</label><select class="inp" id="e-cat"></select>
+  <label class="lbl">Price Rs (leave 0 to show “Ask on WhatsApp”)</label><input class="inp mono" id="e-price" inputmode="decimal" value="0">
+  <label class="lbl">Short line for customers (optional)</label><textarea class="inp" id="e-note" placeholder="Original, tested, ready to ship"></textarea>
+  <label class="lbl">Show on catalog</label>
+  <select class="inp" id="e-live">
+    <option value="1">Yes — customers can see it</option>
+    <option value="0">No — hide it for now</option>
+  </select>
+  <label class="lbl">Mark as new arrival</label>
+  <select class="inp" id="e-new">
+    <option value="1">Yes — show in New Arrivals</option>
+    <option value="0">No</option>
+  </select>
+  <div class="rowb">
+    <button class="btn warn" id="e-del" style="display:none">Delete</button>
+    <button class="btn ghost" id="e-cancel">Cancel</button>
+  </div>
+  <button class="btn primary full" id="e-save" style="margin-top:9px">Save</button>
+</div></div>
+
+<!-- batch details after multi upload -->
+<div class="scrim" id="bScrim"><div class="sheet">
+  <h2>Just uploaded</h2>
+  <div class="note" style="margin-bottom:10px">Give these a category now — you can name each one later by tapping it.</div>
+  <label class="lbl">Category for all of them</label><select class="inp" id="b-cat"></select>
+  <label class="lbl">Mark all as new arrival</label>
+  <select class="inp" id="b-new"><option value="1">Yes</option><option value="0">No</option></select>
+  <button class="btn primary full" id="b-save" style="margin-top:14px">Save</button>
+</div></div>
+
+<!-- categories -->
+<div class="scrim" id="cScrim"><div class="sheet">
+  <h2>Categories</h2>
+  <div id="cList"></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <input class="inp" id="c-new" placeholder="New category name" style="flex:1">
+    <button class="btn primary sm" id="c-add">Add</button>
+  </div>
+  <button class="btn ghost full" id="c-close" style="margin-top:14px">Done</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];}); }
+function num(v){ var n=parseFloat(String(v).replace(/[^\d.\-]/g,"")); return isNaN(n)?0:n; }
+function rs(n){ return Math.round(n||0).toLocaleString("en-PK"); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function batchKey(d){ d=d||new Date(); return "catalog_"+d.getFullYear()+"_"+String(d.getMonth()+1).padStart(2,"0"); }
+
+var BASE_CATS=["T-CON boards","COF / TAB IC","Scaler / Mainboard","Modification","4K","Cables","Tapes","LVDS / FFC Cables","ACF Tape","Bonding machines","Panel PCBs","Other parts"];
+var Index={ cats:BASE_CATS.slice(), batches:[], updatedAt:0 };
+var ITEMS=[];          /* every item, each carries ._b = its batch */
+var ui={ cat:"all", q:"", editId:null, drafts:[] };
+var SITE="";
+
+/* ================= RENDER ================= */
+function counts(){
+  var live=ITEMS.filter(function(x){return x.live!==false;});
+  $("k-items").textContent=ITEMS.length;
+  $("k-photos").textContent=ITEMS.reduce(function(s,x){return s+((x.photos||[]).length);},0);
+  $("k-new").textContent=ITEMS.filter(function(x){return x.isNew;}).length;
+  $("k-hidden").textContent=ITEMS.length-live.length;
+}
+function catCount(c){ return c==="all"?ITEMS.length:ITEMS.filter(function(x){return (x.cat||"")===c;}).length; }
+function renderChips(){
+  var cats=["all"].concat(Index.cats.filter(function(c){ return catCount(c)>0; }));
+  $("chips").innerHTML=cats.map(function(c){
+    return '<button class="chip'+(ui.cat===c?" on":"")+'" data-c="'+esc(c)+'">'+(c==="all"?"All":esc(c))+'<span class="n">'+catCount(c)+'</span></button>';
+  }).join("");
+  $("chips").querySelectorAll("[data-c]").forEach(function(b){ b.onclick=function(){ ui.cat=b.dataset.c; render(); }; });
+}
+function filtered(){
+  var q=ui.q.trim().toLowerCase();
+  return ITEMS.filter(function(x){
+    if(ui.cat!=="all" && (x.cat||"")!==ui.cat) return false;
+    if(!q) return true;
+    return (x.name||"").toLowerCase().indexOf(q)>=0 || (x.code||"").toLowerCase().indexOf(q)>=0 || (x.note||"").toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+}
+function render(){
+  counts(); renderChips();
+  var list=filtered();
+  if(!list.length){
+    $("grid").innerHTML='<div class="empty" style="grid-column:1/-1">'+(ITEMS.length?"Nothing matches.":"No photos yet. Tap ＋ Add photos to start your catalog.")+'</div>';
+    return;
+  }
+  $("grid").innerHTML=list.map(function(x){
+    var ph=(x.photos||[])[0];
+    var img=ph?('<img src="'+esc(ph.thumb||ph.url)+'" loading="lazy" alt="">'):'<div class="no">no photo</div>';
+    return '<div class="card" data-e="'+x.id+'">'+img
+      +(x.isNew?'<span class="tag">New</span>':'')
+      +(x.live===false?'<span class="hide">hidden</span>':'')
+      +((x.photos||[]).length>1?'<span class="cnt">'+x.photos.length+' photos</span>':'')
+      +'<div class="b"><div class="nm">'+esc(x.name||"(no name)")+'</div>'
+      +(x.code?'<div class="cd">'+esc(x.code)+'</div>':'')
+      +(x.price>0?'<div class="pr">Rs '+rs(x.price)+'</div>':'<div class="pr" style="color:var(--faint)">Ask on WhatsApp</div>')
+      +'</div></div>';
+  }).join("");
+  $("grid").querySelectorAll("[data-e]").forEach(function(c){ c.onclick=function(){ openEdit(c.dataset.e); }; });
+}
+
+/* ================= PHOTOS ================= */
+function shrink(file, max, quality){
+  return new Promise(function(res,rej){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width, h=img.height;
+      if(w>h && w>max){ h=Math.round(h*max/w); w=max; } else if(h>=w && h>max){ w=Math.round(w*max/h); h=max; }
+      var cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      var cx=cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,w,h); cx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(function(b){ b?res(b):rej(new Error("blob")); }, "image/jpeg", quality);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error("read")); };
+    img.src=url;
+  });
+}
+function pickPhotos(cb){
+  var inp=document.createElement("input");
+  inp.type="file"; inp.accept="image/*"; inp.multiple=true; inp.style.display="none";
+  document.body.appendChild(inp);
+  inp.onchange=function(e){ var fs=Array.prototype.slice.call(e.target.files||[]); inp.remove(); if(fs.length) cb(fs); };
+  inp.click();
+}
+function uploadMany(files, onEach){
+  var done=0, total=files.length, out=[];
+  $("upProg").style.display="block"; $("upBar").style.width="0%";
+  $("upTxt").textContent="Uploading 1 of "+total+"…";
+  return files.reduce(function(chain,f){
+    return chain.then(function(){
+      return Promise.all([ shrink(f,1600,0.82), shrink(f,600,0.7) ]).then(function(pair){
+        return window.__catUpload(pair[0], pair[1]);
+      }).then(function(ph){
+        if(ph){ out.push(ph); if(onEach) onEach(ph); }
+        done++; $("upBar").style.width=Math.round(done/total*100)+"%";
+        $("upTxt").textContent = done<total ? ("Uploading "+(done+1)+" of "+total+"…") : "Finishing…";
+      }).catch(function(){ done++; });
+    });
+  }, Promise.resolve()).then(function(){
+    $("upProg").style.display="none";
+    return out;
+  });
+}
+
+/* ================= ADD ================= */
+function addPhotos(){
+  if(!window.__catUpload){ toast("Photo storage is not ready — tap “Photo storage check”"); return; }
+  pickPhotos(function(files){
+    if(files.length===1){
+      openEdit(null);
+      uploadMany(files).then(function(ph){
+        if(!ph.length){ toast("Upload failed — check the storage setup"); return; }
+        ui.drafts=ph; drawThumbs(); toast("Photo ready — add a name and save");
+      });
+      return;
+    }
+    /* many photos → one product each */
+    $("edScrim").classList.remove("on");
+    $("upProg").style.display="block";
+    var made=[];
+    uploadMany(files, function(ph){
+      made.push({ id:uid(), name:"", code:"", cat:"", note:"", price:0, live:true, isNew:true,
+                  photos:[ph], createdAt:Date.now(), updatedAt:Date.now() });
+    }).then(function(){
+      if(!made.length){ toast("Upload failed — check the storage setup"); return; }
+      ITEMS = made.concat(ITEMS);
+      made.forEach(function(m){ m._b=batchKey(); });
+      fillCats($("b-cat")); $("b-new").value="1";
+      window.__pendingBatch=made;
+      $("bScrim").classList.add("on");
+      render();
+    });
+  });
+}
+$("b-save").onclick=function(){
+  var c=$("b-cat").value, isNew=$("b-new").value==="1";
+  (window.__pendingBatch||[]).forEach(function(m){ m.cat=c; m.isNew=isNew; m.updatedAt=Date.now(); });
+  window.__pendingBatch=null;
+  $("bScrim").classList.remove("on");
+  saveAll(); render(); toast("Saved to your catalog");
+};
+
+/* ================= EDIT ================= */
+function fillCats(sel,cur){
+  sel.innerHTML=Index.cats.map(function(c){ return '<option value="'+esc(c)+'"'+(c===cur?" selected":"")+'>'+esc(c)+'</option>'; }).join("");
+}
+function drawThumbs(){
+  var ph=ui.editId ? ((ITEMS.filter(function(x){return x.id===ui.editId;})[0]||{}).photos||[]) : ui.drafts;
+  $("edThumbs").innerHTML=ph.map(function(p,i){
+    return '<div class="t"><img src="'+esc(p.thumb||p.url)+'"><button data-rm="'+i+'">×</button></div>';
+  }).join("");
+  $("edThumbs").querySelectorAll("[data-rm]").forEach(function(b){
+    b.onclick=function(){ var i=+b.dataset.rm;
+      if(ui.editId){ var it=ITEMS.filter(function(x){return x.id===ui.editId;})[0]; if(it) it.photos.splice(i,1); }
+      else ui.drafts.splice(i,1);
+      drawThumbs(); };
+  });
+}
+function openEdit(id){
+  ui.editId=id||null; ui.drafts=[];
+  var x=id?ITEMS.filter(function(i){return i.id===id;})[0]:null;
+  $("edTitle").textContent=x?"Edit product":"New product";
+  $("e-name").value=x?(x.name||""):"";
+  $("e-code").value=x?(x.code||""):"";
+  fillCats($("e-cat"), x?x.cat:(Index.cats[0]||""));
+  $("e-price").value=x?(x.price||0):0;
+  $("e-note").value=x?(x.note||""):"";
+  $("e-live").value=(x&&x.live===false)?"0":"1";
+  $("e-new").value=(x&&!x.isNew)?"0":"1";
+  $("e-del").style.display=x?"block":"none";
+  drawThumbs();
+  $("edScrim").classList.add("on");
+}
+$("edMore").onclick=function(){
+  if(!window.__catUpload){ toast("Photo storage is not ready"); return; }
+  pickPhotos(function(files){
+    uploadMany(files).then(function(ph){
+      if(ui.editId){ var it=ITEMS.filter(function(x){return x.id===ui.editId;})[0]; if(it){ it.photos=(it.photos||[]).concat(ph); } }
+      else ui.drafts=ui.drafts.concat(ph);
+      drawThumbs();
+    });
+  });
+};
+$("e-save").onclick=function(){
+  var name=$("e-name").value.trim();
+  var photos = ui.editId ? ((ITEMS.filter(function(x){return x.id===ui.editId;})[0]||{}).photos||[]) : ui.drafts;
+  if(!photos.length && !name){ toast("Add a photo or a name"); return; }
+  var d={ name:name, code:$("e-code").value.trim(), cat:$("e-cat").value,
+          price:num($("e-price").value), note:$("e-note").value.trim(),
+          live:$("e-live").value==="1", isNew:$("e-new").value==="1", updatedAt:Date.now() };
+  if(ui.editId){
+    var it=ITEMS.filter(function(x){return x.id===ui.editId;})[0];
+    if(it) Object.keys(d).forEach(function(k){ it[k]=d[k]; });
+  } else {
+    var rec=Object.assign({ id:uid(), photos:ui.drafts.slice(), createdAt:Date.now(), _b:batchKey() }, d);
+    ITEMS.unshift(rec);
+  }
+  saveAll(); render();
+  $("edScrim").classList.remove("on");
+  toast(ui.editId?"Updated":"Added to your catalog");
+};
+$("e-del").onclick=function(){
+  if(!ui.editId) return;
+  if(!confirm("Delete this product from the catalog?")) return;
+  if(window.__catTomb) window.__catTomb(ui.editId);
+  ITEMS=ITEMS.filter(function(x){return x.id!==ui.editId;});
+  saveAll(); render(); $("edScrim").classList.remove("on"); toast("Deleted");
+};
+$("e-cancel").onclick=function(){ $("edScrim").classList.remove("on"); };
+
+/* ================= CATEGORIES ================= */
+$("catsBtn").onclick=function(){ drawCats(); $("cScrim").classList.add("on"); };
+$("c-close").onclick=function(){ $("cScrim").classList.remove("on"); };
+function drawCats(){
+  $("cList").innerHTML=Index.cats.map(function(c,i){
+    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px">'
+      +'<input class="inp" data-cn="'+i+'" value="'+esc(c)+'" style="flex:1">'
+      +'<button class="btn warn sm" data-cx="'+i+'">✕</button></div>';
+  }).join("");
+  $("cList").querySelectorAll("[data-cn]").forEach(function(x){ x.onchange=function(){ Index.cats[+x.dataset.cn]=x.value.trim()||Index.cats[+x.dataset.cn]; saveIndex(); render(); }; });
+  $("cList").querySelectorAll("[data-cx]").forEach(function(b){ b.onclick=function(){
+    var c=Index.cats[+b.dataset.cx];
+    if(catCount(c)>0){ toast("Move its products to another category first"); return; }
+    Index.cats.splice(+b.dataset.cx,1); saveIndex(); drawCats(); render(); }; });
+}
+$("c-add").onclick=function(){
+  var v=$("c-new").value.trim(); if(!v) return;
+  if(Index.cats.some(function(c){return c.toLowerCase()===v.toLowerCase();})){ toast("That category exists"); return; }
+  Index.cats.push(v); $("c-new").value=""; saveIndex(); drawCats(); render(); toast("Category added");
+};
+
+/* ================= MISC ================= */
+$("addBtn").onclick=addPhotos; $("addBtn2").onclick=addPhotos;
+$("search").addEventListener("input",function(e){ ui.q=e.target.value; render(); });
+document.querySelectorAll(".scrim").forEach(function(s){ s.addEventListener("click",function(e){ if(e.target===s) s.classList.remove("on"); }); });
+$("openSite").onclick=function(){ window.open(catalogURL(),"_blank"); };
+$("shareSite").onclick=function(){
+  var u=catalogURL(), msg="Shakeel Electronics — our latest stock & new arrivals:\n"+u;
+  if(navigator.share) navigator.share({title:"Shakeel Electronics Catalog", text:msg, url:u}).catch(function(){});
+  else window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+};
+function catalogURL(){
+  try{ return new URL("catalog.html", location.href).href.split("?")[0]; }catch(e){ return "catalog.html"; }
+}
+var toastT=null;
+function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("on"); },2200); }
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+(function(){
+  var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com",
+    projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app",
+    messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
+  var db=null, st=null, ready=false;
+  function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
+  try{ firebase.initializeApp(cfg); db=firebase.firestore(); }catch(e){ note("\u2601 Offline"); return; }
+  try{ st=firebase.storage(); }catch(e){ st=null; }
+  function ref(k){ return db.collection("shops").doc("main").collection("apps").doc(k); }
+
+  /* deleted items stay deleted */
+  function tomb(){ try{ return JSON.parse(localStorage.getItem("catalog:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__catTomb=function(id){ try{ var t=tomb(); t[id]=Date.now(); localStorage.setItem("catalog:deleted",JSON.stringify(t)); }catch(_){ } };
+  function applyTomb(a){ var t=tomb(); return (a||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
+
+  /* ---- photo upload: file goes to Firebase Storage, only the link is stored ---- */
+  window.__catUpload=null;
+  function enableUpload(){
+    window.__catUpload=function(fullBlob, thumbBlob){
+      var id=uid(), base="catalog/"+id;
+      return st.ref().child(base+".jpg").put(fullBlob)
+        .then(function(s){ return s.ref.getDownloadURL(); })
+        .then(function(url){
+          return st.ref().child(base+"_t.jpg").put(thumbBlob)
+            .then(function(s2){ return s2.ref.getDownloadURL(); })
+            .then(function(turl){ return {url:url, thumb:turl, path:base}; })
+            .catch(function(){ return {url:url, thumb:url, path:base}; });
+        })
+        .catch(function(){ return null; });
+    };
+  }
+  if(st) enableUpload();
+
+  /* ---- storage health check with clear instructions ---- */
+  function storageCheck(silent){
+    var box=document.getElementById("setupWarn");
+    if(!st){ box.innerHTML=setupHTML("Firebase Storage is not switched on yet."); return Promise.resolve(false); }
+    var probe=new Blob(["ok"],{type:"text/plain"});
+    return st.ref().child("catalog/_check.txt").put(probe).then(function(){
+      box.innerHTML=""; enableUpload();
+      if(!silent) toast("Photo storage is working");
+      return true;
+    }).catch(function(err){
+      var why=(err&&err.code==="storage/unauthorized")?"Firebase Storage is on, but the rules are blocking uploads.":"Firebase Storage could not be reached.";
+      box.innerHTML=setupHTML(why);
+      if(!silent) toast("Photo storage is not ready");
+      return false;
+    });
+  }
+  function setupHTML(why){
+    return '<div class="warnbox"><b>'+esc(why)+'</b><br>'
+      +'Photos need Firebase Storage. One-time setup, about 2 minutes:<br><br>'
+      +'1. Open <b>console.firebase.google.com</b> and sign in with your owner email<br>'
+      +'2. Open project <b>shakeel-shop</b> → left menu <b>Build → Storage</b> → <b>Get started</b> → accept the defaults<br>'
+      +'3. Open the <b>Rules</b> tab there (it must say <span class="mono">service firebase.storage</span>, NOT cloud.firestore) and publish:<br>'
+      +'<div class="mono" style="background:#fff;border-radius:8px;padding:9px;margin:7px 0;font-size:11px;white-space:pre-wrap">'
+      +"rules_version = '2';\nservice firebase.storage {\n  match /b/{bucket}/o {\n    match /{allPaths=**} {\n      allow read: if true;\n      allow write: if request.auth != null;\n    }\n  }\n}"
+      +'</div>'
+      +'4. Come back here and tap <b>Photo storage check</b>.'
+      +'<br><br>The free plan includes 5 GB — roughly 30,000 photos at this quality.</div>';
+  }
+  document.getElementById("checkBtn").onclick=function(){ storageCheck(false); };
+
+  /* ---- load everything ---- */
+  function loadAll(){
+    return ref("catalog_index").get().then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){
+        if(Array.isArray(d.cats)&&d.cats.length) Index.cats=d.cats;
+        if(Array.isArray(d.batches)) Index.batches=d.batches;
+        Index.updatedAt=d.updatedAt||0;
+      }
+      var keys=Index.batches.slice();
+      if(keys.indexOf(batchKey())<0) keys.push(batchKey());
+      return Promise.all(keys.map(function(k){
+        return ref(k).get().then(function(sn){
+          var dd=sn.exists&&sn.data()&&sn.data().state;
+          var arr=(dd&&Array.isArray(dd.items))?dd.items:[];
+          arr.forEach(function(x){ x._b=k; });
+          return arr;
+        }).catch(function(){ return []; });
+      }));
+    }).then(function(lists){
+      var all=[]; lists.forEach(function(l){ all=all.concat(l); });
+      ITEMS=applyTomb(all);
+      ready=true; note("\u2601 Synced");
+      render();
+    }).catch(function(){ ready=true; note("\u2601 Saved on this device"); render(); });
+  }
+
+  /* ---- save: each month is its own record, so there is no size wall ---- */
+  var saveT=null;
+  window.saveAll=function(){
+    clearTimeout(saveT);
+    saveT=setTimeout(function(){
+      if(!db||!ready) return;
+      var groups={};
+      ITEMS.forEach(function(x){ var b=x._b||batchKey(); (groups[b]=groups[b]||[]).push(x); });
+      var keys=Object.keys(groups);
+      Index.batches=Array.from(new Set(Index.batches.concat(keys))).sort();
+      var jobs=keys.map(function(k){
+        var clean=groups[k].map(function(x){ var c=Object.assign({},x); delete c._b; return c; });
+        return ref(k).set({state:{items:clean, updatedAt:Date.now()}, ts:Date.now()},{merge:true}).catch(function(){});
+      });
+      jobs.push(saveIndex());
+      Promise.all(jobs).then(function(){ note("\u2601 Synced"); }).catch(function(){ note("\u2601 Save failed"); });
+    },500);
+  };
+  window.saveIndex=function(){
+    if(!db) return Promise.resolve();
+    Index.updatedAt=Date.now();
+    return ref("catalog_index").set({state:{cats:Index.cats,batches:Index.batches,updatedAt:Index.updatedAt}, ts:Date.now()},{merge:true}).catch(function(){});
+  };
+
+  firebase.auth().onAuthStateChanged(function(u){ if(u){ loadAll(); storageCheck(true); } });
+  loadAll(); if(st) storageCheck(true);
+})();
+</script>
+</body>
+</html>
