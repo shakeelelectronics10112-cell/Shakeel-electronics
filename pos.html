@@ -224,6 +224,11 @@ table.rep tr.tot td{font-weight:700;border-top:2px solid var(--line-strong);bord
     <button class="rbtn" data-r="month">This month</button>
   </div>
   <div class="kpis" id="dKpis"></div>
+  <div class="panel" id="dNewWrap" style="display:none">
+    <h3 class="sect-h">New arrivals — need a selling price</h3>
+    <div class="infobox">These came in from Buy but have no counter price yet, so they cannot be billed. Set a price, or tap a margin button.</div>
+    <div id="dNew"></div>
+  </div>
   <div class="panel"><h3 class="sect-h">Best sellers</h3><div id="dTop"></div></div>
   <div class="panel"><h3 class="sect-h">Running low in stock</h3><div id="dLow"></div></div>
   <div class="panel"><h3 class="sect-h">Latest bills</h3><div id="dRecent"></div></div>
@@ -759,6 +764,9 @@ function kpi(l,v,cls,s){ return '<div class="kpi"><div class="l">'+l+'</div><div
 
 /* ==================== HEADER ==================== */
 function refreshHeader(){
+  var n=needPrice().length;
+  var b=document.querySelector('.tab[data-p="dash"]');
+  if(b) b.textContent = n? ("Dashboard ("+n+")") : "Dashboard";
   var c=calc(rangeFor("today"));
   $("hSales").textContent=money(c.rev);
   $("hProfit").textContent=money(c.prof);
@@ -770,7 +778,48 @@ var dashR="today";
 document.querySelectorAll("#dRng .rbtn").forEach(function(b){
   b.onclick=function(){ document.querySelectorAll("#dRng .rbtn").forEach(function(x){x.classList.toggle("on",x===b);}); dashR=b.dataset.r; runDash(); };
 });
+function needPrice(){
+  return (STOCK.items||[]).filter(function(it){
+    return it && it.name && (it.qty||0)>0 && !(S.prices[it.id]>0);
+  }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+}
+function renderNewArrivals(){
+  var list=needPrice();
+  $("dNewWrap").style.display=list.length?"":"none";
+  if(!list.length) return;
+  $("dNew").innerHTML='<table class="rep"><thead><tr><th>Product</th><th class="r">In stock</th><th class="r">Cost</th>'
+    +'<th class="r" style="min-width:190px">Selling price</th></tr></thead><tbody>'
+    +list.slice(0,40).map(function(it){
+      var c=it.price||0;
+      return '<tr><td>'+esc(it.name)+(it.code?'<div class="mono" style="font-size:11px;color:var(--faint)">'+esc(it.code)+'</div>':'')+'</td>'
+        +'<td class="r">'+(it.qty||0)+'</td><td class="r">'+rs(c)+'</td>'
+        +'<td class="r"><div style="display:flex;gap:5px;justify-content:flex-end;align-items:center;flex-wrap:wrap">'
+        +(c>0?'<button class="btn ghost sm" data-m="20" data-id="'+it.id+'" style="padding:5px 8px;font-size:11.5px">+20%</button>'
+             +'<button class="btn ghost sm" data-m="30" data-id="'+it.id+'" style="padding:5px 8px;font-size:11.5px">+30%</button>'
+             +'<button class="btn ghost sm" data-m="40" data-id="'+it.id+'" style="padding:5px 8px;font-size:11.5px">+40%</button>':'')
+        +'<input class="cin" data-np="'+it.id+'" placeholder="price" inputmode="decimal" style="width:86px">'
+        +'</div></td></tr>';
+    }).join("")
+    +'</tbody></table>'
+    +(list.length>40?'<div class="hint">Showing 40 of '+list.length+'.</div>':'');
+  function setPrice(id,val){
+    if(!(val>0)) return;
+    S.prices[id]=Math.round(val); saveS(); pushNow();
+    renderNewArrivals(); renderResults();
+    toast("Price set — "+money(val));
+  }
+  $("dNew").querySelectorAll("[data-np]").forEach(function(x){
+    x.onchange=function(){ setPrice(x.dataset.np, num(x.value)); };
+  });
+  $("dNew").querySelectorAll("[data-m]").forEach(function(b){
+    b.onclick=function(){
+      var it=(STOCK.items||[]).filter(function(y){return y.id===b.dataset.id;})[0]; if(!it) return;
+      setPrice(it.id, Math.round((it.price||0)*(1+(+b.dataset.m)/100)));
+    };
+  });
+}
 function runDash(){
+  renderNewArrivals();
   var r=rangeFor(dashR);
   ensureMonths(r,function(){
     var c=calc(r);

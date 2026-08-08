@@ -136,6 +136,70 @@ footer .bot{border-top:1px solid rgba(255,255,255,.1);margin-top:28px;padding-to
 .fab{position:fixed;right:16px;bottom:16px;background:var(--wa);color:#fff;border-radius:50%;width:56px;height:56px;
   display:flex;align-items:center;justify-content:center;box-shadow:0 8px 26px rgba(37,211,102,.42);z-index:60;text-decoration:none}
 .fab svg{width:27px;height:27px;fill:#fff}
+/* featured strip that keeps moving */
+#featured{padding:30px 0 6px;background:#fff;border-bottom:1px solid var(--line)}
+.mrow{overflow:hidden;position:relative;padding:6px 0 14px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+.mtrack{display:flex;gap:14px;width:max-content;will-change:transform;animation:slide var(--dur,45s) linear infinite}
+.mrow:hover .mtrack,.mrow:active .mtrack{animation-play-state:paused}
+@keyframes slide{ from{transform:translateX(0)} to{transform:translateX(-50%)} }
+@media (prefers-reduced-motion:reduce){ .mtrack{animation:none} .mrow{overflow-x:auto} }
+.fcard{flex:0 0 auto;width:186px;background:var(--panel);border:1px solid var(--line);border-radius:15px;
+  overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .18s}
+.fcard:hover{transform:translateY(-4px)}
+.fcard .fp{position:relative;aspect-ratio:1;background:#EDF1EE;overflow:hidden}
+.fcard .fp img{width:100%;height:100%;object-fit:cover;display:block}
+.fcard .fb{padding:10px 11px 12px}
+.fcard .fn{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:13.5px;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.fcard .fpr{margin-top:6px;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:14.5px;color:var(--green)}
+.fcard .fpr.ask{font-size:11.5px;color:var(--muted);font-weight:600}
+.fcard .fstar{position:absolute;top:8px;left:8px;background:var(--gold);color:#fff;font-size:9.5px;
+  font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.05em}
+/* ── movement ── */
+@keyframes pop{ from{opacity:0;transform:translateY(14px) scale(.985)} to{opacity:1;transform:none} }
+@keyframes fadeUp{ from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+@keyframes popIn{ from{opacity:0;transform:scale(.96) translateY(10px)} to{opacity:1;transform:none} }
+.card.pop{animation:pop .42s cubic-bezier(.22,.9,.3,1) both;animation-delay:var(--d,0ms)}
+.hero .eyebrow{animation:fadeUp .55s cubic-bezier(.22,.9,.3,1) both}
+.hero h1{animation:fadeUp .6s cubic-bezier(.22,.9,.3,1) .07s both}
+.hero p{animation:fadeUp .6s cubic-bezier(.22,.9,.3,1) .14s both}
+.heroStats{animation:fadeUp .6s cubic-bezier(.22,.9,.3,1) .21s both}
+.searchWrap{animation:fadeUp .6s cubic-bezier(.22,.9,.3,1) .28s both}
+.search{transition:box-shadow .22s,transform .22s}
+.search:focus{box-shadow:0 12px 36px rgba(0,0,0,.22);transform:translateY(-1px)}
+/* photos fade in instead of snapping */
+.ph img,.fcard .fp img{opacity:0;transition:opacity .45s ease,transform .5s ease}
+.ph img.in,.fcard .fp img.in{opacity:1}
+.card:hover .ph img{transform:scale(1.06)}
+.fcard:hover .fp img{transform:scale(1.05)}
+/* sections slide up as you reach them */
+.rv{opacity:0;transform:translateY(22px)}
+.rv.in{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.22,.9,.3,1),transform .6s cubic-bezier(.22,.9,.3,1)}
+.chip{transition:background .18s,border-color .18s,color .18s,transform .14s}
+.chip:active{transform:scale(.95)}
+.badge{animation:popIn .4s cubic-bezier(.22,.9,.3,1) .2s both}
+.wabtn,.callbtn,.more{transition:transform .15s,filter .18s}
+.wabtn:active,.callbtn:active,.more:active{transform:scale(.97)}
+.more:hover{filter:brightness(.98)}
+.fab{transition:transform .2s}
+.fab:hover{transform:scale(1.07)}
+.fab:active{transform:scale(.94)}
+/* product view */
+.lb.on{animation:fadeIn .22s ease both}
+.lb.on .lbInfo{animation:fadeUp .34s cubic-bezier(.22,.9,.3,1) .04s both}
+.lb.on .lbImg img{animation:popIn .34s cubic-bezier(.22,.9,.3,1) both}
+.nav{transition:background .18s,transform .15s}
+.nav:active{transform:translateY(-50%) scale(.9)}
+@media (prefers-reduced-motion:reduce){
+  .card.pop,.hero .eyebrow,.hero h1,.hero p,.heroStats,.searchWrap,.badge,
+  .lb.on,.lb.on .lbInfo,.lb.on .lbImg img{animation:none}
+  .rv{opacity:1;transform:none}
+  .ph img,.fcard .fp img{opacity:1}
+  .card:hover .ph img,.fcard:hover .fp img{transform:none}
+}
 .skel{background:linear-gradient(90deg,#EDF1EE 25%,#F5F8F6 50%,#EDF1EE 75%);background-size:200% 100%;
   animation:sk 1.3s infinite}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -173,6 +237,15 @@ footer .bot{border-top:1px solid rgba(255,255,255,.1);margin-top:28px;padding-to
     </div>
   </div>
 </div>
+
+<section id="featured" style="display:none">
+  <div class="wrap">
+    <div class="shead" style="margin-bottom:8px">
+      <div><div class="eyebrow">Featured</div><h2>Picked from our shelves</h2></div>
+    </div>
+  </div>
+  <div class="mrow"><div class="mtrack" id="mTrack"></div></div>
+</section>
 
 <section id="newArrivals" style="display:none">
   <div class="wrap">
@@ -253,6 +326,8 @@ footer .bot{border-top:1px solid rgba(255,255,255,.1);margin-top:28px;padding-to
       <a class="wa" id="lbWA" target="_blank" rel="noopener">Ask for rate</a>
       <a class="cl" href="tel:03126617887">Call shop</a>
     </div>
+    <button id="lbShare" style="width:100%;margin-top:9px;border-radius:11px;padding:13px;font-weight:700;
+      font-size:14px;font-family:'Space Grotesk',sans-serif;background:#EEF2F0;color:var(--green)">🔗 Share this product</button>
   </div>
 </div>
 
@@ -278,14 +353,28 @@ function skeleton(n,el){
 skeleton(8,$("grid"));
 
 /* ---------- render ---------- */
-function live(){ return ITEMS.filter(function(x){ return x.live!==false && (x.photos||[]).length; }); }
-function catCount(c){ return c==="all"?live().length:live().filter(function(x){return (x.cat||"")===c;}).length; }
+/* the visible list and the category counts are worked out once,
+   not on every letter typed */
+var LIVE=[], CATN={};
+function rebuildLive(){
+  LIVE=ITEMS.filter(function(x){ return x.live!==false && (x.photos||[]).length; });
+  LIVE.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+  CATN={}; LIVE.forEach(function(x){ var c=x.cat||""; CATN[c]=(CATN[c]||0)+1; });
+}
+function live(){ return LIVE; }
+function catCount(c){ return c==="all"?LIVE.length:(CATN[c]||0); }
 function renderChips(){
   var cs=["all"].concat(CATS.filter(function(c){ return catCount(c)>0; }));
   $("chips").innerHTML=cs.map(function(c){
     return '<button class="chip'+(ui.cat===c?" on":"")+'" data-c="'+esc(c)+'">'+(c==="all"?"All products":esc(c))+'<span class="n">'+catCount(c)+'</span></button>';
   }).join("");
-  $("chips").querySelectorAll("[data-c]").forEach(function(b){ b.onclick=function(){ ui.cat=b.dataset.c; ui.shown=24; renderGrid(); }; });
+  $("chips").querySelectorAll("[data-c]").forEach(function(b){
+    b.onclick=function(){
+      ui.cat=b.dataset.c; ui.shown=24;
+      $("chips").querySelectorAll("[data-c]").forEach(function(x){ x.classList.toggle("on", x===b); });
+      renderGrid();
+    };
+  });
 }
 function cardHTML(x,i){
   var ph=(x.photos||[])[0];
@@ -311,7 +400,6 @@ function filtered(){
 }
 var VIEW=[];
 function renderGrid(){
-  renderChips();
   VIEW=filtered();
   $("countLine").textContent = VIEW.length ? (VIEW.length+" product"+(VIEW.length===1?"":"s")+(ui.cat!=="all"?" in "+ui.cat:"")) : "";
   if(!VIEW.length){
@@ -320,7 +408,12 @@ function renderGrid(){
   }
   var slice=VIEW.slice(0,ui.shown);
   $("grid").innerHTML=slice.map(function(x,i){ return cardHTML(x,i); }).join("");
-  $("grid").querySelectorAll("[data-i]").forEach(function(c){ c.onclick=function(){ openLB(VIEW[+c.dataset.i]); }; });
+  $("grid").querySelectorAll("[data-i]").forEach(function(c,i){
+    c.style.setProperty("--d",Math.min(i,14)*28+"ms");
+    c.classList.add("pop");
+    c.onclick=function(){ openLB(VIEW[+c.dataset.i]); };
+  });
+  fadeImgs($("grid"));
   $("moreBtn").style.display = VIEW.length>ui.shown ? "block" : "none";
 }
 function renderNew(){
@@ -328,23 +421,103 @@ function renderNew(){
   if(!n.length){ $("newArrivals").style.display="none"; return; }
   $("newArrivals").style.display="block";
   $("newGrid").innerHTML=n.map(function(x,i){ return cardHTML(x,i); }).join("");
-  $("newGrid").querySelectorAll("[data-i]").forEach(function(c){ c.onclick=function(){ openLB(n[+c.dataset.i]); }; });
+  $("newGrid").querySelectorAll("[data-i]").forEach(function(c,i){
+    c.style.setProperty("--d",i*30+"ms"); c.classList.add("pop");
+    c.onclick=function(){ openLB(n[+c.dataset.i]); };
+  });
+  fadeImgs($("newGrid"));
+}
+function renderFeatured(){
+  var f=live().filter(function(x){ return x.featured; })
+    .sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }).slice(0,14);
+  if(f.length<2){ $("featured").style.display="none"; return; }
+  $("featured").style.display="block";
+  function card(x,i){
+    var ph=(x.photos||[])[0];
+    return '<div class="fcard" data-f="'+i+'">'
+      +'<div class="fp">'+(ph?'<img src="'+esc(ph.thumb||ph.url)+'" loading="lazy" alt="'+esc(x.name||"")+'">':'')
+      +'<span class="fstar">★</span></div>'
+      +'<div class="fb"><div class="fn">'+esc(x.name||"Stock item")+'</div>'
+      +(x.price>0?'<div class="fpr">Rs '+rs(x.price)+'</div>':'<div class="fpr ask">Ask for rate</div>')
+      +'</div></div>';
+  }
+  /* the list is laid out twice so it loops without a jump */
+  var html=f.map(card).join("")+f.map(card).join("");
+  var t=$("mTrack");
+  t.innerHTML=html;
+  t.style.setProperty("--dur",(f.length*5.5)+"s");
+  t.querySelectorAll("[data-f]").forEach(function(c){
+    c.onclick=function(){ openLB(f[(+c.dataset.f)%f.length]); };
+  });
+  fadeImgs(t);
+}
+/* sections appear as you scroll to them */
+var RV=null;
+function reveal(){
+  if(!("IntersectionObserver" in window)) return;
+  if(!RV) RV=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); RV.unobserve(e.target); } });
+  },{rootMargin:"0px 0px -60px 0px",threshold:.06});
+  document.querySelectorAll(".shead:not(.rv),#dLowSkip").forEach(function(){});
+  document.querySelectorAll("section .shead").forEach(function(el){
+    if(!el.classList.contains("rv")){ el.classList.add("rv"); RV.observe(el); }
+  });
+}
+/* photos fade in once they have actually loaded */
+function fadeImgs(root){
+  (root||document).querySelectorAll("img:not(.done)").forEach(function(im){
+    im.classList.add("done");
+    if(im.complete && im.naturalWidth) im.classList.add("in");
+    else { im.addEventListener("load",function(){ im.classList.add("in"); },{once:true});
+           im.addEventListener("error",function(){ im.classList.add("in"); },{once:true}); }
+  });
+}
+function countTo(el,target){
+  if(!el) return;
+  var reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  if(reduce||target<=0){ el.textContent=target; return; }
+  var start=null, dur=Math.min(900,300+target*12);
+  function step(t){
+    if(!start) start=t;
+    var k=Math.min(1,(t-start)/dur);
+    el.textContent=Math.round(target*(1-Math.pow(1-k,3)));
+    if(k<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 function renderStats(){
-  $("s-items").textContent=live().length;
-  $("s-new").textContent=live().filter(function(x){return x.isNew;}).length;
-  $("s-cats").textContent=CATS.filter(function(c){return catCount(c)>0;}).length;
+  countTo($("s-items"), live().length);
+  countTo($("s-new"), live().filter(function(x){return x.isNew;}).length);
+  countTo($("s-cats"), CATS.filter(function(c){return catCount(c)>0;}).length);
 }
 $("moreBtn").onclick=function(){ ui.shown+=24; renderGrid(); };
+var qT=null, scrolled=false;
 $("q").addEventListener("input",function(e){
-  ui.q=e.target.value; ui.shown=24; renderGrid();
-  if(ui.q) document.getElementById("catalog").scrollIntoView({behavior:"smooth",block:"start"});
+  ui.q=e.target.value; ui.shown=24;
+  clearTimeout(qT);
+  qT=setTimeout(function(){
+    renderGrid();
+    if(ui.q && !scrolled){ scrolled=true; document.getElementById("catalog").scrollIntoView({behavior:"smooth",block:"start"}); }
+    if(!ui.q) scrolled=false;
+  },140);
 });
 
 /* ---------- lightbox ---------- */
 var lbItem=null, lbIdx=0;
+function baseURL(){ return location.origin+location.pathname; }
+function productURL(x){ return baseURL()+"?p="+encodeURIComponent(x.id); }
+function shareText(x){
+  var L=["*"+(x.name||"Stock item")+"*"];
+  if(x.code) L.push(x.code);
+  L.push(x.price>0?("Rs "+rs(x.price)):"Rate on request");
+  if(x.moq>1) L.push("Minimum order: "+x.moq+" pcs");
+  L.push(""); L.push(SHOP+" — Faisalabad");
+  L.push(productURL(x));
+  return L.join("\n");
+}
 function openLB(x){
   lbItem=x; lbIdx=0;
+  try{ history.replaceState(null,"",productURL(x)); }catch(e){}
   $("lbCat").textContent=x.cat||"";
   $("lbName").textContent=x.name||"Stock item";
   $("lbCode").textContent=x.code||"";
@@ -353,7 +526,7 @@ function openLB(x){
   if(x.price>0){ p.className="pr"; p.textContent="Rs "+rs(x.price); }
   else { p.className="pr ask"; p.textContent="Message us for the wholesale rate"; }
   $("lbWA").href=wa("Assalam o Alaikum "+SHOP+", I need a rate for:\n"+(x.name||"")+(x.code?" ("+x.code+")":"") );
-  showPhoto(); $("lb").classList.add("on"); document.body.style.overflow="hidden";
+  showPhoto(); $("lb").classList.add("on"); document.body.style.overflow="hidden"; fadeImgs($("lb"));
 }
 function showPhoto(){
   var ph=(lbItem.photos||[]);
@@ -368,7 +541,19 @@ function step(d){ var ph=(lbItem.photos||[]); if(!ph.length) return; lbIdx=(lbId
 $("lbP").onclick=function(e){ e.stopPropagation(); step(-1); };
 $("lbN").onclick=function(e){ e.stopPropagation(); step(1); };
 $("lbX").onclick=closeLB;
-function closeLB(){ $("lb").classList.remove("on"); document.body.style.overflow=""; }
+function closeLB(){ $("lb").classList.remove("on"); document.body.style.overflow="";
+  try{ history.replaceState(null,"",baseURL()); }catch(e){} }
+$("lbShare").onclick=function(){
+  if(!lbItem) return;
+  var txt=shareText(lbItem), url=productURL(lbItem);
+  if(navigator.share){ navigator.share({title:lbItem.name||SHOP, text:txt, url:url}).catch(function(){}); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){
+      var b=$("lbShare"), old=b.textContent; b.textContent="✓ Link copied";
+      setTimeout(function(){ b.textContent=old; },1800);
+    }).catch(function(){ window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank"); });
+  } else window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
+};
 document.addEventListener("keydown",function(e){
   if(!$("lb").classList.contains("on")) return;
   if(e.key==="Escape") closeLB();
@@ -418,7 +603,21 @@ $("lbImg").addEventListener("touchend",function(e){
     if(!CATS.length){
       CATS=Array.from(new Set(ITEMS.map(function(x){return x.cat;}).filter(Boolean)));
     }
-    renderStats(); renderNew(); renderGrid();
+    rebuildLive();
+    renderStats(); renderFeatured(); renderNew(); renderChips(); renderGrid();
+    reveal(); openShared();
+  }
+  /* someone opened a link to one product */
+  function openShared(){
+    var m=/[?&]p=([^&]+)/.exec(location.search||"");
+    if(!m) return;
+    var id=decodeURIComponent(m[1]);
+    var x=live().filter(function(i){ return String(i.id)===id; })[0];
+    if(x){ openLB(x); }
+    else {
+      document.getElementById("catalog").scrollIntoView({behavior:"smooth"});
+      $("countLine").textContent="That product is no longer listed — please browse below or message us.";
+    }
   }
 })();
 </script>

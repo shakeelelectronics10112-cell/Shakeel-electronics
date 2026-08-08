@@ -66,6 +66,8 @@ textarea.inp{min-height:64px;resize:vertical}
   padding:3px 8px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
 .card .hide{position:absolute;top:8px;right:8px;background:rgba(15,25,23,.72);color:#fff;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:6px}
 .card .cnt{position:absolute;bottom:52px;right:8px;background:rgba(15,25,23,.72);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+.card .shr{position:absolute;bottom:6px;right:6px;background:var(--green);color:#fff;border-radius:9px;padding:6px 10px;font-size:11.5px;font-weight:700;z-index:2}
+.card .star{position:absolute;top:8px;right:8px;background:#fff;color:var(--gold);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 
 .scrim{position:fixed;inset:0;background:rgba(15,25,23,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:14px}
 .scrim.on{display:flex}
@@ -108,6 +110,7 @@ textarea.inp{min-height:64px;resize:vertical}
     <div class="kpi"><div class="l">Products</div><div class="v" id="k-items">0</div></div>
     <div class="kpi"><div class="l">Photos</div><div class="v" id="k-photos">0</div></div>
     <div class="kpi"><div class="l">New arrivals</div><div class="v" id="k-new">0</div></div>
+    <div class="kpi"><div class="l">Featured ★</div><div class="v" id="k-feat">0</div></div>
     <div class="kpi"><div class="l">Hidden</div><div class="v" id="k-hidden">0</div></div>
   </div>
 
@@ -152,6 +155,12 @@ textarea.inp{min-height:64px;resize:vertical}
     <option value="1">Yes — show in New Arrivals</option>
     <option value="0">No</option>
   </select>
+  <label class="lbl">Featured ★ <span style="font-weight:400;color:var(--faint)">(runs in the moving strip at the top)</span></label>
+  <select class="inp" id="e-feat">
+    <option value="0">No</option>
+    <option value="1">Yes — show it in the featured strip</option>
+  </select>
+  <button class="btn ghost full" id="e-share" style="display:none;margin-top:4px">🔗 Send this product to a customer</button>
   <div class="rowb">
     <button class="btn warn" id="e-del" style="display:none">Delete</button>
     <button class="btn ghost" id="e-cancel">Cancel</button>
@@ -229,6 +238,7 @@ function counts(){
   $("k-items").textContent=ITEMS.length;
   $("k-photos").textContent=ITEMS.reduce(function(s,x){return s+((x.photos||[]).length);},0);
   $("k-new").textContent=ITEMS.filter(function(x){return x.isNew;}).length;
+  var fEl=$("k-feat"); if(fEl) fEl.textContent=ITEMS.filter(function(x){return x.featured;}).length;
   $("k-hidden").textContent=ITEMS.length-live.length;
 }
 function catCount(c){ return c==="all"?ITEMS.length:ITEMS.filter(function(x){return (x.cat||"")===c;}).length; }
@@ -259,14 +269,16 @@ function render(){
     var img=ph?('<img src="'+esc(ph.thumb||ph.url)+'" loading="lazy" alt="">'):'<div class="no">no photo</div>';
     return '<div class="card" data-e="'+x.id+'">'+img
       +(x.isNew?'<span class="tag">New</span>':'')
-      +(x.live===false?'<span class="hide">hidden</span>':'')
+      +(x.live===false?'<span class="hide">hidden</span>':(x.featured?'<span class="star">★</span>':''))
       +((x.photos||[]).length>1?'<span class="cnt">'+x.photos.length+' photos</span>':'')
       +'<div class="b"><div class="nm">'+esc(x.name||"(no name)")+'</div>'
       +(x.code?'<div class="cd">'+esc(x.code)+'</div>':'')
       +(x.price>0?'<div class="pr">Rs '+rs(x.price)+'</div>':'<div class="pr" style="color:var(--faint)">Ask on WhatsApp</div>')
-      +'</div></div>';
+      +'</div>'+(x.live!==false?'<button class="shr" data-share="'+x.id+'">Send</button>':'')+'</div>';
   }).join("");
   $("grid").querySelectorAll("[data-e]").forEach(function(c){ c.onclick=function(){ openEdit(c.dataset.e); }; });
+  $("grid").querySelectorAll("[data-share]").forEach(function(b){
+    b.onclick=function(ev){ ev.stopPropagation(); shareProduct(b.dataset.share); }; });
 }
 
 /* ================= PHOTOS ================= */
@@ -377,7 +389,9 @@ function openEdit(id){
   $("e-note").value=x?(x.note||""):"";
   $("e-live").value=(x&&x.live===false)?"0":"1";
   $("e-new").value=(x&&!x.isNew)?"0":"1";
+  $("e-feat").value=(x&&x.featured)?"1":"0";
   $("e-del").style.display=x?"block":"none";
+  $("e-share").style.display=(x&&x.live!==false)?"block":"none";
   drawThumbs();
   $("edScrim").classList.add("on");
 }
@@ -397,7 +411,8 @@ $("e-save").onclick=function(){
   if(!photos.length && !name){ toast("Add a photo or a name"); return; }
   var d={ name:name, code:$("e-code").value.trim(), cat:$("e-cat").value,
           price:num($("e-price").value), note:$("e-note").value.trim(),
-          live:$("e-live").value==="1", isNew:$("e-new").value==="1", updatedAt:Date.now() };
+          live:$("e-live").value==="1", isNew:$("e-new").value==="1",
+          featured:$("e-feat").value==="1", updatedAt:Date.now() };
   if(ui.editId){
     var it=ITEMS.filter(function(x){return x.id===ui.editId;})[0];
     if(it) Object.keys(d).forEach(function(k){ it[k]=d[k]; });
@@ -416,6 +431,24 @@ $("e-del").onclick=function(){
   ITEMS=ITEMS.filter(function(x){return x.id!==ui.editId;});
   saveAll(); render(); $("edScrim").classList.remove("on"); toast("Deleted");
 };
+function shareProduct(id){
+  var x=ITEMS.filter(function(i){return i.id===id;})[0]; if(!x) return;
+  var url=catalogURL()+"?p="+encodeURIComponent(x.id);
+  var L=["*"+(x.name||"Stock item")+"*"];
+  if(x.code) L.push(x.code);
+  L.push(x.price>0?("Rs "+rs(x.price)):"Rate on request");
+  if(x.moq>1) L.push("Minimum order: "+x.moq+" pcs");
+  if(x.note) L.push(x.note);
+  L.push(""); L.push("Shakeel Electronics — Faisalabad");
+  L.push(url);
+  var txt=L.join("\n");
+  if(navigator.share){ navigator.share({title:x.name||"Product", text:txt, url:url}).catch(function(){}); return; }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast("Message copied — paste it in the group"); })
+      .catch(function(){ window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank"); });
+  } else window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
+}
+$("e-share").onclick=function(){ shareProduct(ui.editId); };
 $("e-cancel").onclick=function(){ $("edScrim").classList.remove("on"); };
 
 /* ================= CATEGORIES ================= */
