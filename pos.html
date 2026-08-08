@@ -54,6 +54,7 @@ header h1{font-size:16px;font-weight:600}
 .res .meta{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:"JetBrains Mono",monospace}
 .res .sell{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:15px;color:var(--green);white-space:nowrap}
 .res .sell small{display:block;font-size:10px;color:var(--faint);font-weight:600;text-align:right}
+.loc{background:var(--amber-soft);color:#8A6A2A;padding:1px 6px;border-radius:5px;font-weight:700;font-size:11px}
 .res .qty{font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:700;padding:4px 8px;border-radius:7px;background:var(--green-soft);color:var(--green);flex:none}
 .res .qty.low{background:var(--warn-soft);color:var(--warn)}
 .res .qty.zero{background:#EFEFEF;color:var(--faint)}
@@ -177,8 +178,8 @@ table.rep tr.tot td{font-weight:700;border-top:2px solid var(--line-strong);bord
       <div class="trow"><span>Items</span><span class="v" id="tItems">0</span></div>
       <div class="trow"><span>Subtotal</span><span class="v" id="tSub">Rs 0</span></div>
       <div class="trow"><span>Discount</span><input class="mini" id="disc" value="0" inputmode="decimal"></div>
-      <div class="trow"><span>Delivery charge</span><input class="mini" id="ship" value="0" inputmode="decimal"></div>
-      <div class="trow" id="shipCostRow" style="display:none"><span>— my delivery cost</span><input class="mini" id="shipCost" value="0" inputmode="decimal"></div>
+      <div class="trow"><span>Delivery charge <small style="color:var(--faint)">(passed on)</small></span><input class="mini" id="ship" value="0" inputmode="decimal"></div>
+      <div class="trow" id="shipCostRow" style="display:none"><span>— what I pay the courier</span><input class="mini" id="shipCost" value="0" inputmode="decimal"></div>
       <div class="trow big"><span>TOTAL</span><span class="v" id="tTot">Rs 0</span></div>
 
       <label class="lbl">Customer <span style="font-weight:400;color:var(--faint)">(needed for credit)</span></label>
@@ -433,6 +434,19 @@ document.querySelectorAll(".tab").forEach(function(t){
 
 /* ==================== SEARCH / CART ==================== */
 function sellPrice(it){ return S.prices[it.id]||0; }
+/* which box a product sits in, including its parent shelf */
+function locName(id){
+  if(!id) return "";
+  var L=STOCK.locations||[], seen={}, parts=[], cur=id, hops=0;
+  while(cur && !seen[cur] && hops<6){
+    seen[cur]=1; hops++;
+    var l=L.filter(function(x){return x.id===cur;})[0];
+    if(!l) break;
+    parts.unshift(l.name||"");
+    cur=l.parentId;
+  }
+  return parts.filter(Boolean).join(" \u203A ");
+}
 function matches(){
   var q=$("q").value.trim().toLowerCase(), list=STOCK.items||[];
   if(!q) return list.slice(0,40);
@@ -451,7 +465,8 @@ function renderResults(){
     var q=it.qty||0, cls=q<=0?"zero":(q<=(S.lowAt||5)?"low":""), sp=sellPrice(it);
     return '<div class="res'+(i===selIdx?" sel":"")+'" data-add="'+it.id+'">'
       +'<div class="nm">'+esc(it.name||"(no name)")
-      +'<div class="meta">'+(it.code?esc(it.code)+" · ":"")+"cost "+money(it.price)+'</div></div>'
+      +'<div class="meta">'+(it.code?esc(it.code)+" · ":"")+"cost "+money(it.price)
+      +(locName(it.locationId)?' · <span class="loc">\uD83D\uDCE6 '+esc(locName(it.locationId))+'</span>':'')+'</div></div>'
       +'<div class="sell">'+(sp?money(sp):'<span style="color:var(--faint);font-size:12px">set price</span>')+'<small>sell price</small></div>'
       +'<div class="qty '+cls+'">'+q+'</div></div>';
   }).join("");
@@ -462,7 +477,8 @@ function addItem(id){
   var it=(STOCK.items||[]).filter(function(x){return x.id===id;})[0]; if(!it) return;
   var ex=cart.filter(function(c){return c.itemId===id;})[0];
   if(ex) ex.qty+=1;
-  else cart.push({itemId:it.id,name:it.name,code:it.code||"",qty:1,price:sellPrice(it),cost:it.price||0,stockQty:it.qty||0});
+  else cart.push({itemId:it.id,name:it.name,code:it.code||"",qty:1,price:sellPrice(it),cost:it.price||0,
+    stockQty:it.qty||0,loc:locName(it.locationId)});
   renderCart(); $("q").value=""; selIdx=0; renderResults(); $("q").focus();
 }
 function renderCart(){
@@ -471,6 +487,7 @@ function renderCart(){
   else el.innerHTML=cart.map(function(c,i){
     var low=c.qty>c.stockQty, lossy=c.price>0&&c.price<c.cost;
     return '<div class="crow"><div><div class="cn">'+esc(c.name)+'</div><div class="sub">'
+      +(c.loc?'<span class="loc">📦 '+esc(c.loc)+'</span> · ':'')
       +(low?'<span style="color:#B0492C">only '+c.stockQty+' left</span>':"stock "+c.stockQty)
       +(lossy?' · <span style="color:#B0492C">below cost</span>':'')+'</div></div>'
       +'<input class="cin" data-q="'+i+'" value="'+c.qty+'" inputmode="numeric">'
@@ -540,7 +557,8 @@ function startEdit(sale){
   editing=JSON.parse(JSON.stringify(sale));
   cart=sale.items.map(function(i){
     var st=(STOCK.items||[]).filter(function(x){return x.id===i.itemId;})[0];
-    return {itemId:i.itemId,name:i.name,code:i.code||"",qty:i.qty,price:i.price,cost:i.cost,stockQty:st?(st.qty||0)+i.qty:i.qty};
+    return {itemId:i.itemId,name:i.name,code:i.code||"",qty:i.qty,price:i.price,cost:i.cost,
+      stockQty:st?(st.qty||0)+i.qty:i.qty, loc:st?locName(st.locationId):""};
   });
   custId=sale.customerId; custLabel=sale.customerName==="Walk-in"?"":sale.customerName;
   $("custName").value=custLabel; $("disc").value=sale.disc||0; $("ship").value=sale.ship||0; $("shipCost").value=sale.shipCost||0;
@@ -680,6 +698,7 @@ function renderHolds(){
     var h=M.holds.filter(function(x){return x.id===d.dataset.h;})[0]; if(!h) return;
     cart=h.cart.slice(); custId=h.custId; custLabel=h.custLabel||"";
     $("custName").value=custLabel; $("disc").value=h.disc||0; $("ship").value=h.ship||0;
+    if(window.__posTomb) window.__posTomb(h.id);
     M.holds=M.holds.filter(function(x){return x.id!==h.id;});
     saveM(); pushNow(); renderCart(); renderHolds(); $("holdScrim").classList.remove("on");
     document.querySelector('.tab[data-p="sell"]').click();
@@ -717,9 +736,9 @@ function calc(range){
       var p=prod[i.itemId]||(prod[i.itemId]={name:i.name,qty:0,rev:0,cost:0,prof:0});
       p.qty+=i.qty; p.rev+=lr-ld; p.cost+=lc; p.prof+=lp;
     });
-    var sIn=s.ship||0, sC=s.shipCost||0;
-    shipIn+=sIn; shipCost+=sC; rev+=sIn; prof+=(sIn-sC);
-    bRev+=sIn; bProf+=(sIn-sC);
+    /* delivery is money passing through — the customer pays it, the courier
+       takes it. It is not counted as sales, profit or an expense. */
+    shipIn+=(s.ship||0); shipCost+=(s.shipCost||0);
     var k=s.customerName||"Walk-in";
     var c=cust[k]||(cust[k]={name:k,bills:0,rev:0,prof:0});
     c.bills++; c.rev+=bRev; c.prof+=bProf;
@@ -831,7 +850,7 @@ function runDash(){
       +kpi("Credit given",money(c.creditGiven),c.creditGiven>0?"neg-n":"","on customer accounts")
       +kpi("Expenses",money(c.exp),c.exp?"neg-n":"", (c.expenses||[]).length+" entries")
       +(c.loss?kpi("Damage loss",money(c.loss),"neg-n"):"")
-      +(c.shipIn?kpi("Delivery charged",money(c.shipIn),"","cost "+money(c.shipCost)):"");
+      +(c.shipIn?kpi("Delivery collected",money(c.shipIn),"","paid out "+money(c.shipCost)+" · not in profit"):"");
 
     var top=Object.keys(c.prod).map(function(k){return c.prod[k];}).filter(function(p){return p.qty>0;})
       .sort(function(a,b){return b.prof-a.prof;}).slice(0,8);
@@ -1514,6 +1533,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
   function ref(k){ return db.collection("shops").doc("main").collection("apps").doc(k); }
 
   function tomb(){ try{ return JSON.parse(localStorage.getItem("pos:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__posTomb=function(id){ try{ var t=tomb(); t[id]=Date.now(); localStorage.setItem("pos:deleted",JSON.stringify(t)); }catch(_){ } };
   function applyTomb(a){ var t=tomb(); return (a||[]).filter(function(x){ return !(x&&x.id!=null&&t[x.id]); }); }
   function ts(x){ return (x&&(x.updatedAt||x.createdAt||x.at))||0; }
   function merge(l,c,preferLocal){
@@ -1531,7 +1551,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
     if(!d) return;
     M.sales=applyTomb(merge(M.sales,d.sales,preferLocal));
     M.returns=applyTomb(merge(M.returns,d.returns,preferLocal));
-    M.holds=merge(M.holds,d.holds,preferLocal);
+    M.holds=applyTomb(merge(M.holds,d.holds,preferLocal));
     M.expenses=applyTomb(merge(M.expenses,d.expenses,preferLocal));
   }
   function absorb(d){
