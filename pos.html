@@ -582,9 +582,10 @@ function saveEdit(){
   saveS(); saveM();
   var moves=Object.keys(delta).filter(function(k){return delta[k]!==0;}).map(function(k){ return {itemId:k,qty:delta[k]}; });
   if(moves.length&&window.__deductStock) window.__deductStock(moves);
-  if(s.ledgerTxId&&window.__updateLedger) window.__updateLedger(s.ledgerTxId,tot,"Invoice #"+s.no+" (edited)");
-  else if(s.pay==="credit"&&s.customerId&&window.__postLedger)
-    window.__postLedger(s.customerId,tot,"Invoice #"+s.no,s.date).then(function(t){ if(t){ s.ledgerTxId=t; saveM(); pushNow(); } });
+  if(window.__reconcileSale) window.__reconcileSale(s).then(function(r){
+    if(r){ s.ledgerTxId=r.txId; s.ledgerPayId=r.payId; s.updatedAt=Date.now(); saveM(); pushNow(); }
+    else if(s.pay==="credit"&&s.customerId) toast("Ledger not updated — open the bill and tap \u201CPost to Ledger\u201D");
+  });
   pushNow(); toast("Bill #"+s.no+" updated"); cancelEdit(); refreshHeader(); renderHist();
 }
 function cancelEdit(){ editing=null; $("editBar").className="editbar"; newBill(); }
@@ -966,6 +967,12 @@ function checkLedger(s){
       });
     };
   };
+  if(s.pay!=="credit"){
+    box.innerHTML = s.ledgerTxId
+      ? '<div class="warnbox">This bill is no longer on credit but still had a Ledger entry. It has been cleared.</div>'
+      : "";
+    return;
+  }
   if(!s.ledgerTxId){ show(false); return; }
   box.innerHTML='<div class="infobox">Checking the Ledger…</div>';
   if(window.__hasLedgerTx) window.__hasLedgerTx(s.ledgerTxId).then(show); else show(true);
@@ -1565,7 +1572,24 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
   }
   function sig(){ try{ return JSON.stringify(M.sales)+"|"+JSON.stringify(M.returns)+"|"+JSON.stringify(M.holds)+"|"+JSON.stringify(M.expenses); }catch(_){ return "x"+Math.random(); } }
 
-  firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
+  var WHO="";
+  firebase.auth().onAuthStateChanged(function(u){
+    WHO=(u&&u.email)||"";
+    if(u) start(); else note("\u2601 Not signed in \u2014 open Home and sign in, then come back");
+  });
+  function why(err){
+    var c=(err&&err.code)||"";
+    if(c==="permission-denied")
+      return "\u26A0 This account cannot use the Counter"+(WHO?" ("+WHO+")":"")+" \u2014 sign in as the owner, or update your Firebase rules. Saved on this device.";
+    if(c==="unauthenticated") return "\u2601 Signed out \u2014 open Home and sign in again. Saved on this device.";
+    if(c==="failed-precondition"||c==="unavailable"||!c)
+      return "\u2601 No internet right now \u2014 saved here, will sync when back online. <u>Retry</u>";
+    return "\u2601 Cloud problem ("+c+") \u2014 saved here. <u>Retry</u>";
+  }
+  /* tap the status line to try again straight away */
+  var stEl=document.getElementById("status");
+  if(stEl){ stEl.style.cursor="pointer"; stEl.title="Tap to try syncing now";
+    stEl.onclick=function(){ note("\u2601 Trying\u2026"); serverSeen=false; ready=true; push(); }; }
   start();
   var started=false;
   function start(){
@@ -1603,10 +1627,10 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
           if(sig()!==s0){ refreshHeader();
             if(document.getElementById("pane-hist").classList.contains("on")) renderHist();
             if(document.getElementById("pane-dash").classList.contains("on")) runDash(); } }
-        if(!fromCache){ serverSeen=true; ready=true; note("\u2601 Synced across your devices"); }
+        if(!fromCache){ serverSeen=true; ready=true; note("\u2601 Synced"+(WHO?" \u00B7 "+WHO:"")); }
         else note("\u2601 Checking cloud\u2026");
       } else if(!fromCache){ serverSeen=true; ready=true; push(); }
-    },function(err){ ready=true; note(err&&err.code==="permission-denied"?"\u2601 Saved on this device":"\u2601 Offline — saved on this device"); });
+    },function(err){ ready=true; note(why(err)); });
   }
   function push(){
     if(!db) return;
@@ -1621,8 +1645,8 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
       return ref("pos").set({state:{seq:S.seq,prices:S.prices,shop:S.shop,tagline:S.tagline,address:S.address,
         phone:S.phone,footer:S.footer,accounts:S.accounts,paper:S.paper,printMode:S.printMode,
         afterCharge:S.afterCharge,askWA:!!S.askWA,lowAt:S.lowAt,baud:S.baud,updatedAt:S.updatedAt}, ts:Date.now()});
-    }).then(function(){ note("\u2601 Synced across your devices"); saveM(); })
-      .catch(function(){ dirty=true; note("\u2601 Offline \u2014 saved here, will sync when back online");
+    }).then(function(){ note("\u2601 Synced"+(WHO?" \u00B7 "+WHO:"")); saveM(); })
+      .catch(function(err){ dirty=true; note(why(err));
         clearTimeout(pt); pt=setTimeout(push,8000); });
   }
   window.addEventListener("online",function(){ if(dirty){ clearTimeout(pt); pt=setTimeout(push,900); } });
@@ -1707,6 +1731,57 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
     return ledgerAdd(list).then(function(ids){
       if(!ids) return null;
       return {txId:ids[0], payId:ids[1]||null};
+    });
+  };
+  /* Bring a bill's Ledger entries in line with the bill as it now stands.
+     Handles: amount changed, credit → cash, cash → credit, customer swapped,
+     advance changed. Entries are never deleted (another device would restore
+     them) — they are set to zero, which leaves the balance correct. */
+  window.__reconcileSale=function(s){
+    if(!db||!s) return Promise.resolve(null);
+    var r=ref("ledger");
+    return inTurn("ledger",function(){
+      return r.get({source:"server"}).then(function(snap){
+        var st=(snap.exists&&snap.data()&&snap.data().state); if(!st) return null;
+        if(!Array.isArray(st.transactions)) st.transactions=[];
+        var txs=st.transactions;
+        function find(id){ return id?txs.filter(function(t){return t.id===id;})[0]:null; }
+        var wantCredit = (s.pay==="credit" && !!s.customerId);
+        var charge=find(s.ledgerTxId), payTx=find(s.ledgerPayId);
+        var out={txId:s.ledgerTxId||null, payId:s.ledgerPayId||null};
+        var stamp=Date.now();
+
+        if(charge){
+          if(!wantCredit || charge.memberId!==s.customerId){
+            charge.amount=0; charge.description="Invoice #"+s.no+" \u2014 cancelled"; charge.updatedAt=stamp;
+            out.txId=null;
+          } else {
+            charge.amount=Math.round(s.total||0);
+            charge.description="Invoice #"+s.no+(s.edited?" (edited)":"");
+            charge.updatedAt=stamp;
+          }
+        }
+        if(payTx){
+          if(!wantCredit || payTx.memberId!==s.customerId || !(s.paidNow>0)){
+            payTx.amount=0; payTx.description="Advance on Invoice #"+s.no+" \u2014 cancelled"; payTx.updatedAt=stamp;
+            out.payId=null;
+          } else {
+            payTx.amount=Math.round(s.paidNow); payTx.updatedAt=stamp;
+          }
+        }
+        function add(type,amount,desc){
+          var id="pos"+stamp.toString(36)+type.charAt(0)+Math.random().toString(36).slice(2,6);
+          txs.push({ id:id, memberId:s.customerId, type:type, amount:Math.round(amount),
+            description:desc, date:s.date, dev:"Counter", createdAt:stamp, updatedAt:stamp });
+          return id;
+        }
+        if(wantCredit && !out.txId) out.txId=add("charge", s.total||0, "Invoice #"+s.no);
+        if(wantCredit && (s.paidNow>0) && !out.payId) out.payId=add("payment", s.paidNow, "Advance on Invoice #"+s.no);
+
+        st.transactions=txs;
+        if(!st.settings) st.settings={}; st.settings.updatedAt=stamp;
+        return r.set({state:st, ts:Date.now()},{merge:true}).then(function(){ return out; });
+      }).catch(function(){ return null; });
     });
   };
   window.__updateLedger=function(txId,amount,desc){
