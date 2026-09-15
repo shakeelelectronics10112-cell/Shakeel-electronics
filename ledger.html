@@ -938,7 +938,7 @@ function openMember(id){
   $("d-charge").onclick=()=>entryForm(null,"charge",id);
   $("d-pay").onclick=()=>entryForm(null,"payment",id);
   if($("d-wa")) $("d-wa").onclick=()=>remind(id);
-  $("d-pdf").onclick=()=>statementPDF(id);
+  $("d-pdf").onclick=()=>statementScope(id);
   $("d-edit").onclick=()=>memberForm(m);
   scrim.querySelectorAll("[data-etx]").forEach(b=>b.onclick=()=>{
     const t=State.transactions.find(x=>x.id===b.dataset.etx); if(t) entryForm(t,t.type,id);
@@ -1197,19 +1197,41 @@ function docNo(prefix){
 }
 
 /* ---------- statement PDF ---------- */
-function statementPDF(id){
+function statementScope(id){
+  openScrim(`
+    <div class="mh"><h2>Statement PDF</h2><button class="btn gh" data-close style="margin-left:auto">✕</button></div>
+    <div class="mb">
+      <div class="hint" style="margin-bottom:14px">How much history should the statement include?</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn pri" id="sc-10" style="width:100%">Last 10 entries</button>
+        <button class="btn" id="sc-all" style="width:100%">All history</button>
+      </div>
+    </div>`);
+  document.getElementById("sc-10").onclick=()=>{ closeScrim(); statementPDF(id,"last10"); };
+  document.getElementById("sc-all").onclick=()=>{ closeScrim(); statementPDF(id,"all"); };
+}
+function statementPDF(id,scope){
+  scope=scope||"all";
   if(!(window.jspdf&&window.jspdf.jsPDF)){ flash("PDF engine loading — try again"); return; }
   const m=State.members.find(x=>x.id===id); if(!m) return;
   const { jsPDF }=window.jspdf;
   const cur=C(); const s=statusOf(id);
-  const tx=txOf(id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  const txAll=txOf(id).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  let tx=txAll, opening=0, limited=false;
+  if(scope==="last10" && txAll.length>10){
+    const cut=txAll.length-10;
+    opening=txAll.slice(0,cut).reduce((a,t)=>a+(t.type==="charge"?(t.amount||0):-(t.amount||0)),0);
+    tx=txAll.slice(cut);
+    limited=true;
+  }
   const doc=new jsPDF({unit:"pt",format:"a4"});
   const no=docNo("STMT");
+  const hdrCount=limited?`Last ${tx.length} of ${txAll.length} entries`:`${tx.length} entr${tx.length===1?"y":"ies"}`;
 
   let y=letterhead(doc,"Statement of Account",[
     `No. ${no}`,
     `Date: ${new Date().toLocaleDateString()}`,
-    `${tx.length} entr${tx.length===1?"y":"ies"}`
+    hdrCount
   ]);
 
   y=partyBlock(doc,y,"Statement for",[m.name, m.phone||"", m.note||""].filter(Boolean));
@@ -1221,9 +1243,18 @@ function statementPDF(id){
   ]);
 
   doc.setFont("helvetica","normal"); doc.setFontSize(9.4);
-  let run=0,i=0;
+  let run=opening,i=0;
+  if(limited){
+    if(i%2===1){ doc.setFillColor(...BRAND.zebra); doc.rect(40,y-11,515,17,"F"); }
+    doc.setFont("helvetica","italic"); doc.setTextColor(...BRAND.muted);
+    doc.text("Balance brought forward", C2, y);
+    doc.setFont("helvetica","bold"); doc.setTextColor(...BRAND.ink);
+    doc.text(money(run), C5, y, {align:"right"});
+    doc.setFont("helvetica","normal");
+    y+=17; i++;
+  }
   for(const t of tx){
-    if(y>690){ doc.addPage(); y=letterhead(doc,"Statement of Account",[`No. ${no}`,`${m.name}`,`${tx.length} entries`]);
+    if(y>690){ doc.addPage(); y=letterhead(doc,"Statement of Account",[`No. ${no}`,`${m.name}`,hdrCount]);
       y=tableHead(doc,y,[{t:"DATE",x:C1},{t:"DESCRIPTION",x:C2},
         {t:"CHARGES",x:C3,a:"right"},{t:"PAID",x:C4,a:"right"},{t:"BALANCE",x:C5,a:"right"}]);
       doc.setFont("helvetica","normal"); doc.setFontSize(9.4); }
@@ -1270,8 +1301,8 @@ function statementPDF(id){
     doc.setTextColor(...BRAND.muted);
     doc.text(`Page ${pg} of ${pages}`, 555, 826, {align:"right"});
   }
-  doc.save(`${no}-${m.name.replace(/[^\w]+/g,"-")}.pdf`);
-  toast(`Statement saved — ${tx.length} entries, ${pages} page${pages===1?"":"s"}`);
+  doc.save(`${no}-${m.name.replace(/[^\w]+/g,"-")}${limited?"-last10":""}.pdf`);
+  toast(`Statement saved — ${tx.length}${limited?` of ${txAll.length}`:""} entries, ${pages} page${pages===1?"":"s"}`);
 }
 
 
