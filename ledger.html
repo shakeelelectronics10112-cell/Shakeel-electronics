@@ -1061,10 +1061,10 @@ function bankAccounts(){
 function reminderText(m){
   const cur=C(); const s=statusOf(m.id);
   const accs=bankAccounts().map(a=>`• ${a.provider}: ${a.number} (${a.title})`).join("\n");
-  let msg=`*${State.settings.org}*\n\nمحترم ${m.name}،\n\nالسلام علیکم!\n\n`;
-  if(s.overdue>0.5) msg+=`آپ کا موجودہ بقایا *${cur} ${money(s.bal)}* ہے، جس میں سے *${cur} ${money(s.overdue)}* کی ادائیگی کی مدت گزر چکی ہے۔\n\n`;
-  else msg+=`آپ کا موجودہ بقایا *${cur} ${money(s.bal)}* ہے۔\n\n`;
-  msg+=`براہِ کرم جلد از جلد ادائیگی سے نوازیں۔\n\n*ادائیگی کی تفصیلات:*\n${accs}\n\nآپ کے کاروبار اور اعتماد پر تہہ دل سے مشکور ہیں۔\n\n*${State.settings.org}*`;
+  let msg=`${State.settings.org}\n\nمحترم ${m.name}،\n\nالسلام علیکم!\n\n`;
+  if(s.overdue>0.5) msg+=`آپ کا موجودہ بقایا ${cur} ${money(s.bal)} ہے، جس میں سے ${cur} ${money(s.overdue)} کی ادائیگی کی مدت گزر چکی ہے۔\n\n`;
+  else msg+=`آپ کا موجودہ بقایا ${cur} ${money(s.bal)} ہے۔\n\n`;
+  msg+=`براہِ کرم جلد از جلد ادائیگی سے نوازیں۔\n\nادائیگی کی تفصیلات:\n${accs}\n\nآپ کے کاروبار اور اعتماد پر تہہ دل سے مشکور ہیں۔\n\n${State.settings.org}`;
   return msg;
 }
 function remind(id){
