@@ -1053,13 +1053,18 @@ function waNum(p){
   else if(!d.startsWith(cc) && d.length<=10) d=cc+d;
   return d;
 }
+function bankAccounts(){
+  const all=State.settings.accounts||[];
+  const banks=all.filter(a=>!/jazz\s*cash|easy\s*paisa/i.test(a.provider||""));
+  return banks.length ? banks : all; // never send a reminder with no payment details
+}
 function reminderText(m){
   const cur=C(); const s=statusOf(m.id);
-  const accs=(State.settings.accounts||[]).map(a=>`• ${a.provider}: ${a.number} (${a.title})`).join("\n");
-  let msg=`*${State.settings.org}*\n\nDear ${m.name},\n\n`;
-  if(s.overdue>0.5) msg+=`Your balance of *${cur} ${money(s.bal)}* includes *${cur} ${money(s.overdue)}* that is now overdue.\n\n`;
-  else msg+=`Your current balance is *${cur} ${money(s.bal)}*.\n\n`;
-  msg+=`Kindly clear it at your earliest convenience.\n\n*Payment details:*\n${accs}\n\nThank you for your business.`;
+  const accs=bankAccounts().map(a=>`• ${a.provider}: ${a.number} (${a.title})`).join("\n");
+  let msg=`*${State.settings.org}*\n\nمحترم ${m.name}،\n\nالسلام علیکم!\n\n`;
+  if(s.overdue>0.5) msg+=`آپ کا موجودہ بقایا *${cur} ${money(s.bal)}* ہے، جس میں سے *${cur} ${money(s.overdue)}* کی ادائیگی کی مدت گزر چکی ہے۔\n\n`;
+  else msg+=`آپ کا موجودہ بقایا *${cur} ${money(s.bal)}* ہے۔\n\n`;
+  msg+=`براہِ کرم جلد از جلد ادائیگی سے نوازیں۔\n\n*ادائیگی کی تفصیلات:*\n${accs}\n\nآپ کے کاروبار اور اعتماد پر تہہ دل سے مشکور ہیں۔\n\n*${State.settings.org}*`;
   return msg;
 }
 function remind(id){
