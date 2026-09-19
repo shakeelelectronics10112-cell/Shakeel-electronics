@@ -399,7 +399,7 @@ window.persist=function(){ State.settings.updatedAt=Date.now(); lsSave(); };
   function _typing(){ var a=document.activeElement; return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"); }
   function _sig(){ try{ return JSON.stringify(State.links); }catch(_){ return "x"+Math.random(); } }
 
-  firebase.auth().onAuthStateChanged(function(u){ if(u) start(); });
+  firebase.auth().onAuthStateChanged(function(u){ if(u && !u.isAnonymous) start(); });
   start();
   var started=false;
   function start(){

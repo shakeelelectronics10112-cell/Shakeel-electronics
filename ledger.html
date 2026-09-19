@@ -506,6 +506,31 @@ function render(){
   else if(ui.tab==="risk") viewRisk();
   else if(ui.tab==="activity") viewActivity();
   else viewMoney();
+  showBackupBanner();
+}
+/* ---------- backup age warning — your customer balances are only as safe as your last copy ---------- */
+function lastBackupAt(){ try{ return parseInt(localStorage.getItem("ledger:lastBackup")||"0",10)||0; }catch(e){ return 0; } }
+function markBackedUp(){ try{ localStorage.setItem("ledger:lastBackup",String(Date.now())); }catch(e){} }
+function showBackupBanner(){
+  const v=document.getElementById("view"); if(!v) return;
+  const old=document.getElementById("bkBanner"); if(old) old.remove();
+  if(!State.members.length) return;
+  let hidden=0; try{ hidden=parseInt(sessionStorage.getItem("ledger:bkHide")||"0",10)||0; }catch(e){}
+  if(hidden) return;
+  const last=lastBackupAt();
+  const days=last?Math.floor((Date.now()-last)/86400000):null;
+  if(days!==null && days<14) return;
+  const d=document.createElement("div");
+  d.id="bkBanner";
+  d.style.cssText="background:#FBF3E2;border:1px solid #E4D3A8;border-radius:12px;padding:11px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.8px;color:#8A6A2A";
+  d.innerHTML=`<span style="font-size:17px">🛡️</span><span style="flex:1;min-width:150px">`
+    + (last?`Last backup was <b>${days} days</b> ago.`:`You have <b>never saved a backup file</b> of your customer ledger.`)
+    + ` Keep a copy on your phone or PC.</span>`
+    + `<button class="btn pri sm" id="bkNow">Backup now</button>`
+    + `<button class="btn gh sm" id="bkLater">Later</button>`;
+  v.prepend(d);
+  const a=document.getElementById("bkNow"); if(a) a.onclick=()=>{ backup(); showBackupBanner(); };
+  const b=document.getElementById("bkLater"); if(b) b.onclick=()=>{ try{ sessionStorage.setItem("ledger:bkHide","1"); }catch(e){} d.remove(); };
 }
 function kpiHTML(){
   const t=totals(); const cur=C();
@@ -1458,6 +1483,7 @@ function backup(){
   const u=URL.createObjectURL(b); const a=document.createElement("a");
   a.href=u; a.download=`ledger-backup-${todayISO()}.json`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),800);
+  markBackedUp();
   toast("Backup downloaded");
 }
 function restore(file){

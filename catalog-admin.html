@@ -663,7 +663,7 @@ function toast(m){ var el=$("toast"); el.textContent=m; el.classList.add("on"); 
       cloudName:Index.cloudName,preset:Index.preset,updatedAt:Index.updatedAt}, ts:Date.now()},{merge:true}).catch(function(){});
   };
 
-  firebase.auth().onAuthStateChanged(function(u){ if(u){ loadAll(); storageCheck(true); } });
+  firebase.auth().onAuthStateChanged(function(u){ if(u && !u.isAnonymous){ loadAll(); storageCheck(true); } });
   loadAll(); if(st) storageCheck(true);
 })();
 </script>

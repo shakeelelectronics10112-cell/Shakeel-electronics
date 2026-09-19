@@ -433,6 +433,31 @@ function render(){
   else if(ui.tab==="payments") renderPayments();
   else if(ui.tab==="activity") renderActivity();
   else renderSummary();
+  showBackupBanner();
+}
+/* ---------- backup age warning — your data is only as safe as your last copy ---------- */
+function lastBackupAt(){ try{ return parseInt(localStorage.getItem("purchases:lastBackup")||"0",10)||0; }catch(e){ return 0; } }
+function markBackedUp(){ try{ localStorage.setItem("purchases:lastBackup",String(Date.now())); }catch(e){} }
+function showBackupBanner(){
+  const v=document.getElementById("view"); if(!v) return;
+  const old=document.getElementById("bkBanner"); if(old) old.remove();
+  if(!State.purchases.length) return;
+  let dismissed=0; try{ dismissed=parseInt(sessionStorage.getItem("purchases:bkHide")||"0",10)||0; }catch(e){}
+  if(dismissed) return;
+  const last=lastBackupAt();
+  const days=last?Math.floor((Date.now()-last)/86400000):null;
+  if(days!==null && days<14) return;
+  const d=document.createElement("div");
+  d.id="bkBanner";
+  d.style.cssText="background:#FBF3E2;border:1px solid #E4D3A8;border-radius:12px;padding:11px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.8px;color:#8A6A2A";
+  d.innerHTML=`<span style="font-size:17px">🛡️</span><span style="flex:1;min-width:150px">`
+    + (last?`Last backup was <b>${days} days</b> ago.`:`You have <b>never saved a backup file</b> of this data.`)
+    + ` Keep a copy on your phone or PC.</span>`
+    + `<button class="btn sm primary" id="bkNow">Backup now</button>`
+    + `<button class="btn sm ghost" id="bkLater">Later</button>`;
+  v.prepend(d);
+  const a=document.getElementById("bkNow"); if(a) a.onclick=()=>{ exportJson(); showBackupBanner(); };
+  const b=document.getElementById("bkLater"); if(b) b.onclick=()=>{ try{ sessionStorage.setItem("purchases:bkHide","1"); }catch(e){} d.remove(); };
 }
 function statTiles(){
   const cur=C();
@@ -511,6 +536,97 @@ function shipBarHTML(){
     </div>
   </div>`;
 }
+/* ---------- find a product across EVERY invoice ---------- */
+function gsHay(p){ return ((p.item||"")+" "+(p.vendor||"")+" "+(p.category||"")+" "+(p.forwarder||"")+" "+(p.status||"")).toLowerCase(); }
+function gsFindRows(q){
+  q=(q||"").trim().toLowerCase(); if(!q) return [];
+  const terms=q.split(/\s+/).filter(Boolean);
+  return State.purchases.filter(p=>{ const h=gsHay(p); return terms.every(t=>h.includes(t)); });
+}
+function gsFindPOs(q){
+  q=(q||"").trim().toLowerCase(); if(!q) return [];
+  const terms=q.split(/\s+/).filter(Boolean); const out=[];
+  (State.pos||[]).forEach(po=>{ (po.lines||[]).forEach(l=>{
+    const h=((l.item||"")+" "+(po.vendor||"")).toLowerCase();
+    if(terms.every(t=>h.includes(t))) out.push({po,line:l});
+  }); });
+  return out;
+}
+function gsResultsHTML(q){
+  q=(q||"").trim();
+  if(!q) return `<div class="hint" style="margin:6px 0 0">Type a product, part number or vendor. Every invoice is searched — open or closed.</div>`;
+  const rows=gsFindRows(q), pos=gsFindPOs(q);
+  if(!rows.length && !pos.length)
+    return `<div style="text-align:center;color:var(--muted);font-size:13px;padding:22px 6px">Nothing found for “${esc(q)}” in any invoice.</div>`;
+
+  let html="";
+  if(rows.length){
+    let qty=0, pkr=0, rmb=0, last="";
+    rows.forEach(p=>{ const t=pTotals(p); qty+=(p.qty||0); pkr+=t.pkr; rmb+=t.rmb; if((p.date||"")>last) last=p.date||""; });
+    const avg=qty?(rmb/qty):0;
+    const grp={};
+    rows.forEach(p=>{ const k=(p.shipment==null?"?":p.shipment); (grp[k]=grp[k]||[]).push(p); });
+    const nos=Object.keys(grp).sort((a,b)=>(parseFloat(b)||0)-(parseFloat(a)||0));
+    html+=`<div class="card" style="padding:11px 13px;margin:0 0 12px;background:linear-gradient(180deg,#FCFAF4,#fff);border-color:#E4D3A8;font-size:12.8px;line-height:1.7">
+      <b>${rows.length} row${rows.length===1?"":"s"}</b> in <b>${nos.length} invoice${nos.length===1?"":"s"}</b><br>
+      Total qty <b class="mono">${money(qty)}</b> pcs · Total <b class="mono" style="color:var(--green)">${C()} ${money(pkr)}</b><br>
+      Avg price <b class="mono">¥${avg.toFixed(2)}</b>/pc${last?` · Last bought <b>${esc(last)}</b>`:""}</div>`;
+
+    nos.forEach(no=>{
+      const list=grp[no].slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+      let sub=0; list.forEach(p=>sub+=pTotals(p).pkr);
+      html+=`<div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:6px">
+          <b style="font-size:13.5px">${esc(shipLabel(no==="?"?no:parseFloat(no)))}</b>
+          <span style="font-size:12px;color:var(--muted)">${list.length} row${list.length===1?"":"s"} · <b class="mono">${C()} ${money(sub)}</b></span>
+          ${no==="?"?"":`<button class="btn sm" data-goship="${esc(no)}" style="margin-left:auto">Open ↗</button>`}
+        </div>
+        ${list.map(p=>{ const t=pTotals(p);
+          return `<div style="padding:7px 0;border-bottom:1px dashed var(--line)">
+            <div style="font-size:13.5px;font-weight:600">${esc(p.item||"(no name)")}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">
+              ${esc(p.vendor||"—")}${p.category?" · "+esc(p.category):""} · <span class="mono">${money(p.qty||0)} pcs × ¥${(p.priceRMB||0)}</span>
+              · <span class="mono" style="color:var(--green)">${C()} ${money(t.pkr)}</span>
+              ${p.status?" · "+esc(p.status):""}${p.date?" · "+esc(p.date):""}</div>
+          </div>`; }).join("")}
+      </div>`;
+    });
+  }
+  if(pos.length){
+    html+=`<div style="margin-top:4px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Also in purchase orders (${pos.length})</div>
+      ${pos.map(x=>`<div style="padding:6px 0;border-bottom:1px dashed var(--line);font-size:12.5px">
+        <b>${esc(x.line.item||"(no name)")}</b>
+        <span style="color:var(--muted)"> · PO ${esc(x.po.number||"—")} · ${esc(x.po.vendor||"—")} · <span class="mono">${money(x.line.qty||0)} pcs × ¥${(x.line.priceRMB||0)}</span>${x.po.shipment!=null?" · "+esc(shipLabel(x.po.shipment)):""}</span>
+      </div>`).join("")}</div>`;
+  }
+  return html;
+}
+function globalFind(seed){
+  openScrim(`<div class="m-head"><h2>Find in all invoices</h2>
+      <button class="btn ghost close" data-close style="margin-left:auto">✕</button></div>
+    <div class="m-body">
+      <div class="search" style="margin:0 0 12px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="gsearch" placeholder="Product, part no. or vendor" value="${esc(seed||"")}"></div>
+      <div id="gsres"></div>
+    </div>`);
+  const inp=document.getElementById("gsearch"), out=document.getElementById("gsres");
+  function draw(){
+    out.innerHTML=gsResultsHTML(inp.value);
+    out.querySelectorAll("[data-goship]").forEach(b=>b.onclick=()=>{
+      const no=parseFloat(b.dataset.goship);
+      ui.shipView=no; ui.tab="purchases"; ui.search=""; ui.statusFilter="";
+      closeScrim(); render(); toast("Opened "+shipLabel(no));
+    });
+  }
+  let t=null;
+  inp.oninput=()=>{ clearTimeout(t); t=setTimeout(draw,120); };
+  inp.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); clearTimeout(t); draw(); } };
+  draw();
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} },90);
+}
+
 function renderPurchases(){
   const v=document.getElementById("view"); const cur=C();
   const q=ui.search.trim().toLowerCase();
@@ -524,7 +640,8 @@ function renderPurchases(){
   const stOpts=v=>statuses.map(c=>`<option ${v===c?"selected":""}>${esc(c)}</option>`).join("");
   let html=statTiles()+shipBarHTML();
   html+=`<div class="toolbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input id="psearch" placeholder="Search item, part no., vendor" value="${esc(ui.search)}"></div></div>
+    <input id="psearch" placeholder="Search item, part no., vendor" value="${esc(ui.search)}"></div>
+    <button class="btn sm" id="findAllBtn" title="Search this product in every invoice">🔎 All invoices</button></div>
     <div class="seg" id="stFilter"><button class="${!ui.statusFilter?"on":""}" data-st="">All</button>${statuses.map(s=>`<button class="${ui.statusFilter===s?"on":""}" data-st="${esc(s)}">${esc(s)}</button>`).join("")}</div>`;
   html+=`<div class="gridbar"><button class="btn primary sm" id="addRow">＋ Add row</button><button class="btn sm fitBtn" type="button" title="Show all columns on screen">⇔ Fit</button><span class="cnt">${list.length} rows in this shipment</span></div>`;
   if(State.purchases.length===0){
@@ -578,6 +695,7 @@ function renderPurchases(){
       }
     } else if(none) none.remove();
   };
+  const fab2=document.getElementById("findAllBtn"); if(fab2) fab2.onclick=()=>globalFind(ui.search);
   v.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ ui.statusFilter=b.dataset.st; renderPurchases(); });
   ["addRow","addRow2"].forEach(id=>{ const b=document.getElementById(id); if(b) b.onclick=addBlankRow; });
   const ss2=document.getElementById("shipSel"); if(ss2) ss2.onchange=e=>{ ui.shipView=parseInt(e.target.value,10); renderPurchases(); };
@@ -2019,8 +2137,8 @@ function buildCsv(){
 }
 function downloadBlob(b,n){ sefSaveBlob(b,n); }
 function exportCsv(){ downloadBlob(new Blob([buildCsv()],{type:"text/csv"}),`purchases-${todayISO()}.csv`); toast("CSV exported"); }
-function exportJson(){ downloadBlob(new Blob([JSON.stringify(State,null,2)],{type:"application/json"}),`purchases-backup-${todayISO()}.json`); toast("Backup downloaded"); }
-function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!Array.isArray(d.purchases)) throw 0; if(!confirm("Replace all purchases data with this backup?")) return; State.settings=Object.assign(State.settings,d.settings||{}); State.purchases=d.purchases||[]; State.payments=d.payments||[]; State.needs=d.needs||[]; State.pos=d.pos||[]; State.tracking=d.tracking||[]; State.shipments=d.shipments||[]; persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Purchases backup"); } }; r.readAsText(file); }
+function exportJson(){ downloadBlob(new Blob([JSON.stringify(State,null,2)],{type:"application/json"}),`purchases-backup-${todayISO()}.json`); markBackedUp(); toast("Backup downloaded"); }
+function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(!Array.isArray(d.purchases)) throw 0; if(!confirm("Replace all purchases data with this backup?")) return; applyLoaded(d); if(!State.shipments.some(s=>s.no===State.settings.currentShipment)) State.settings.currentShipment=(State.shipments[0]&&State.shipments[0].no)||State.settings.currentShipment; ui.shipView=State.settings.currentShipment; persist(); render(); toast("Backup restored"); }catch(e){ flash("Not a valid Purchases backup"); } }; r.readAsText(file); }
 
 /* ---------- folder auto-save ---------- */
 const FS_SUPPORTED=(typeof window!=="undefined" && "showDirectoryPicker" in window);

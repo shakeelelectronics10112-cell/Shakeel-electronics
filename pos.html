@@ -1575,7 +1575,7 @@ $("rFrom").value=range.from; $("rTo").value=range.to;
   var WHO="";
   firebase.auth().onAuthStateChanged(function(u){
     WHO=(u&&u.email)||"";
-    if(u) start(); else note("\u2601 Not signed in \u2014 open Home and sign in, then come back");
+    if(u && !u.isAnonymous) start(); else note("\u2601 Not signed in \u2014 open Home and sign in, then come back");
   });
   function why(err){
     var c=(err&&err.code)||"";
