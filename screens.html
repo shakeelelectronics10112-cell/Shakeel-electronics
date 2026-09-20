@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Screen Data — Shakeel Electronics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3; --panel:#FFFFFF; --ink:#0F1917; --muted:#6B7975; --faint:#9AA6A2;
+  --line:#E4E8E4; --line-strong:#D2D8D3; --green:#0E4F44; --green-hi:#0A3E35; --green-soft:#E6F0EC;
+  --warn:#B0492C; --warn-soft:#F8EAE4; --gold:#B08A3E; --amber:#8A6A2A; --amber-soft:#FBF3E2;
+  --blue:#1F6F8B; --blue-soft:#E4F0F4; --wa:#25D366;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:"Inter",system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;padding-bottom:92px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0}
+
+header{background:var(--green);color:#fff;padding:16px 18px 14px;position:sticky;top:0;z-index:40}
+header h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+header .sub{font-size:12px;color:#BFE0D6;margin-top:2px}
+.status{font-size:11px;color:#BFE0D6;margin-top:6px}
+
+.tabs{background:var(--green-hi);display:flex;position:sticky;top:70px;z-index:38}
+.tabs button{flex:1;background:none;border:none;color:#9FCcC1;font-family:"Space Grotesk",sans-serif;
+  font-size:13.5px;font-weight:600;padding:11px 6px;cursor:pointer;border-bottom:2.5px solid transparent}
+.tabs button.on{color:#fff;border-bottom-color:var(--gold)}
+
+.toolbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 16px;position:sticky;top:112px;z-index:35}
+.search{width:100%;border:1.5px solid var(--line-strong);border-radius:12px;padding:11px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.search:focus{border-color:var(--green)}
+.chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line-strong);background:#fff;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+
+.wrap{padding:14px 16px}
+.stat{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;cursor:pointer}
+.card:active{transform:scale(.995)}
+.pm{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15.5px;word-break:break-all;letter-spacing:-.01em}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;letter-spacing:.02em}
+.t-size{background:var(--green-soft);color:var(--green)}
+.t-brand{background:var(--blue-soft);color:var(--blue)}
+.row{margin-top:10px}
+.row .lb{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.row .vl{font-size:13.5px;word-break:break-word}
+.ics{display:flex;gap:6px;flex-wrap:wrap}
+.ic{font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:600;background:#F0F2F0;color:var(--ink);padding:4px 10px;border-radius:8px}
+.ic.sub{background:var(--amber-soft);color:var(--amber)}
+.subline{font-size:12px;color:var(--amber);margin-top:6px;line-height:1.55}
+.subline b{font-family:"JetBrains Mono",monospace}
+
+.hit{background:linear-gradient(180deg,#FCFAF4,#fff);border:1.5px solid #E4D3A8;border-radius:14px;padding:14px;margin-bottom:14px}
+.hit .ht{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:14px;color:var(--amber);margin-bottom:9px}
+
+.empty{text-align:center;padding:52px 20px;color:var(--faint)}
+.empty .big{font-family:"Space Grotesk",sans-serif;font-size:17px;color:var(--muted);margin-bottom:8px}
+.empty p{font-size:13.5px;line-height:1.6;max-width:320px;margin:0 auto 16px}
+
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;z-index:45}
+.btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;font-family:"Space Grotesk",sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--green);color:#fff;flex:1}
+.btn.ghost{background:#F0F2F0;color:var(--ink)}
+.btn.del{background:var(--warn-soft);color:var(--warn)}
+.btn.sm{padding:9px 13px;font-size:13px;border-radius:10px}
+.btn:active{transform:scale(.985)}
+
+.scrim{position:fixed;inset:0;background:rgba(15,25,23,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.scrim.on{display:flex}
+.sheet{background:#fff;border-radius:22px 22px 0 0;width:min(560px,100%);max-height:93vh;overflow-y:auto;padding:20px 20px 30px}
+.sheet h2{font-size:18px;margin-bottom:16px}
+.fld{display:block;margin-bottom:14px}
+.fld .lt{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.inp{width:100%;border:1.5px solid var(--line-strong);border-radius:11px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;background:#fff}
+.inp:focus{border-color:var(--green)}
+.inp.mono{font-family:"JetBrains Mono",monospace;font-size:14px}
+textarea.inp{resize:vertical;min-height:62px}
+.two{display:flex;gap:10px}
+.two .fld{flex:1}
+.sheetacts{display:flex;gap:10px;margin-top:6px}
+.sheetacts .btn{flex:1}
+.hint{font-size:12px;color:var(--faint);margin:-8px 0 14px;line-height:1.55}
+.toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:11px;font-size:14px;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.menu{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Screen Data</h1>
+  <div class="sub">Panel → TCON, COF &amp; substitutes</div>
+  <div class="status" id="status">Saved on this device</div>
+</header>
+
+<div class="tabs" id="tabs">
+  <button data-t="screens" class="on">Screens</button>
+  <button data-t="subs">COF substitutes</button>
+  <button data-t="more">More</button>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <input class="search" id="search" placeholder="Search panel, TCON, COF or TV model…" autocomplete="off">
+</div>
+
+<div class="wrap">
+  <div class="stat" id="count"></div>
+  <div id="list"></div>
+</div>
+
+<div class="bottombar" id="bottombar">
+  <button class="btn primary" id="addBtn">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span id="addLbl">Add screen</span>
+  </button>
+</div>
+
+<!-- screen sheet -->
+<div class="scrim" id="scrim">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="impFile" accept="application/json" style="display:none">
+
+<script>
+/* ============================================================
+   SCREEN DATA — panel / TCON / COF compatibility reference
+   ============================================================ */
+var KEY="screens:data:v1";
+var State={ screens:[], subs:[], settings:{ updatedAt:0 } };
+var ui={ tab:"screens", search:"" };
+
+var SIZES=["19","22","24","28","32","39","40","43","49","50","55","58","65","75","85"];
+var BRANDS=["BOE","Innolux","CSOT","HKC","AUO","LG Display","Samsung Display","Panda","Chunghwa","Sharp","TCL","Hisense"];
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];}); }
+function lsSave(){ try{ localStorage.setItem(KEY, JSON.stringify(State)); return true; }catch(e){ return false; } }
+function lsLoad(){ try{ var s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function persist(){ State.settings.updatedAt=Date.now(); lsSave(); }
+function toast(m){ var t=document.getElementById("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(window._tt); window._tt=setTimeout(function(){ t.classList.remove("on"); },2000); }
+
+/* ---------- IC helpers ---------- */
+/* normalise a part number so NT50-H12, nt50h12 and NT50 H12 all match */
+function normIC(s){ return String(s==null?"":s).toUpperCase().replace(/[^A-Z0-9]/g,""); }
+function icList(s){ return String(s==null?"":s).split(/[,\n;/]+/).map(function(x){ return x.trim(); }).filter(Boolean); }
+/* every IC that can replace the given one, from the substitute groups */
+function subsFor(ic){
+  var n=normIC(ic); if(!n) return [];
+  var out=[], seen={};
+  (State.subs||[]).forEach(function(g){
+    var list=icList(g.ics);
+    if(!list.some(function(x){ return normIC(x)===n; })) return;
+    list.forEach(function(x){ var k=normIC(x); if(k && k!==n && !seen[k]){ seen[k]=1; out.push(x); } });
+  });
+  return out;
+}
+function groupsFor(ic){
+  var n=normIC(ic); if(!n) return [];
+  return (State.subs||[]).filter(function(g){ return icList(g.ics).some(function(x){ return normIC(x)===n; }); });
+}
+function panelsUsing(ic){
+  var n=normIC(ic); if(!n) return [];
+  return (State.screens||[]).filter(function(p){
+    return icList(p.cof).some(function(x){ return normIC(x)===n; })
+        || icList(p.tcon).some(function(x){ return normIC(x)===n; });
+  });
+}
+
+/* ---------- search ---------- */
+function screenHay(p){
+  return [p.model,p.size,p.brand,p.tv,p.tcon,p.cof,p.note].join(" ").toLowerCase()
+       + " " + normIC([p.model,p.tcon,p.cof].join(" "));
+}
+function matchScreens(q){
+  q=(q||"").trim().toLowerCase(); if(!q) return State.screens.slice();
+  var nq=normIC(q);
+  var terms=q.split(/\s+/).filter(Boolean);
+  return State.screens.filter(function(p){
+    var h=screenHay(p);
+    if(nq.length>=3 && h.indexOf(nq)>=0) return true;
+    return terms.every(function(t){ return h.indexOf(t)>=0; });
+  });
+}
+function matchSubs(q){
+  q=(q||"").trim().toLowerCase(); if(!q) return State.subs.slice();
+  var nq=normIC(q);
+  return State.subs.filter(function(g){
+    var h=(g.ics+" "+(g.note||"")).toLowerCase()+" "+normIC(g.ics);
+    return h.indexOf(q)>=0 || (nq.length>=3 && h.indexOf(nq)>=0);
+  });
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll("#tabs button").forEach(function(b){ b.classList.toggle("on", b.dataset.t===ui.tab); });
+  var tb=document.getElementById("toolbar"), bb=document.getElementById("bottombar");
+  tb.style.display = ui.tab==="more" ? "none" : "";
+  bb.style.display = ui.tab==="more" ? "none" : "";
+  document.getElementById("addLbl").textContent = ui.tab==="subs" ? "Add substitute group" : "Add screen";
+  var s=document.getElementById("search");
+  if(s){ s.placeholder = ui.tab==="subs" ? "Search a COF/IC number…" : "Search panel, TCON, COF or TV model…"; }
+  if(ui.tab==="screens") renderScreens();
+  else if(ui.tab==="subs") renderSubs();
+  else renderMore();
+}
+
+function substituteBanner(q){
+  /* when the search itself looks like an IC, answer the question straight away */
+  var t=(q||"").trim(); if(!t || /\s/.test(t) || normIC(t).length<4) return "";
+  var alts=subsFor(t);
+  var uses=panelsUsing(t);
+  if(!alts.length && !uses.length) return "";
+  var h='<div class="hit"><div class="ht">'+esc(t.toUpperCase())+'</div>';
+  if(alts.length){
+    h+='<div class="row" style="margin-top:0"><div class="lb">Can be replaced with</div><div class="ics">'
+      + alts.map(function(x){ return '<span class="ic sub">'+esc(x)+'</span>'; }).join("")
+      + '</div></div>';
+  }else{
+    h+='<div class="subline" style="margin-top:0">No substitute saved for this one yet.</div>';
+  }
+  if(uses.length){
+    h+='<div class="row"><div class="lb">Used on '+uses.length+' panel'+(uses.length===1?"":"s")+'</div><div class="ics">'
+      + uses.slice(0,12).map(function(p){ return '<span class="ic">'+esc(p.model||"—")+'</span>'; }).join("")
+      + '</div></div>';
+  }
+  return h+'</div>';
+}
+
+function renderScreens(){
+  var q=ui.search, list=matchScreens(q);
+  list.sort(function(a,b){ return String(a.model||"").localeCompare(String(b.model||"")); });
+  document.getElementById("count").textContent =
+    q ? (list.length+" of "+State.screens.length+" screens") : (State.screens.length+" screen"+(State.screens.length===1?"":"s")+" saved");
+  var el=document.getElementById("list");
+
+  if(!State.screens.length){
+    el.innerHTML='<div class="empty"><div class="big">No screens yet</div>'
+      + '<p>Add a panel model and write down which TCON and which COF it takes. Next time a technician calls, you just search it.</p>'
+      + '<button class="btn primary" id="first" style="display:inline-flex">Add first screen</button></div>';
+    var f=document.getElementById("first"); if(f) f.onclick=function(){ screenSheet(null); };
+    return;
+  }
+
+  var html=substituteBanner(q);
+  if(!list.length){
+    html+='<div class="empty"><div class="big">Nothing found</div><p>No panel matches “'+esc(q)+'”.</p></div>';
+    el.innerHTML=html; return;
+  }
+  html+=list.map(function(p){
+    var cofs=icList(p.cof), tcons=icList(p.tcon);
+    var subLines=cofs.map(function(c){
+      var a=subsFor(c);
+      return a.length ? '<div class="subline">↔ <b>'+esc(c)+'</b> can be replaced with <b>'+esc(a.join(", "))+'</b></div>' : "";
+    }).join("");
+    return '<div class="card" data-open="'+esc(p.id)+'">'
+      + '<div class="pm">'+esc(p.model||"(no model)")+'</div>'
+      + ((p.size||p.brand) ? '<div class="tags">'
+          + (p.size?'<span class="tag t-size">'+esc(p.size)+'"</span>':"")
+          + (p.brand?'<span class="tag t-brand">'+esc(p.brand)+'</span>':"")
+          + '</div>' : "")
+      + (tcons.length ? '<div class="row"><div class="lb">TCON</div><div class="ics">'
+          + tcons.map(function(x){ return '<span class="ic">'+esc(x)+'</span>'; }).join("")+'</div></div>' : "")
+      + (cofs.length ? '<div class="row"><div class="lb">COF / TAB IC</div><div class="ics">'
+          + cofs.map(function(x){ return '<span class="ic">'+esc(x)+'</span>'; }).join("")+'</div>'+subLines+'</div>' : "")
+      + (p.tv ? '<div class="row"><div class="lb">Used in TV models</div><div class="vl">'+esc(p.tv)+'</div></div>' : "")
+      + (p.note ? '<div class="row"><div class="lb">Note</div><div class="vl">'+esc(p.note)+'</div></div>' : "")
+      + '</div>';
+  }).join("");
+  el.innerHTML=html;
+  el.querySelectorAll("[data-open]").forEach(function(c){
+    c.onclick=function(){ screenSheet(State.screens.find(function(x){ return x.id===c.dataset.open; })); };
+  });
+}
+
+function renderSubs(){
+  var q=ui.search, list=matchSubs(q);
+  document.getElementById("count").textContent =
+    q ? (list.length+" of "+State.subs.length+" groups") : (State.subs.length+" substitute group"+(State.subs.length===1?"":"s"));
+  var el=document.getElementById("list");
+
+  if(!State.subs.length){
+    el.innerHTML='<div class="empty"><div class="big">No substitute groups yet</div>'
+      + '<p>Put every IC that can replace each other into one group — for example <b>NT50H12, HX8296-D, FT8296</b>. '
+      + 'Then whenever you search any one of them, the app shows the others.</p>'
+      + '<button class="btn primary" id="first2" style="display:inline-flex">Add first group</button></div>';
+    var f=document.getElementById("first2"); if(f) f.onclick=function(){ subSheet(null); };
+    return;
+  }
+  if(!list.length){ el.innerHTML='<div class="empty"><div class="big">Nothing found</div><p>No group has “'+esc(q)+'”.</p></div>'; return; }
+
+  el.innerHTML=list.map(function(g){
+    var ics=icList(g.ics);
+    var seen={}, used=0;
+    ics.forEach(function(x){ panelsUsing(x).forEach(function(p){ if(!seen[p.id]){ seen[p.id]=1; used++; } }); });
+    return '<div class="card" data-sub="'+esc(g.id)+'">'
+      + '<div class="ics">'+ics.map(function(x){ return '<span class="ic sub">'+esc(x)+'</span>'; }).join("")+'</div>'
+      + '<div class="subline">All '+ics.length+' are interchangeable'+(used?" · used on "+used+" saved panel"+(used===1?"":"s"):"")+'</div>'
+      + (g.note ? '<div class="row"><div class="lb">Note</div><div class="vl">'+esc(g.note)+'</div></div>' : "")
+      + '</div>';
+  }).join("");
+  el.querySelectorAll("[data-sub]").forEach(function(c){
+    c.onclick=function(){ subSheet(State.subs.find(function(x){ return x.id===c.dataset.sub; })); };
+  });
+}
+
+function renderMore(){
+  document.getElementById("count").textContent="";
+  var last=0; try{ last=parseInt(localStorage.getItem("screens:lastBackup")||"0",10)||0; }catch(e){}
+  var days=last?Math.floor((Date.now()-last)/86400000):null;
+  document.getElementById("list").innerHTML=
+      '<div class="card" style="cursor:default">'
+    + '<div class="pm" style="font-family:\'Space Grotesk\',sans-serif;font-size:16px">Your data</div>'
+    + '<div class="row"><div class="vl">'+State.screens.length+' screen'+(State.screens.length===1?"":"s")+' · '+State.subs.length+' substitute group'+(State.subs.length===1?"":"s")+'</div></div>'
+    + '<div class="row"><div class="lb">Last backup file</div><div class="vl">'+(last?(days+" day"+(days===1?"":"s")+" ago"):"never saved")+'</div></div>'
+    + '<div class="menu">'
+    + '<button class="btn primary sm" id="mBackup">Backup data</button>'
+    + '<button class="btn ghost sm" id="mImport">Import backup</button>'
+    + '<button class="btn ghost sm" id="mCsv">Export CSV</button>'
+    + '</div></div>'
+    + '<div class="card" style="cursor:default">'
+    + '<div class="pm" style="font-family:\'Space Grotesk\',sans-serif;font-size:16px">How to use it</div>'
+    + '<div class="row"><div class="vl" style="color:var(--muted);font-size:13.5px;line-height:1.65">'
+    + 'Save each panel once — its model number, the TCON it takes and the COF/TAB ICs on it.<br><br>'
+    + 'In <b>COF substitutes</b>, group together every IC that can replace each other. After that you can type any IC into the search box and the app tells you straight away what else fits and which panels use it.'
+    + '</div></div></div>';
+  document.getElementById("mBackup").onclick=backup;
+  document.getElementById("mImport").onclick=function(){ document.getElementById("impFile").click(); };
+  document.getElementById("mCsv").onclick=exportCSV;
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html){
+  document.getElementById("sheet").innerHTML=html;
+  document.getElementById("scrim").classList.add("on");
+}
+function closeSheet(){ document.getElementById("scrim").classList.remove("on"); }
+document.getElementById("scrim").addEventListener("click",function(e){ if(e.target.id==="scrim") closeSheet(); });
+
+function dlOpts(id,arr){ return '<datalist id="'+id+'">'+arr.map(function(x){ return '<option value="'+esc(x)+'">'; }).join("")+'</datalist>'; }
+
+function screenSheet(p){
+  var isNew=!p; p=p||{};
+  openSheet('<h2>'+(isNew?"Add screen":"Edit screen")+'</h2>'
+    + '<label class="fld"><span class="lt">Panel model *</span>'
+    + '<input class="inp mono" id="f-model" placeholder="e.g. V320BJ7-PE1" autocomplete="off" value="'+esc(p.model||"")+'"></label>'
+    + '<div class="two">'
+    + '<label class="fld"><span class="lt">Size (inch)</span>'
+    + '<input class="inp" id="f-size" inputmode="numeric" list="dlSize" placeholder="32" value="'+esc(p.size||"")+'"></label>'
+    + '<label class="fld"><span class="lt">Panel brand</span>'
+    + '<input class="inp" id="f-brand" list="dlBrand" placeholder="BOE" value="'+esc(p.brand||"")+'"></label>'
+    + '</div>'
+    + '<label class="fld"><span class="lt">TCON</span>'
+    + '<input class="inp mono" id="f-tcon" placeholder="e.g. 35-D093261" autocomplete="off" value="'+esc(p.tcon||"")+'"></label>'
+    + '<label class="fld"><span class="lt">COF / TAB ICs</span>'
+    + '<input class="inp mono" id="f-cof" placeholder="e.g. NT50H12, HX8296-D" autocomplete="off" value="'+esc(p.cof||"")+'"></label>'
+    + '<div class="hint">Separate more than one with a comma. Substitutes are kept in the COF substitutes tab, not here.</div>'
+    + '<label class="fld"><span class="lt">Used in TV models</span>'
+    + '<input class="inp" id="f-tv" placeholder="e.g. TCL 32D3000, Haier LE32K6000" value="'+esc(p.tv||"")+'"></label>'
+    + '<label class="fld"><span class="lt">Note</span>'
+    + '<textarea class="inp" id="f-note" placeholder="Anything worth remembering about this panel">'+esc(p.note||"")+'</textarea></label>'
+    + dlOpts("dlSize",SIZES) + dlOpts("dlBrand",BRANDS)
+    + '<div class="sheetacts">'
+    + (isNew?"":'<button class="btn del" id="f-del" style="flex:0 0 auto;padding:14px 18px">Delete</button>')
+    + '<button class="btn ghost" id="f-cancel">Cancel</button>'
+    + '<button class="btn primary" id="f-save">Save</button></div>');
+
+  document.getElementById("f-cancel").onclick=closeSheet;
+  var d=document.getElementById("f-del");
+  if(d) d.onclick=function(){
+    if(!confirm("Delete this screen?")) return;
+    if(window.__tombstone) window.__tombstone("screen",p.id);
+    State.screens=State.screens.filter(function(x){ return x.id!==p.id; });
+    persist(); closeSheet(); render(); toast("Screen deleted");
+  };
+  document.getElementById("f-save").onclick=function(){
+    var model=document.getElementById("f-model").value.trim();
+    if(!model){ toast("Panel model is needed"); return; }
+    var rec = isNew ? { id:uid(), createdAt:Date.now() } : p;
+    rec.model=model;
+    rec.size=document.getElementById("f-size").value.trim();
+    rec.brand=document.getElementById("f-brand").value.trim();
+    rec.tcon=document.getElementById("f-tcon").value.trim();
+    rec.cof=document.getElementById("f-cof").value.trim();
+    rec.tv=document.getElementById("f-tv").value.trim();
+    rec.note=document.getElementById("f-note").value.trim();
+    rec.updatedAt=Date.now();
+    if(isNew) State.screens.push(rec);
+    persist(); closeSheet(); render(); toast(isNew?"Screen added":"Screen saved");
+  };
+  setTimeout(function(){ try{ document.getElementById("f-model").focus(); }catch(e){} },120);
+}
+
+function subSheet(g){
+  var isNew=!g; g=g||{};
+  openSheet('<h2>'+(isNew?"Add substitute group":"Edit substitute group")+'</h2>'
+    + '<label class="fld"><span class="lt">ICs that replace each other *</span>'
+    + '<textarea class="inp mono" id="s-ics" placeholder="NT50H12, HX8296-D, FT8296">'+esc(g.ics||"")+'</textarea></label>'
+    + '<div class="hint">Separate with a comma. Put every part that can be used in place of the others into the same group.</div>'
+    + '<label class="fld"><span class="lt">Note</span>'
+    + '<textarea class="inp" id="s-note" placeholder="e.g. works both ways, only on 32 inch BOE panels">'+esc(g.note||"")+'</textarea></label>'
+    + '<div class="sheetacts">'
+    + (isNew?"":'<button class="btn del" id="s-del" style="flex:0 0 auto;padding:14px 18px">Delete</button>')
+    + '<button class="btn ghost" id="s-cancel">Cancel</button>'
+    + '<button class="btn primary" id="s-save">Save</button></div>');
+
+  document.getElementById("s-cancel").onclick=closeSheet;
+  var d=document.getElementById("s-del");
+  if(d) d.onclick=function(){
+    if(!confirm("Delete this substitute group?")) return;
+    if(window.__tombstone) window.__tombstone("sub",g.id);
+    State.subs=State.subs.filter(function(x){ return x.id!==g.id; });
+    persist(); closeSheet(); render(); toast("Group deleted");
+  };
+  document.getElementById("s-save").onclick=function(){
+    var ics=document.getElementById("s-ics").value.trim();
+    if(icList(ics).length<2){ toast("Write at least two ICs"); return; }
+    var rec = isNew ? { id:uid(), createdAt:Date.now() } : g;
+    rec.ics=ics;
+    rec.note=document.getElementById("s-note").value.trim();
+    rec.updatedAt=Date.now();
+    if(isNew) State.subs.push(rec);
+    persist(); closeSheet(); render(); toast(isNew?"Group added":"Group saved");
+  };
+  setTimeout(function(){ try{ document.getElementById("s-ics").focus(); }catch(e){} },120);
+}
+
+/* ---------- backup ---------- */
+function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function dl(blob,name){
+  var u=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(u); },800);
+}
+function backup(){
+  dl(new Blob([JSON.stringify(State,null,2)],{type:"application/json"}),"screens-backup-"+todayISO()+".json");
+  try{ localStorage.setItem("screens:lastBackup",String(Date.now())); }catch(e){}
+  render(); toast("Backup downloaded");
+}
+function exportCSV(){
+  var rows=[["Panel model","Size","Brand","TCON","COF / TAB IC","Substitutes","TV models","Note"]];
+  State.screens.forEach(function(p){
+    var subs=icList(p.cof).map(function(c){ var a=subsFor(c); return a.length?(c+" = "+a.join(" / ")):""; }).filter(Boolean).join(" | ");
+    rows.push([p.model||"",p.size||"",p.brand||"",p.tcon||"",p.cof||"",subs,p.tv||"",p.note||""]);
+  });
+  var csv=rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(","); }).join("\n");
+  dl(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),"screen-data-"+todayISO()+".csv");
+  toast("CSV downloaded");
+}
+document.getElementById("impFile").addEventListener("change",function(e){
+  var f=e.target.files[0]; if(!f) return; e.target.value="";
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!Array.isArray(d.screens)) throw 0;
+      if(!confirm("Replace all screen data with this backup?")) return;
+      State.screens=d.screens||[]; State.subs=d.subs||[];
+      State.settings=Object.assign(State.settings,d.settings||{});
+      persist(); render(); toast("Backup restored");
+    }catch(err){ toast("Not a valid Screen Data backup"); }
+  };
+  r.readAsText(f);
+});
+
+/* ---------- wire ---------- */
+document.getElementById("tabs").addEventListener("click",function(e){
+  var b=e.target.closest("[data-t]"); if(!b) return;
+  ui.tab=b.dataset.t; ui.search="";
+  var s=document.getElementById("search"); if(s) s.value="";
+  render();
+});
+document.getElementById("search").addEventListener("input",function(e){
+  ui.search=e.target.value;
+  if(ui.tab==="screens") renderScreens(); else if(ui.tab==="subs") renderSubs();
+});
+document.getElementById("addBtn").onclick=function(){ if(ui.tab==="subs") subSheet(null); else screenSheet(null); };
+
+(function init(){
+  var d=lsLoad();
+  if(d){ State.screens=d.screens||[]; State.subs=d.subs||[]; State.settings=Object.assign(State.settings,d.settings||{}); }
+  render();
+})();
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+(function(){
+  var APP_KEY="screens";
+  var cfg={ apiKey:"AIzaSyAQXOHU-_vZQ6fXDjdJvcvBg8dMx01X_tc", authDomain:"shakeel-shop.firebaseapp.com",
+            projectId:"shakeel-shop", storageBucket:"shakeel-shop.firebasestorage.app",
+            messagingSenderId:"60087476008", appId:"1:60087476008:web:73f7c946ae62a687a3ba1d" };
+  var db=null, ready=false, _dirty=false, pushTimer=null, _serverSeen=false, started=false;
+
+  function note(m){ var el=document.getElementById("status"); if(el) el.innerHTML=m; }
+  if(typeof firebase==="undefined"){ note("Saved on this device"); return; }
+  try{ firebase.initializeApp(cfg); db=firebase.firestore(); }
+  catch(e){ note("☁ Offline — saved on this device"); return; }
+  function ref(){ return db.collection("shops").doc("main").collection("apps").doc(APP_KEY); }
+
+  /* remembered deletes, so a delete is never undone by an old copy */
+  function _tomb(){ try{ return JSON.parse(localStorage.getItem("screens:deleted")||"{}"); }catch(_){ return {}; } }
+  window.__tombstone=function(kind,id){ try{ var t=_tomb(); t[kind+":"+id]=Date.now(); localStorage.setItem("screens:deleted",JSON.stringify(t)); }catch(_){ } };
+  function _applyTomb(arr,kind){ var t=_tomb(); return (arr||[]).filter(function(x){ return !(x&&x.id!=null&&t[kind+":"+x.id]); }); }
+
+  /* order-stable merge by id — nothing is ever dropped */
+  function _merge(localArr,cloudArr,preferLocal){
+    localArr=Array.isArray(localArr)?localArr:[]; cloudArr=Array.isArray(cloudArr)?cloudArr:[];
+    var map={},order=[],noid=[];
+    function ts(x){ return (x&&(x.updatedAt||x.createdAt))||0; }
+    function sg(x){ try{ return JSON.stringify(x); }catch(_){ return ""; } }
+    localArr.forEach(function(x){ if(!x||x.id==null){ noid.push(x); return; } var k=String(x.id); if(!(k in map)){ map[k]=x; order.push(k); } });
+    cloudArr.forEach(function(x){ if(!x||x.id==null) return; var k=String(x.id);
+      if(!(k in map)){ map[k]=x; order.push(k); return; }
+      var cur=map[k], a=ts(x), b=ts(cur);
+      if(a>b){ map[k]=x; } else if(a<b){ } else { if(sg(x)!==sg(cur)){ if(!preferLocal) map[k]=x; } } });
+    return order.map(function(k){ return map[k]; }).concat(noid);
+  }
+  function mergeCloudIntoState(d,preferLocal){
+    if(!d) return;
+    State.screens=_applyTomb(_merge(State.screens,d.screens,preferLocal),"screen");
+    State.subs   =_applyTomb(_merge(State.subs,   d.subs,   preferLocal),"sub");
+    var cs=d.settings||{}, ls=State.settings||{};
+    if((cs.updatedAt||0)>(ls.updatedAt||0)){ Object.keys(cs).forEach(function(k){ if(k!=="updatedAt") State.settings[k]=cs[k]; }); }
+  }
+  /* a save can never remove something you did not delete */
+  function _absorb(d){
+    if(!d) return 0;
+    var t=_tomb(), n=0;
+    [["screens","screen"],["subs","sub"]].forEach(function(pair){
+      var key=pair[0], kind=pair[1], ids={}, miss=[];
+      (State[key]||[]).forEach(function(x){ if(x&&x.id!=null) ids[String(x.id)]=1; });
+      (d[key]||[]).forEach(function(x){ if(!x||x.id==null) return; if(!ids[String(x.id)] && !t[kind+":"+x.id]) miss.push(x); });
+      if(miss.length){ State[key]=State[key].concat(miss); n+=miss.length; }
+    });
+    return n;
+  }
+  function _grew(d){
+    function has(a,b){ a=a||[]; b=b||[];
+      if(a.length>b.length) return true;
+      var ids={}; b.forEach(function(x){ if(x&&x.id!=null) ids[x.id]=1; });
+      for(var i=0;i<a.length;i++){ if(a[i]&&a[i].id!=null&&!ids[a[i].id]) return true; }
+      return false; }
+    return has(State.screens,d.screens)||has(State.subs,d.subs);
+  }
+  function _typing(){ var a=document.activeElement; return a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"); }
+  function _sig(){ try{ return JSON.stringify(State.screens)+"|"+JSON.stringify(State.subs); }catch(_){ return "x"+Math.random(); } }
+
+  firebase.auth().onAuthStateChanged(function(u){ if(u && !u.isAnonymous) start(); });
+
+  function start(){
+    if(started) return; started=true;
+    note("☁ Connecting…");
+    ref().onSnapshot(function(snap){
+      var fromCache=!!(snap.metadata&&snap.metadata.fromCache);
+      if(snap.exists){
+        var d=snap.data()&&snap.data().state;
+        if(d){
+          var s0=_sig();
+          mergeCloudIntoState(d);
+          try{ lsSave(); }catch(_){}
+          if(_sig()!==s0 && !_typing()) render();
+          if(!fromCache && _dirty && _grew(d)){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,300); }
+        }
+        if(!fromCache){ _serverSeen=true; ready=true; note("☁ Synced across your devices"); }
+        else { note("☁ Checking cloud…"); }
+      } else if(!fromCache){ _serverSeen=true; ready=true; pushNow(); }
+    }, function(err){ ready=true; note(err&&err.code==="permission-denied"?"Saved on this device":"☁ Offline — saved on this device"); });
+  }
+
+  function pushNow(){
+    if(!db) return;
+    if(!ready || !_serverSeen){ _dirty=true; return; }
+    ref().get({source:"server"}).then(function(s){
+      var d=s.exists&&s.data()&&s.data().state;
+      if(d){ mergeCloudIntoState(d,true); if(_absorb(d)){ try{ lsSave(); render(); }catch(_){} } }
+      if(!State.settings.updatedAt) State.settings.updatedAt=Date.now();
+      _dirty=false;
+      return ref().set({state:State, ts:Date.now()});
+    }).then(function(){ note("☁ Synced across your devices"); try{ lsSave(); }catch(_){} })
+      .catch(function(){ _dirty=true; note("☁ Offline — saved here, will sync when back online");
+        clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,8000); });
+  }
+  window.addEventListener("online",function(){ if(_dirty){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,900); } });
+
+  var _p=window.persist;
+  window.persist=function(){ _p(); _dirty=true; if(ready){ clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); } };
+})();
+</script>
+</body>
+</html>
