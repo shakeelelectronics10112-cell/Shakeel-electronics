@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mera Hisab">
+<meta name="theme-color" content="#1B4B43">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  html,body{height:100%;}
+  html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark;}
+  body{margin:0;font-size:14px;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;}
+  img{max-width:100%;}
+  [hidden]{display:none!important;}
+  input,textarea,button{-webkit-appearance:none;appearance:none;}
+</style>
+<title>Mera Hisab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F1F4F2;
+    --surface:#FFFFFF;
+    --surface-2:#E9EEEB;
+    --ink:#16211C;
+    --ink-soft:#57675F;
+    --ink-faint:#8B978F;
+    --line:#DEE4E0;
+    --accent:#1B4B43;
+    --accent-contrast:#F3F1EC;
+    --save:#0E8F68;
+    --save-soft:#E1F4EC;
+    --spend:#B8442F;
+    --spend-soft:#FBE7E2;
+    --shadow:0 1px 2px rgba(20,30,25,0.04), 0 8px 24px rgba(20,30,25,0.06);
+    --font-display:'Source Serif 4', Georgia, serif;
+    --font-body:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono:'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1512;
+      --surface:#172420;
+      --surface-2:#1E2E28;
+      --ink:#EAF2EE;
+      --ink-soft:#9FB3AC;
+      --ink-faint:#6C8079;
+      --line:#28433A;
+      --accent:#4BB6A3;
+      --accent-contrast:#0A1512;
+      --save:#34C38E;
+      --save-soft:rgba(52,195,142,0.14);
+      --spend:#E58A72;
+      --spend-soft:rgba(229,138,114,0.14);
+      --shadow:0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1512;
+    --surface:#172420;
+    --surface-2:#1E2E28;
+    --ink:#EAF2EE;
+    --ink-soft:#9FB3AC;
+    --ink-faint:#6C8079;
+    --line:#28433A;
+    --accent:#4BB6A3;
+    --accent-contrast:#0A1512;
+    --save:#34C38E;
+    --save-soft:rgba(52,195,142,0.14);
+    --spend:#E58A72;
+    --spend-soft:rgba(229,138,114,0.14);
+    --shadow:0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    padding:18px 16px 0;
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---- header ---- */
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+    padding-bottom:4px;
+  }
+  .topbar h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:26px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .topbar .tagline{
+    margin:2px 0 0;
+    font-size:12.5px;
+    color:var(--ink-faint);
+  }
+  .month-pill{
+    font-size:12px;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:100px;
+    padding:5px 11px;
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---- hero ---- */
+  .hero{
+    margin-top:16px;
+    background:var(--accent);
+    color:var(--accent-contrast);
+    border-radius:20px;
+    padding:22px 20px 18px;
+    box-shadow:var(--shadow);
+  }
+  .hero-label{
+    margin:0;
+    font-size:12.5px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    opacity:.78;
+  }
+  .hero-amount{
+    margin:6px 0 16px;
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:38px;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-0.01em;
+  }
+  .hero-stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .stat{
+    background:rgba(255,255,255,0.1);
+    border-radius:13px;
+    padding:10px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .stat-label{
+    font-size:11.5px;
+    opacity:.8;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .stat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .stat-save .stat-dot{background:#5CE0AE;}
+  .stat-spend .stat-dot{background:#F2A78F;}
+  .stat-value{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:16.5px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---- filter row ---- */
+  .filter-row{
+    display:flex;
+    gap:8px;
+    margin:16px 0 6px;
+  }
+  .filter-chip{
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:500;
+    color:var(--ink-soft);
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:100px;
+    padding:7px 14px;
+    cursor:pointer;
+  }
+  .filter-chip.active{
+    background:var(--ink);
+    color:var(--bg);
+    border-color:var(--ink);
+  }
+
+  /* ---- ledger list ---- */
+  #ledger{
+    flex:1;
+    padding-bottom:110px;
+  }
+  .date-group{margin-top:18px;}
+  .date-heading{
+    font-size:12px;
+    font-weight:500;
+    color:var(--ink-faint);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    margin:0 0 8px 2px;
+  }
+  .entry-row{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:11px 12px;
+    margin-bottom:8px;
+    text-align:left;
+    cursor:pointer;
+    font-family:var(--font-body);
+  }
+  .entry-avatar{
+    flex:none;
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:15px;
+  }
+  .entry-row.saving .entry-avatar{background:var(--save-soft);color:var(--save);}
+  .entry-row.spending .entry-avatar{background:var(--spend-soft);color:var(--spend);}
+  .entry-mid{flex:1;min-width:0;}
+  .entry-cat{
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--ink);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .entry-note{
+    font-size:12.5px;
+    color:var(--ink-faint);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    margin-top:1px;
+  }
+  .entry-amount{
+    flex:none;
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:15px;
+    font-variant-numeric:tabular-nums;
+  }
+  .entry-row.saving .entry-amount{color:var(--save);}
+  .entry-row.spending .entry-amount{color:var(--spend);}
+
+  .empty-state{
+    margin-top:14vh;
+    text-align:center;
+    color:var(--ink-faint);
+    padding:0 20px;
+  }
+  .empty-state .glyph{
+    font-family:var(--font-display);
+    font-size:34px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .empty-state p{margin:4px 0 0;font-size:13.5px;line-height:1.5;}
+  .empty-state strong{color:var(--ink-soft);}
+
+  /* ---- FAB ---- */
+  .fab{
+    position:fixed;
+    right:max(20px, calc(50vw - 240px + 20px));
+    bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    background:var(--accent);
+    color:var(--accent-contrast);
+    border:none;
+    font-size:28px;
+    line-height:1;
+    box-shadow:0 10px 24px rgba(20,30,25,0.28);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .fab:active{transform:scale(.96);}
+
+  /* ---- sheet ---- */
+  .sheet-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(10,16,13,0.42);
+    z-index:20;
+  }
+  .sheet{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    z-index:21;
+    background:var(--surface);
+    border-radius:22px 22px 0 0;
+    padding:10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-width:480px;
+    margin:0 auto;
+    box-shadow:0 -8px 30px rgba(0,0,0,0.18);
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .sheet-handle{
+    width:36px;height:4px;border-radius:3px;
+    background:var(--line);
+    margin:6px auto 14px;
+  }
+  .sheet h2{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:20px;
+    margin:0 0 14px;
+  }
+  .type-toggle{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .type-btn{
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:14px;
+    padding:11px 0;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .type-btn.active[data-type="spending"]{background:var(--spend-soft);border-color:var(--spend);color:var(--spend);}
+  .type-btn.active[data-type="saving"]{background:var(--save-soft);border-color:var(--save);color:var(--save);}
+
+  .field{
+    display:block;
+    margin-bottom:14px;
+  }
+  .field span, .chip-field > span{
+    display:block;
+    font-size:12px;
+    font-weight:500;
+    color:var(--ink-faint);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    font-family:var(--font-body);
+    font-size:16px;
+    padding:12px 13px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--ink);
+  }
+  #amountInput{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:22px;
+    font-variant-numeric:tabular-nums;
+  }
+  .field input:focus, .type-btn:focus-visible, .filter-chip:focus-visible, .fab:focus-visible, .chip:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .chip-field{margin-bottom:16px;}
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    font-family:var(--font-body);
+    font-size:13px;
+    padding:8px 13px;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .chip.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:var(--bg);
+  }
+  .sheet-actions{
+    display:flex;
+    gap:10px;
+    margin-top:4px;
+  }
+  .btn-primary{
+    flex:1;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:15px;
+    padding:14px;
+    border-radius:13px;
+    border:none;
+    background:var(--accent);
+    color:var(--accent-contrast);
+    cursor:pointer;
+  }
+  .btn-primary:active{transform:scale(.98);}
+  .btn-ghost{
+    font-family:var(--font-body);
+    font-weight:500;
+    font-size:14px;
+    padding:14px 16px;
+    border-radius:13px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .btn-ghost.danger{color:var(--spend);border-color:var(--spend-soft);}
+
+  .banner{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:9px 12px;
+    line-height:1.45;
+  }
+
+
+  .top-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .backup-link{font-family:var(--font-body);font-size:12.5px;font-weight:500;color:var(--accent);background:none;border:none;padding:2px 2px;cursor:pointer;}
+  .sheet-help{font-size:13px;line-height:1.5;color:var(--ink-soft);margin:0 0 14px;}
+  #backupStatus{color:var(--ink);min-height:1em;}
+  .field textarea{width:100%;font-family:var(--font-mono);font-size:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical;}
+  .sheet-actions + .sheet-actions{margin-top:10px;}
+
+  @media (max-width:360px){
+    .hero-amount{font-size:32px;}
+  }
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div>
+      <h1>Mera Hisab</h1>
+      <p class="tagline">Apna kharcha, apni bachat — sab ek jagah</p>
+    </div>
+    <div class="top-actions"><span class="month-pill" id="monthPill">—</span><button type="button" class="backup-link" id="backupBtn">Backup</button></div>
+  </div>
+
+  <section class="hero">
+    <p class="hero-label">Net balance</p>
+    <p class="hero-amount" id="netAmount">Rs 0</p>
+    <div class="hero-stats">
+      <div class="stat stat-save">
+        <span class="stat-label"><span class="stat-dot"></span>Saved this month</span>
+        <span class="stat-value" id="totalSaved">Rs 0</span>
+      </div>
+      <div class="stat stat-spend">
+        <span class="stat-label"><span class="stat-dot"></span>Spent this month</span>
+        <span class="stat-value" id="totalSpent">Rs 0</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="dbBanner" class="banner" hidden></div>
+
+  <div class="filter-row" role="tablist">
+    <button class="filter-chip active" data-filter="all">All</button>
+    <button class="filter-chip" data-filter="saving">Savings</button>
+    <button class="filter-chip" data-filter="spending">Spending</button>
+  </div>
+
+  <main id="ledger"></main>
+</div>
+
+<button id="fab" class="fab" aria-label="Add entry">+</button>
+<div id="sheetBackdrop" class="sheet-backdrop" hidden></div>
+<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-handle"></div>
+  <h2 id="sheetTitle">Add entry</h2>
+
+  <div class="type-toggle">
+    <button type="button" class="type-btn active" data-type="spending" id="typeSpendBtn">Spending</button>
+    <button type="button" class="type-btn" data-type="saving" id="typeSaveBtn">Saving</button>
+  </div>
+
+  <label class="field">
+    <span>Amount (Rs)</span>
+    <input type="number" id="amountInput" inputmode="decimal" min="0" step="1" placeholder="0">
+  </label>
+
+  <div class="chip-field">
+    <span>Category</span>
+    <div class="chips" id="categoryChips"></div>
+  </div>
+
+  <label class="field">
+    <span>Note (optional)</span>
+    <input type="text" id="noteInput" placeholder="e.g. TCON board order" maxlength="80">
+  </label>
+
+  <label class="field">
+    <span>Date</span>
+    <input type="date" id="dateInput">
+  </label>
+
+  <div class="sheet-actions">
+    <button id="deleteBtn" class="btn-ghost danger" hidden>Delete</button>
+    <button id="saveBtn" class="btn-primary">Save entry</button>
+  </div>
+</div>
+
+
+<div id="backupBackdrop" class="sheet-backdrop" hidden></div>
+<div id="backupSheet" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="backupTitle">
+  <div class="sheet-handle"></div>
+  <h2 id="backupTitle">Backup &amp; restore</h2>
+  <p class="sheet-help">Your entries are saved on this phone only. Copy a backup now and then, and paste it into WhatsApp or Notes. To restore (new phone, cleared Safari), paste the backup below and tap Restore.</p>
+  <label class="field">
+    <span>Backup text</span>
+    <textarea id="backupText" rows="4" spellcheck="false"></textarea>
+  </label>
+  <p class="sheet-help" id="backupStatus"></p>
+  <div class="sheet-actions">
+    <button type="button" id="restoreBtn" class="btn-ghost">Restore</button>
+    <button type="button" id="copyBtn" class="btn-primary">Copy backup</button>
+  </div>
+  <div class="sheet-actions">
+    <button type="button" id="fileRestoreBtn" class="btn-ghost" style="flex:1">Open backup file</button>
+    <button type="button" id="fileSaveBtn" class="btn-ghost" style="flex:1" hidden>Save backup file</button>
+  </div>
+  <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+  <div class="sheet-actions"><button type="button" id="backupClose" class="btn-ghost" style="flex:1">Close</button></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CATEGORIES = {
+    spending: ["Food","Transport","Bills","Shop Stock","Repairs","Family","Other"],
+    saving:   ["Cash","Bank","Committee","Gold","Other"]
+  };
+
+  var state = {
+    entries: [],
+    filter: "all",
+    editingId: null,
+    selectedType: "spending",
+    selectedCategory: CATEGORIES.spending[0],
+    dbReady: false
+  };
+
+  var els = {};
+  ["monthPill","netAmount","totalSaved","totalSpent","ledger","fab",
+   "sheet","sheetBackdrop","sheetTitle","typeSpendBtn","typeSaveBtn",
+   "amountInput","categoryChips","noteInput","dateInput","saveBtn",
+   "deleteBtn","dbBanner","backupBtn","backupSheet","backupBackdrop","backupText","backupStatus","copyBtn","restoreBtn","backupClose","fileRestoreBtn","fileSaveBtn","fileInput"].forEach(function(id){ els[id] = document.getElementById(id); });
+
+  var filterChips = Array.prototype.slice.call(document.querySelectorAll(".filter-chip"));
+
+  function todayISO(){
+    var d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0,10);
+  }
+
+  function formatPKR(n){
+    var sign = n < 0 ? "-" : "";
+    var abs = Math.round(Math.abs(n));
+    return sign + "Rs " + new Intl.NumberFormat("en-IN").format(abs);
+  }
+
+  function monthLabel(){
+    return new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  }
+
+  function dateHeading(iso){
+    var today = todayISO();
+    var y = new Date(today); y.setDate(y.getDate() - 1);
+    var yesterday = y.toISOString().slice(0,10);
+    if (iso === today) return "Today";
+    if (iso === yesterday) return "Yesterday";
+    var d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  }
+
+  // ---------- rendering ----------
+  function render(){
+    els.monthPill.textContent = monthLabel();
+
+    var thisMonth = new Date().toISOString().slice(0,7);
+    var saved = 0, spent = 0, netAll = 0;
+    state.entries.forEach(function(e){
+      var signed = e.type === "saving" ? e.amount : -e.amount;
+      netAll += signed;
+      if ((e.date || "").slice(0,7) === thisMonth){
+        if (e.type === "saving") saved += e.amount; else spent += e.amount;
+      }
+    });
+    els.netAmount.textContent = formatPKR(netAll);
+    els.totalSaved.textContent = formatPKR(saved);
+    els.totalSpent.textContent = formatPKR(spent);
+
+    renderLedger();
+  }
+
+  function renderLedger(){
+    var list = state.entries.filter(function(e){
+      return state.filter === "all" || e.type === state.filter;
+    });
+
+    els.ledger.innerHTML = "";
+
+    if (list.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = state.entries.length === 0
+        ? '<div class="glyph">Rs</div><p><strong>No entries yet.</strong><br>Tap the + button to log your first spend or saving.</p>'
+        : '<div class="glyph">Rs</div><p>No ' + state.filter + ' entries yet.</p>';
+      els.ledger.appendChild(empty);
+      return;
+    }
+
+    var groups = {};
+    var order = [];
+    list.forEach(function(e){
+      var key = e.date || "Undated";
+      if (!groups[key]){ groups[key] = []; order.push(key); }
+      groups[key].push(e);
+    });
+    order.sort(function(a,b){ return a < b ? 1 : -1; });
+
+    order.forEach(function(dateKey){
+      var section = document.createElement("div");
+      section.className = "date-group";
+      var heading = document.createElement("p");
+      heading.className = "date-heading";
+      heading.textContent = dateKey === "Undated" ? "Undated" : dateHeading(dateKey);
+      section.appendChild(heading);
+
+      groups[dateKey]
+        .slice()
+        .sort(function(a,b){ return (b.createdAt||"").localeCompare(a.createdAt||""); })
+        .forEach(function(e){
+          section.appendChild(renderRow(e));
+        });
+
+      els.ledger.appendChild(section);
+    });
+  }
+
+  function renderRow(e){
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "entry-row " + e.type;
+    row.setAttribute("data-id", e.id);
+
+    var avatar = document.createElement("span");
+    avatar.className = "entry-avatar";
+    avatar.textContent = (e.category || "?").charAt(0).toUpperCase();
+
+    var mid = document.createElement("span");
+    mid.className = "entry-mid";
+    var cat = document.createElement("span");
+    cat.className = "entry-cat";
+    cat.textContent = e.category || "Other";
+    mid.appendChild(cat);
+    if (e.note){
+      var note = document.createElement("span");
+      note.className = "entry-note";
+      note.style.display = "block";
+      note.textContent = e.note;
+      mid.appendChild(note);
+    }
+
+    var amount = document.createElement("span");
+    amount.className = "entry-amount";
+    amount.textContent = (e.type === "saving" ? "+" : "-") + formatPKR(e.amount).replace("Rs ", "Rs ");
+
+    row.appendChild(avatar);
+    row.appendChild(mid);
+    row.appendChild(amount);
+
+    row.addEventListener("click", function(){ openSheet(e); });
+    return row;
+  }
+
+  // ---------- sheet ----------
+  function setType(type){
+    state.selectedType = type;
+    els.typeSpendBtn.classList.toggle("active", type === "spending");
+    els.typeSaveBtn.classList.toggle("active", type === "saving");
+    if (CATEGORIES[type].indexOf(state.selectedCategory) === -1){
+      state.selectedCategory = CATEGORIES[type][0];
+    }
+    renderCategoryChips();
+  }
+
+  function renderCategoryChips(){
+    els.categoryChips.innerHTML = "";
+    CATEGORIES[state.selectedType].forEach(function(cat){
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (cat === state.selectedCategory ? " active" : "");
+      chip.textContent = cat;
+      chip.addEventListener("click", function(){
+        state.selectedCategory = cat;
+        renderCategoryChips();
+      });
+      els.categoryChips.appendChild(chip);
+    });
+  }
+
+  function openSheet(entry){
+    state.editingId = entry ? entry.id : null;
+    els.sheetTitle.textContent = entry ? "Edit entry" : "Add entry";
+    els.deleteBtn.hidden = !entry;
+    setType(entry ? entry.type : "spending");
+    if (entry){
+      state.selectedCategory = entry.category || CATEGORIES[entry.type][0];
+      renderCategoryChips();
+      els.amountInput.value = entry.amount;
+      els.noteInput.value = entry.note || "";
+      els.dateInput.value = entry.date || todayISO();
+    } else {
+      els.amountInput.value = "";
+      els.noteInput.value = "";
+      els.dateInput.value = todayISO();
+    }
+    els.sheetBackdrop.hidden = false;
+    els.sheet.hidden = false;
+    setTimeout(function(){ els.amountInput.focus(); }, 50);
+  }
+
+  function closeSheet(){
+    deleteArmed = false;
+    els.deleteBtn.textContent = "Delete";
+    els.sheetBackdrop.hidden = true;
+    els.sheet.hidden = true;
+    state.editingId = null;
+  }
+
+  els.fab.addEventListener("click", function(){ openSheet(null); });
+  els.sheetBackdrop.addEventListener("click", closeSheet);
+  els.typeSpendBtn.addEventListener("click", function(){ setType("spending"); });
+  els.typeSaveBtn.addEventListener("click", function(){ setType("saving"); });
+
+  filterChips.forEach(function(chip){
+    chip.addEventListener("click", function(){
+      filterChips.forEach(function(c){ c.classList.remove("active"); });
+      chip.classList.add("active");
+      state.filter = chip.getAttribute("data-filter");
+      renderLedger();
+    });
+  });
+
+  // ---------- persistence: saved on this phone (localStorage) ----------
+  var STORE_KEY = "meraHisab.entries.v1";
+
+  function loadLocal(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){ return []; }
+  }
+
+  function saveLocal(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(state.entries));
+      return true;
+    }catch(e){
+      showBanner("Couldn't save on this phone (private browsing or storage full). Use Backup to keep a copy.");
+      return false;
+    }
+  }
+
+  function showBanner(msg){
+    els.dbBanner.hidden = false;
+    els.dbBanner.textContent = msg;
+  }
+
+  function newId(){
+    return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  }
+
+  function commit(){ saveLocal(); render(); }
+
+  els.saveBtn.addEventListener("click", function(){
+    var amount = parseFloat(els.amountInput.value);
+    if (!amount || amount <= 0){ els.amountInput.focus(); return; }
+    var payload = {
+      type: state.selectedType,
+      category: state.selectedCategory,
+      amount: amount,
+      note: els.noteInput.value.trim(),
+      date: els.dateInput.value || todayISO()
+    };
+    if (state.editingId){
+      var id = state.editingId;
+      state.entries = state.entries.map(function(e){ return e.id === id ? Object.assign({}, e, payload) : e; });
+    } else {
+      payload.id = newId();
+      payload.createdAt = new Date().toISOString();
+      state.entries = [payload].concat(state.entries);
+    }
+    commit();
+    closeSheet();
+  });
+
+  var deleteArmed = false;
+  els.deleteBtn.addEventListener("click", function(){
+    var id = state.editingId;
+    if (!id) return;
+    if (!deleteArmed){
+      deleteArmed = true;
+      els.deleteBtn.textContent = "Tap again to delete";
+      return;
+    }
+    state.entries = state.entries.filter(function(e){ return e.id !== id; });
+    commit();
+    closeSheet();
+  });
+
+  // ---------- backup / restore ----------
+  function openBackup(){
+    els.backupText.value = JSON.stringify(state.entries);
+    els.backupStatus.textContent = state.entries.length + " entries on this phone.";
+    els.backupBackdrop.hidden = false;
+    els.backupSheet.hidden = false;
+  }
+  function closeBackup(){
+    els.backupBackdrop.hidden = true;
+    els.backupSheet.hidden = true;
+  }
+  els.backupBtn.addEventListener("click", openBackup);
+  els.backupBackdrop.addEventListener("click", closeBackup);
+  els.backupClose.addEventListener("click", closeBackup);
+
+  els.copyBtn.addEventListener("click", function(){
+    var text = JSON.stringify(state.entries);
+    els.backupText.value = text;
+    function done(ok){
+      els.backupStatus.textContent = ok
+        ? "Copied. Paste it into WhatsApp (message yourself) or Notes to keep it safe."
+        : "Select the text above and copy it manually.";
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){
+        els.backupText.select(); done(false);
+      });
+    } else { els.backupText.select(); done(false); }
+  });
+
+  els.restoreBtn.addEventListener("click", function(){ restoreFromText(els.backupText.value); });
+
+  function restoreFromText(text){
+    var arr;
+    try{ arr = JSON.parse(String(text).trim()); }catch(e){ arr = null; }
+    if (!Array.isArray(arr)){
+      els.backupStatus.textContent = "That isn't a valid backup. Paste the full text you copied earlier.";
+      return;
+    }
+    var clean = arr.filter(function(e){
+      return e && (e.type === "saving" || e.type === "spending") && typeof e.amount === "number";
+    }).map(function(e){
+      return {
+        id: String(e.id || newId()), type: e.type, amount: e.amount,
+        category: String(e.category || "Other"), note: String(e.note || ""),
+        date: String(e.date || todayISO()), createdAt: String(e.createdAt || new Date().toISOString())
+      };
+    });
+    var have = {};
+    state.entries.forEach(function(e){ have[e.id] = true; });
+    var added = clean.filter(function(e){ return !have[e.id]; });
+    state.entries = state.entries.concat(added);
+    commit();
+    els.backupStatus.textContent = "Restored " + added.length + " entries (duplicates skipped).";
+  }
+
+  // file backup: share sheet on iPhone -> Save to Files / WhatsApp
+  function backupFile(){
+    var name = "mera-hisab-backup-" + todayISO() + ".json";
+    try{ return new File([JSON.stringify(state.entries)], name, { type: "application/json" }); }
+    catch(e){ return null; }
+  }
+  (function(){
+    var f = backupFile();
+    if (f && navigator.canShare && navigator.share){
+      try{ if (navigator.canShare({ files: [f] })) els.fileSaveBtn.hidden = false; }catch(e){}
+    }
+  })();
+  els.fileSaveBtn.addEventListener("click", function(){
+    var f = backupFile();
+    if (!f) return;
+    navigator.share({ files: [f], title: "Mera Hisab backup" }).then(function(){
+      els.backupStatus.textContent = "Backup file shared. Choose Save to Files or send it to yourself on WhatsApp.";
+    }, function(){});
+  });
+  els.fileRestoreBtn.addEventListener("click", function(){ els.fileInput.value = ""; els.fileInput.click(); });
+  els.fileInput.addEventListener("change", function(){
+    var file = els.fileInput.files && els.fileInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){ restoreFromText(reader.result); };
+    reader.readAsText(file);
+  });
+
+  function boot(){
+    state.entries = loadLocal();
+    try{
+      localStorage.setItem("meraHisab.test", "1");
+      localStorage.removeItem("meraHisab.test");
+    }catch(e){
+      showBanner("This browser isn't letting the app save on your phone (private browsing?). Entries will be lost when you close it.");
+    }
+    if (navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().catch(function(){});
+    }
+    render();
+  }
+
+  // ---------- boot ----------
+  setType("spending");
+  boot();
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function(){}); });
+}
+</script>
+</body>
+</html>
