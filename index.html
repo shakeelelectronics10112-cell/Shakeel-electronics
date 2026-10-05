@@ -522,6 +522,10 @@
         <div class="ic i-order" style="background:linear-gradient(135deg,#FF4400,#B08A3E)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
         <div><div class="t">Suppliers &amp; Links</div><div class="d">Save Taobao, 1688 &amp; Alibaba shop links</div></div>
       </button>
+      <button class="app" data-go="notes" data-src="notes.html">
+        <div class="ic i-order" style="background:linear-gradient(135deg,#B08A3E,#8A6A2A)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg></div>
+        <div><div class="t">Notes &amp; To-do</div><div class="d">Tasks, notes &amp; details you look up often</div></div>
+      </button>
       <button class="app" data-go="screens" data-src="screens.html">
         <div class="ic i-order" style="background:linear-gradient(135deg,#1F6F8B,#0E4F44)!important"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 8h4"/><path d="M7 12h2"/></svg></div>
         <div><div class="t">Screen Data</div><div class="d">Which TCON &amp; COF fits which panel, and substitutes</div></div>
@@ -566,6 +570,9 @@
   <button data-tab="orderbook" data-src="orderbook.html">
     <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg><span>Orders</span>
   </button>
+  <button data-tab="notes" data-src="notes.html">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg><span>Notes</span>
+  </button>
   <button data-tab="screens" data-src="screens.html">
     <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 8h4"/><path d="M7 12h2"/></svg><span>Screens</span>
   </button>
@@ -578,7 +585,7 @@
 </nav>
 
 <script>
-var V = "102";  // cache-buster: bump when you upload new app files
+var V = "103";  // cache-buster: bump when you upload new app files
 
 /* ---------- navigation ---------- */
 var stage = document.getElementById("stage");
