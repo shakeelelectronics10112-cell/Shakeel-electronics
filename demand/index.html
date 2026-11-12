@@ -285,12 +285,12 @@ button.st:hover{filter:brightness(.97)}
 .hbar>i{display:block;height:100%;border-radius:99px;background:var(--bad)}
 
 /* ---------- quick add ---------- */
-.quick{display:grid;grid-template-columns:minmax(0,2.4fr) 96px minmax(0,1.4fr) auto auto;grid-template-areas:"part qty cust urg add" "hint hint hint hint hint";gap:8px 8px;padding:12px;margin-bottom:18px;align-items:center;border-color:color-mix(in srgb,var(--brand) 22%,var(--line))}
-.quick .q-part{grid-area:part}.quick .q-qty{grid-area:qty}.quick .q-cust{grid-area:cust}.quick .q-urg{grid-area:urg}.quick .q-add{grid-area:add}
+.quick{display:grid;grid-template-columns:minmax(0,2.1fr) 90px minmax(0,1.15fr) minmax(0,1.25fr) auto auto;grid-template-areas:"part qty cat cust urg add" "hint hint hint hint hint hint";gap:8px 8px;padding:12px;margin-bottom:18px;align-items:center;border-color:color-mix(in srgb,var(--brand) 22%,var(--line))}
+.quick .q-part{grid-area:part}.quick .q-qty{grid-area:qty}.quick .q-cat{grid-area:cat}.quick .q-cust{grid-area:cust}.quick .q-urg{grid-area:urg}.quick .q-add{grid-area:add}
 .quick .q-hint{grid-area:hint;font-size:12.5px;color:var(--muted);padding:0 2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:18px}
 .quick .q-hint b{color:var(--ink-2);font-weight:500}
 .q-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-ink);margin-bottom:8px}
-@media (max-width:760px){.quick{grid-template-columns:minmax(0,1fr) 84px auto;grid-template-areas:"part part part" "qty urg add" "cust cust cust" "hint hint hint"}}
+@media (max-width:760px){.quick{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) auto;grid-template-areas:"part part part" "qty cat urg" "cust cust add" "hint hint hint"}}
 .ta-host{position:relative;min-width:0}
 .ta{position:absolute;left:0;top:calc(100% + 4px);z-index:90;width:max(100%,340px);max-width:min(560px,92vw);background:var(--surface);border:1px solid var(--line);border-radius:11px;box-shadow:var(--sh-3);max-height:320px;overflow:auto;padding:4px}
 .ta[hidden]{display:none}
@@ -585,7 +585,8 @@ const ICON={
  trash:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
  zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
  dl:'<path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/>',
- up:'<path d="M12 21V9m0 0-4 4m4-4 4 4M4 7V4h16v3"/>'
+ up:'<path d="M12 21V9m0 0-4 4m4-4 4 4M4 7V4h16v3"/>',
+ xls:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>'
 };
 const svg=(k,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w||1.8}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]||''}</svg>`;
 const TABS=[['home','Dashboard','home'],['demand','Demand','demand'],['po','Purchase orders','po'],['payments','Payments','pay'],['tracking','Tracking','track'],['products','Products','items'],['vendors','Vendors','vendors'],['setup','Setup','setup']];
@@ -804,9 +805,11 @@ function createPOs(ds){
   });
   return made;
 }
+function fillQaCat(v){const qc=document.getElementById('qa_cat');if(!qc)return;const keep=S.categories[v]?v:'';qc.innerHTML=`<option value="">Category…</option>`+opts(cats().map(c=>[c.id,c.name]),keep)+`<option value="__new">+ New category…</option>`;qc.value=keep;qc.dataset.prev=keep;}
 function quickDemand(o){
   let p=o.product||matchProduct(o.text);
   if(!p)p=put('products',{id:uid(),partNo:(o.text||'').trim(),name:o.name||'',catId:o.catId||null,unit:'pcs',vendorId:o.vendorId||null,created:today()});
+  else if(o.setCat&&o.catId&&p.catId!==o.catId)p=put('products',{...cp(p),catId:o.catId});
   const lp=lastPrice(p.id,o.vendorId||p.vendorId);
   const vid=o.vendorId||p.vendorId||(lp&&lp.vendorId)||null;
   const v=get('vendors',vid);
@@ -959,10 +962,11 @@ function back(){const t=stack.pop();if(t&&t.res&&t.res.onClose)t.res.onClose();p
 function closeAll(){while(stack.length){const t=stack.pop();if(t.res&&t.res.onClose)t.res.onClose();}paint();}
 function confirmBox(msg,okLabel,onOk,danger){openDrawer(()=>({kind:'modal',title:'Please confirm',body:`<p style="margin:0;font-size:14.5px;line-height:1.55">${msg}</p>`,foot:`<span class="sp"></span><button class="btn" data-act="back">Cancel</button><button class="btn ${danger?'dangerfill':'primary'}" id="cf_ok" data-primary>${esc(okLabel)}</button>`,mount(r){$('#cf_ok',r).onclick=()=>{back();onOk();};$('#cf_ok',r).focus();}}));}
 async function copyText(t,label){try{await navigator.clipboard.writeText(t);toast(label||'Copied');return true;}catch(e){openDrawer(()=>({kind:'modal',title:'Copy this text',body:`<p class="hint" style="margin-top:0">Copying was blocked here. Select the text and copy it.</p><textarea class="in copybox" readonly>${esc(t)}</textarea>`,mount(r){const ta=$('textarea',r);ta.focus();ta.select();}}));return false;}}
-function shareDrawer(title,text,phone,onUse){
-  openDrawer(()=>({kind:'side',title:esc(title),sub:'Edit if you like, then copy for WeChat or open WhatsApp.',body:`<textarea class="in copybox" id="sh_txt" style="min-height:360px">${esc(text)}</textarea>`,
-    foot:`<span class="sp"></span><a class="btn" id="sh_wa" href="${waLink(phone,text)}" target="_blank" rel="noopener">${svg('wa')}WhatsApp${phone?'':' (pick chat)'}</a><button class="btn primary" id="sh_copy" data-primary>${svg('copy')}Copy text</button>`,
-    mount(r){const ta=$('#sh_txt',r),a=$('#sh_wa',r);ta.addEventListener('input',()=>{a.href=waLink(phone,ta.value);});a.addEventListener('click',()=>{if(onUse)onUse();});$('#sh_copy',r).onclick=async()=>{const ok=await copyText(ta.value,'Copied. Paste it in WeChat or WhatsApp.');if(ok&&onUse)onUse();};}}));
+function shareDrawer(title,text,phone,onUse,files){
+  files=files||[];
+  openDrawer(()=>({kind:'side',title:esc(title),sub:files.length?'Copy the text for WeChat, open WhatsApp, or download a file to attach.':'Edit if you like, then copy for WeChat or open WhatsApp.',body:`<textarea class="in copybox" id="sh_txt" style="min-height:360px">${esc(text)}</textarea>${files.some(f=>f.icon==='xls')?'<p class="hint">The Excel file has yellow boxes for the supplier to fill in or correct price, stock and dispatch time. Save it, then attach it in WeChat or WhatsApp.</p>':''}`,
+    foot:`${files.map((f,i)=>`<button class="btn" data-file="${i}">${svg(f.icon)}${esc(f.label)}</button>`).join('')}<span class="sp"></span><a class="btn" id="sh_wa" href="${waLink(phone,text)}" target="_blank" rel="noopener">${svg('wa')}WhatsApp${phone?'':' (pick chat)'}</a><button class="btn primary" id="sh_copy" data-primary>${svg('copy')}Copy text</button>`,
+    mount(r){const ta=$('#sh_txt',r),a=$('#sh_wa',r);$$('[data-file]',r).forEach(b=>b.onclick=()=>{files[+b.dataset.file].fn();if(onUse)onUse();});ta.addEventListener('input',()=>{a.href=waLink(phone,ta.value);});a.addEventListener('click',()=>{if(onUse)onUse();});$('#sh_copy',r).onclick=async()=>{const ok=await copyText(ta.value,'Copied. Paste it in WeChat or WhatsApp.');if(ok&&onUse)onUse();};}}));
 }
 function attachTA(inp,o){
   if(!inp)return;
@@ -993,7 +997,7 @@ function hookNew(selId,kind){
   s.addEventListener('change',()=>{
     if(s.value!=='__new'){s.dataset.prev=s.value;return;}
     s.value=s.dataset.prev||'';
-    const cb=id=>{const e=document.getElementById(selId);if(e&&id){e.value=id;e.dataset.prev=id;e.dispatchEvent(new Event('change',{bubbles:true}));}};
+    const cb=id=>{const e=document.getElementById(selId);if(e&&id){if(![...e.options].some(o=>o.value===id)){const n=new Option(kind==='cat'?catName(id):vName(id),id);e.insertBefore(n,e.querySelector('option[value="__new"]'));}e.value=id;e.dataset.prev=id;e.dispatchEvent(new Event('change',{bubbles:true}));}};
     if(kind==='cat')catQuick(cb);else vendorDrawer(null,{},cb);
   });
 }
@@ -1055,26 +1059,31 @@ V.demand={frame:()=>`
   <div class="ph-a"><button class="btn w" data-act="pasteDemands">${svg('paste')}Paste list</button><div class="seg2"><button data-act="setUI" data-k="dview" data-v="list" data-full="1" aria-pressed="${UI.dview!=='vendor'}">List</button><button data-act="setUI" data-k="dview" data-v="vendor" data-full="1" aria-pressed="${UI.dview==='vendor'}">Ready to order</button></div></div></div>
   <div class="card quick w"><div class="q-part"><input class="in mono" id="qa_part" placeholder="Part no or name" autocomplete="off" spellcheck="false" aria-label="Part number"></div>
     <input class="in q-qty num" id="qa_qty" placeholder="Qty" inputmode="numeric" autocomplete="off" aria-label="Quantity">
+    <select class="in q-cat" id="qa_cat" aria-label="Category"></select>
     <input class="in q-cust" id="qa_cust" placeholder="Customer (optional)" list="custList" autocomplete="off" aria-label="Customer">
     <button class="tgl q-urg" id="qa_urg" type="button" aria-pressed="false">Urgent</button>
     <button class="btn primary q-add" id="qa_add" type="button">${svg('plus')}Add</button>
-    <div class="q-hint" id="qa_hint">Type a part, <b>Tab</b> to qty, <b>Enter</b> to add. Vendor, category and last price fill in by themselves.</div></div>
+    <div class="q-hint" id="qa_hint">Type a part, <b>Tab</b> to qty, <b>Enter</b> to add. For a known part the category, vendor and last price fill in by themselves; for a new part pick the category.</div></div>
   <datalist id="custList"></datalist>
   <div class="toolbar">${sbox('dq','Filter by part, customer, vendor, DM no')}<select class="in" id="dcat" data-ui="dcat" aria-label="Category"></select></div>
   <div id="vbody"></div>`,
   mount(){
-    const part=$('#qa_part'),qty=$('#qa_qty'),cust=$('#qa_cust'),urg=$('#qa_urg'),hint=$('#qa_hint');if(!part)return;
+    const part=$('#qa_part'),qty=$('#qa_qty'),cust=$('#qa_cust'),urg=$('#qa_urg'),hint=$('#qa_hint'),qc=$('#qa_cat');if(!part)return;
+    fillQaCat(LAST.qaCat||'');hookNew('qa_cat','cat');
+    qc.addEventListener('change',()=>{if(qc.value!=='__new'){remember('qaCat',qc.value);if(picked)showHint(picked);}});
     let picked=null;const H0=hint.innerHTML;
     const showHint=p=>{if(!p){hint.innerHTML=H0;return;}const lp=lastPrice(p.id,p.vendorId);const open=list('demands').filter(d=>d.productId===p.id&&isToOrder(d));
-      hint.innerHTML=`<b class="mono">${esc(p.partNo)}</b> ${esc(p.name||'')} · ${esc(catName(p.catId))}${lp?` · last <b>${money(lp.price,lp.currency)}</b> from ${esc(vName(lp.vendorId))}, ${fdate(lp.date)}`:' · new to you'}${open.length?` · <span class="warn-t">already ${fmtQ(sum(open,d=>num(d.qty)))} on demand</span>`:''}`;};
-    attachTA(part,{onPick:p=>{picked=p;part.value=p.partNo||p.name;showHint(p);qty.focus();qty.select();},onEnter:()=>{if(part.value.trim()){picked=matchProduct(part.value);showHint(picked);qty.focus();}}});
-    part.addEventListener('input',()=>{picked=null;if(!part.value.trim())showHint(null);});
+      hint.innerHTML=`<b class="mono">${esc(p.partNo)}</b> ${esc(p.name||'')} · ${esc(catName(($('#qa_cat')||{}).value||p.catId))}${lp?` · last <b>${money(lp.price,lp.currency)}</b> from ${esc(vName(lp.vendorId))}, ${fdate(lp.date)}`:' · new to you'}${open.length?` · <span class="warn-t">already ${fmtQ(sum(open,d=>num(d.qty)))} on demand</span>`:''}`;};
+    const autoCat=p=>{if(p&&p.catId&&S.categories[p.catId])qc.value=p.catId;else qc.value=S.categories[LAST.qaCat]?LAST.qaCat:'';};
+    attachTA(part,{onPick:p=>{picked=p;part.value=p.partNo||p.name;autoCat(p);showHint(p);qty.focus();qty.select();},onEnter:()=>{if(part.value.trim()){picked=matchProduct(part.value);autoCat(picked);showHint(picked);qty.focus();}}});
+    part.addEventListener('input',()=>{if(picked){picked=null;autoCat(null);}if(!part.value.trim())showHint(null);});
     const add=()=>{
       const t=part.value.trim();if(!t){part.focus();return;}
       const q=num(qty.value);if(q<=0){qty.focus();qty.classList.add('err');setTimeout(()=>qty.classList.remove('err'),900);toast('Enter the quantity');return;}
-      const d=quickDemand({product:picked||matchProduct(t),text:t,qty:q,customer:cust.value.trim(),urgent:urg.getAttribute('aria-pressed')==='true'});
-      toast(`${d.no} added · ${d.partNo} × ${fmtQ(q)}`,{action:{label:'Undo',fn:()=>{remove('demands',d.id);toast('Removed');}}});
-      part.value='';qty.value='';cust.value='';urg.setAttribute('aria-pressed','false');picked=null;showHint(null);part.focus();
+      const cat=qc.value&&qc.value!=='__new'?qc.value:null;
+      const d=quickDemand({product:picked||matchProduct(t),text:t,qty:q,customer:cust.value.trim(),urgent:urg.getAttribute('aria-pressed')==='true',catId:cat,setCat:true});
+      toast(`${d.no} added · ${d.partNo} × ${fmtQ(q)}${d.catId?' · '+catName(d.catId):''}`,{action:{label:'Undo',fn:()=>{remove('demands',d.id);toast('Removed');}}});
+      part.value='';qty.value='';cust.value='';urg.setAttribute('aria-pressed','false');picked=null;autoCat(null);showHint(null);part.focus();
     };
     [qty,cust].forEach(e=>e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();add();}}));
     urg.onclick=()=>urg.setAttribute('aria-pressed',String(urg.getAttribute('aria-pressed')!=='true'));
@@ -1084,6 +1093,7 @@ V.demand={frame:()=>`
     const toOrder=list('demands').filter(isToOrder);const sub=$('#dSub');if(sub)sub.textContent=`${toOrder.length} to order · ${toOrder.filter(d=>d.priority==='Urgent').length} urgent · ${list('demands').filter(d=>d.status==='In PO').length} in POs`;
     const dc=$('#dcat');if(dc&&document.activeElement!==dc)dc.innerHTML=`<option value="">All categories</option>`+opts(cats().map(c=>[c.id,c.name]),UI.dcat);
     const cl=$('#custList');if(cl)cl.innerHTML=customers().map(c=>`<option value="${esc(c)}">`).join('');
+    const qc=$('#qa_cat');if(qc&&document.activeElement!==qc)fillQaCat(qc.value);
   },
   body(){
     const q=UI.dq.toLowerCase();
@@ -1306,7 +1316,7 @@ function demandDrawer(id,preset){
       $('#d_vendor',r).addEventListener('change',hint);
       hookNew('d_cat','cat');hookNew('d_vendor','vendor');hint();
       const del=$('#d_del',r);if(del)del.onclick=()=>confirmBox(`Delete demand <b>${esc(d.no)}</b>?`,'Delete',()=>{remove('demands',d.id);back();toast('Demand deleted');},true);
-      const ask=$('#d_ask',r);if(ask)ask.onclick=()=>shareDrawer('Ask for price',inquiryText([d]),(get('vendors',d.vendorId)||{}).phone);
+      const ask=$('#d_ask',r);if(ask)ask.onclick=()=>shareDrawer('Ask for price',inquiryText([d]),(get('vendors',d.vendorId)||{}).phone,null,[{label:'Excel',icon:'xls',fn:()=>rfqExcel([d])}]);
       $('#d_save',r).onclick=()=>{
         const partNo=val('d_part'),name=val('d_name');if(!partNo&&!name)return fieldErr('d_part','Enter a part number or a description');
         const qty=num(val('d_qty'));if(qty<=0)return fieldErr('d_qty','Enter how many you need');
@@ -1392,7 +1402,7 @@ function poEditor(id,preset){
         <div class="card"><div class="card-h"><h3>Shipping</h3></div><div class="card-b">${sh?`<button class="linkcard" data-open="ship:${sh.id}"><span class="lead t-${isLate(sh)?'bad':TONE[sh.status]}">${svg('track')}</span><span style="flex:1;min-width:0"><b class="mono">${esc(sh.no)}</b> · ${esc(sh.status)}<span class="sub2 ell">${esc(sh.forwarder||sh.mode||'')}${sh.eta?' · ETA '+fdate(sh.eta):''}</span></span>${svg('chev')}</button>`:`<p class="muted" style="margin:0 0 10px;font-size:13px">Not shipped yet.</p><button class="btn block w" id="po_ship">${svg('track')}Ship this PO</button>`}</div></div>
         <div class="card"><div class="card-h"><h3>Landed cost per piece</h3><span class="sp"></span><small class="muted">${fmtQ(S.settings.margin)}% margin</small></div><div class="card-b" id="po_landed" style="padding-top:6px"></div></div>`:''}
       </aside></div>`,
-      foot:`${saved?`<button class="btn danger w" id="po_del">${svg('trash')}Delete</button><button class="btn w" id="po_dup">${svg('copy')}Duplicate</button>`:''}<span class="sp"></span><button class="btn" id="po_send">${svg('send')}Send to vendor</button>${canSave()?`<button class="btn" id="po_pdf">${svg('pdf')}PDF</button>`:''}<button class="btn primary" data-act="closeAll" data-primary>Done</button>`,
+      foot:`${saved?`<button class="btn danger w" id="po_del">${svg('trash')}Delete</button><button class="btn w" id="po_dup">${svg('copy')}Duplicate</button>`:''}<span class="sp"></span><button class="btn" id="po_send">${svg('send')}Send to vendor</button><button class="btn" id="po_xlsx">${svg('xls')}Excel</button>${canSave()?`<button class="btn" id="po_pdf">${svg('pdf')}PDF</button>`:''}<button class="btn primary" data-act="closeAll" data-primary>Done</button>`,
       onClose:()=>{if(timer)flush();else if(!saved&&p.items.length&&!p.vendorId)toast('PO was not saved because it had no vendor.','bad');},
       mount(r){
         const showRecv=()=>['Shipped','Received'].includes(p.status);
@@ -1450,7 +1460,8 @@ function poEditor(id,preset){
         hookNew('po_vendor','vendor');
         const shb=$('#po_ship',r);if(shb)shb.onclick=()=>{if(!flush())return;shipQuick([p.id]);};
         $('#po_send',r).onclick=()=>{if(!p.vendorId)return fieldErr('po_vendor','Pick the vendor first');if(!p.items.length)return toast('Add parts first','bad');flush();const v=get('vendors',p.vendorId)||{};
-          shareDrawer(`Send ${p.no}`,poText(p),v.phone,()=>{if(p.status==='Draft'){p.status='Sent';flush();toast(`${p.no} marked as Sent`);}});};
+          shareDrawer(`Send ${p.no}`,poText(p),v.phone,()=>{if(p.status==='Draft'){p.status='Sent';flush();toast(`${p.no} marked as Sent`);}},[{label:'Excel',icon:'xls',fn:()=>poExcel(p)},{label:'PDF',icon:'pdf',fn:()=>savePDF(p)}]);};
+        const xl=$('#po_xlsx',r);if(xl)xl.onclick=()=>{if(!p.vendorId)return fieldErr('po_vendor','Pick the vendor first');if(!p.items.length)return toast('Add parts first','bad');flush();poExcel(p);};
         const pdf=$('#po_pdf',r);if(pdf)pdf.onclick=()=>{if(!p.vendorId)return fieldErr('po_vendor','Pick the vendor first');flush();savePDF(p);};
         const del=$('#po_del',r);if(del)del.onclick=()=>{const np=vendorPays(p).length;confirmBox(`Delete <b>${esc(p.no)}</b>? Its demands go back to Approved.${np?` Its ${np} payment${np>1?'s stay':' stays'} with the vendor as an advance.`:''}`,'Delete PO',()=>{clearTimeout(timer);timer=null;deletePO(p.id);closeAll();toast(`${p.no} deleted`);},true);};
         const dup=$('#po_dup',r);if(dup)dup.onclick=()=>{flush();const n={id:uid(),no:nextNo('pos','PO-'),date:today(),vendorId:p.vendorId,currency:p.currency,rate:rateFor(p.currency),status:'Draft',extra:0,discount:0,note:p.note||'',items:p.items.map(it=>({id:uid(),productId:it.productId,partNo:it.partNo,name:it.name,catId:it.catId,qty:it.qty,price:it.price}))};closeAll();savePO(n);poEditor(n.id);toast(`${n.no} made as a copy`);};
@@ -1734,10 +1745,80 @@ function poPDF(p){
 function saveFile(name,data){
   const fname=name.replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim();
   const ext=fname.split('.').pop().toLowerCase();
-  const blob=new Blob([data],{type:{pdf:'application/pdf',csv:'text/csv;charset=utf-8',json:'application/json'}[ext]||'application/octet-stream'});
+  const blob=new Blob([data],{type:{pdf:'application/pdf',csv:'text/csv;charset=utf-8',json:'application/json',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}[ext]||'application/octet-stream'});
   try{if(EMBED&&window.parent&&typeof window.parent.__sefDownload==='function'){window.parent.__sefDownload(blob,fname);toast('Saved '+fname);return;}}catch(e){}
   try{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);toast('Saved '+fname);}catch(e){toast('Could not save the file.','bad');}
 }
+/* ---------- Excel for suppliers (POs and price requests they can fill in) ---------- */
+let _xl=null;
+function loadExcel(){
+  if(window.ExcelJS)return Promise.resolve(window.ExcelJS);
+  if(_xl)return _xl;
+  _xl=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload=()=>window.ExcelJS?res(window.ExcelJS):rej(new Error('Excel tool missing'));s.onerror=()=>{_xl=null;rej(new Error('Excel tool did not load'));};document.head.appendChild(s);});
+  return _xl;
+}
+async function excelBook(o){
+  const X=await loadExcel(),s=S.settings,wb=new X.Workbook();
+  wb.creator=s.shop||'Shakeel Electronics';wb.created=new Date();
+  const ws=wb.addWorksheet(o.sheet.slice(0,31),{pageSetup:{paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.4,right:.4,top:.5,bottom:.5,header:.2,footer:.2}}});
+  const GREEN='FF0E4F44',GOLD='FFB08A3E',YEL='FFFFF4CC',PALE='FFE6F0EC',LINE='FFD5DBD6',cur=o.currency||'RMB';
+  ws.columns=[{width:6},{width:24},{width:34},{width:10},{width:16},{width:17},{width:34}];
+  const fill=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+  const box={top:{style:'thin',color:{argb:LINE}},left:{style:'thin',color:{argb:LINE}},bottom:{style:'thin',color:{argb:LINE}},right:{style:'thin',color:{argb:LINE}}};
+  ws.mergeCells('A1:G1');const t=ws.getCell('A1');t.value=o.title;t.font={bold:true,size:17,color:{argb:'FFFFFFFF'}};t.fill=fill(GREEN);t.alignment={vertical:'middle',indent:1};ws.getRow(1).height=32;
+  ws.mergeCells('A2:G2');const t2=ws.getCell('A2');t2.value=[s.shop,s.city,s.phone].filter(Boolean).join('  ·  ');t2.font={size:10,color:{argb:'FFE7CD85'}};t2.fill=fill(GREEN);t2.alignment={vertical:'middle',indent:1};ws.getRow(2).height=20;
+  let r=4;
+  o.info.filter(x=>x[1]!=null&&x[1]!=='').forEach(([k,v])=>{ws.mergeCells(`A${r}:B${r}`);ws.mergeCells(`C${r}:D${r}`);const a=ws.getCell(`A${r}`),b=ws.getCell(`C${r}`);a.value=k;a.font={bold:true,size:10,color:{argb:'FF5B6B66'}};b.value=v;b.font={bold:true,size:11};r++;});
+  r++;
+  const head=['No.','Part No 型号','Description 描述','Qty 数量',`Unit Price 单价 (${cur})`,`Amount 金额 (${cur})`,'Supplier remarks 备注 (stock 库存 / dispatch date 发货时间)'];
+  const hr=ws.getRow(r);head.forEach((v,i)=>{const c=hr.getCell(i+1);c.value=v;c.font={bold:true,color:{argb:'FFFFFFFF'},size:10};c.fill=fill(GREEN);c.alignment={vertical:'middle',horizontal:i>=3&&i<=5?'right':'left',wrapText:true};c.border=box;});
+  hr.height=34;const headRow=r;r++;
+  const first=r;
+  o.items.forEach((it,i)=>{
+    const row=ws.getRow(r),qty=num(it.qty),price=it.price===''||it.price==null?null:num(it.price);
+    row.getCell(1).value=i+1;row.getCell(2).value=it.partNo||'';row.getCell(3).value=it.name||'';row.getCell(4).value=qty;
+    row.getCell(5).value=price;row.getCell(6).value={formula:`IF(E${r}="","",D${r}*E${r})`,result:price==null?'':r2(qty*price)};row.getCell(7).value=it.remark||'';
+    row.getCell(2).font={name:'Consolas',bold:true};row.getCell(1).alignment={horizontal:'center'};
+    row.getCell(4).numFmt='#,##0';row.getCell(5).numFmt='#,##0.00';row.getCell(6).numFmt='#,##0.00';
+    for(let c=1;c<=7;c++){const cell=row.getCell(c);cell.border=box;if(c===5||c===7)cell.fill=fill(YEL);if(!cell.alignment)cell.alignment={vertical:'middle'};}
+    row.getCell(3).alignment={vertical:'middle',wrapText:true};row.getCell(7).alignment={vertical:'middle',wrapText:true};
+    r++;});
+  const last=r-1;
+  const tot=[];
+  const line=(label,valOrFormula,bold)=>{ws.mergeCells(`D${r}:E${r}`);const a=ws.getCell(`D${r}`),b=ws.getCell(`F${r}`);a.value=label;a.alignment={horizontal:'right'};a.font={bold:!!bold,size:bold?12:10};b.value=valOrFormula;b.numFmt='#,##0.00';b.font={bold:!!bold,size:bold?12:10};b.border=box;if(bold){a.fill=fill(PALE);b.fill=fill(PALE);}tot.push(r);r++;};
+  const goods=sum(o.items,it=>num(it.qty)*num(it.price||0));
+  line('Goods 货款',{formula:`SUM(F${first}:F${last})`,result:r2(goods)});
+  const gRow=r-1;let extraRows=[];
+  if(num(o.extra)){line('China courier / charges 国内运费',num(o.extra));extraRows.push(r-1);}
+  if(num(o.discount)){line('Discount 折扣',-num(o.discount));extraRows.push(r-1);}
+  line(`TOTAL 合计 (${cur})`,{formula:[`F${gRow}`,...extraRows.map(x=>`F${x}`)].join('+'),result:r2(goods+num(o.extra)-num(o.discount))},true);
+  r++;
+  ws.mergeCells(`A${r}:G${r}`);const n1=ws.getCell(`A${r}`);n1.value='Yellow boxes: please fill in or correct the unit price, stock and dispatch time, then send this file back.  黄色单元格：请填写或修改单价、库存和发货时间，然后发回此文件。';n1.font={size:10,color:{argb:'FF7E560C'}};n1.fill=fill(YEL);n1.alignment={wrapText:true,vertical:'middle'};ws.getRow(r).height=32;r++;
+  (o.notes||[]).filter(Boolean).forEach(x=>{ws.mergeCells(`A${r}:G${r}`);const c=ws.getCell(`A${r}`);c.value=x;c.font={size:10,color:{argb:'FF38443F'}};c.alignment={wrapText:true,vertical:'top'};ws.getRow(r).height=Math.max(18,Math.ceil(String(x).length/95)*15);r++;});
+  ws.views=[{state:'frozen',ySplit:headRow}];
+  ws.headerFooter.oddFooter=`&L${(s.shop||'').replace(/&/g,'&&')} · ${o.no}&RPage &P of &N`;
+  return wb.xlsx.writeBuffer();
+}
+async function runExcel(name,o){
+  toast('Making the Excel file…');
+  try{const buf=await excelBook(o);saveFile(name,buf);}
+  catch(e){console.warn(e);toast('Could not make the Excel file. Check the internet once (the Excel tool loads the first time), then try again.','bad');}
+}
+function poExcel(p){
+  if(!p)return;const v=get('vendors',p.vendorId)||{},s=S.settings;
+  return runExcel(`${p.no} ${v.name||''}.xlsx`,{sheet:p.no,no:p.no,title:'PURCHASE ORDER  采购订单',currency:p.currency,
+    info:[['PO No 订单号',p.no],['Date 日期',longDate(p.date)],['Supplier 供应商',[v.name,v.contact].filter(Boolean).join(' · ')],['WeChat / Tel',[v.wechat,v.phone].filter(Boolean).join(' · ')],['Shipping mark 唛头',s.shipMark],['Dispatch by 发货日期',p.shipBy?longDate(p.shipBy):'']],
+    items:(p.items||[]).map(it=>({partNo:it.partNo,name:it.name,qty:it.qty,price:it.price})),extra:p.extra,discount:p.discount,notes:[s.poNote,p.note]});
+}
+function rfqExcel(ds){
+  ds=(ds||[]).filter(Boolean);if(!ds.length)return;
+  const vs=[...new Set(ds.map(d=>d.vendorId).filter(Boolean))],v=vs.length===1?(get('vendors',vs[0])||{}):{},s=S.settings,no='RFQ-'+today().replace(/-/g,'');
+  return runExcel(`Price request ${v.name?v.name+' ':''}${today()}.xlsx`,{sheet:'Price request',no,title:'PRICE REQUEST  询价单',currency:v.currency||S.settings.defCur,
+    info:[['Request No 询价单号',no],['Date 日期',longDate(today())],['Supplier 供应商',v.name||''],['Shipping mark 唛头',s.shipMark]],
+    items:ds.map(d=>({partNo:d.partNo,name:d.name,qty:d.qty,price:null})),notes:['Please quote your best price, stock and dispatch time for each part.  请报每个型号的最优价格、库存和发货时间。']});
+}
+
 function savePDF(p){const doc=poPDF(p);if(doc)saveFile(`${p.no} ${vName(p.vendorId)}.pdf`,doc.output('arraybuffer'));}
 const csv=rows=>rows.map(r=>r.map(c=>{const s=String(c??'');return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\r\n');
 function exportCSV(k){
@@ -1788,7 +1869,7 @@ const ACT={
   pasteDemands:()=>pasteDrawer('demand'),
   createPO:el=>createPOFor(el.dataset.vid),
   demandByVendor:()=>{UI.dview='vendor';go('demand');},
-  poSend:el=>{const p=get('pos',el.dataset.id);if(!p)return;const v=get('vendors',p.vendorId)||{};shareDrawer(`Send ${p.no}`,poText(p),v.phone,()=>{const c=get('pos',p.id);if(c&&c.status==='Draft'){const n=cp(c);n.status='Sent';savePO(n);toast(`${p.no} marked as Sent`);}});},
+  poSend:el=>{const p=get('pos',el.dataset.id);if(!p)return;const v=get('vendors',p.vendorId)||{};shareDrawer(`Send ${p.no}`,poText(p),v.phone,()=>{const c=get('pos',p.id);if(c&&c.status==='Draft'){const n=cp(c);n.status='Sent';savePO(n);toast(`${p.no} marked as Sent`);}},[{label:'Excel',icon:'xls',fn:()=>poExcel(get('pos',p.id)||p)},{label:'PDF',icon:'pdf',fn:()=>savePDF(get('pos',p.id)||p)}]);},
   poPay:el=>payDrawer(null,{kind:'vendor',poId:el.dataset.id}),
   poShip:el=>shipQuick([el.dataset.id]),
   poReceive:el=>{const p=get('pos',el.dataset.id);if(!p)return;const before=cp(p);receivePO(cp(p));toast(`${p.no} received in full`,{action:{label:'Undo',fn:()=>savePO(before)}});},
@@ -1798,7 +1879,7 @@ const ACT={
   prodDemand:el=>quickDemandModal(el.dataset.id),
   copyTxt:el=>copyText(el.dataset.t,'Tracking number copied'),
   bulkPO:()=>bulkCreatePO(),
-  bulkAsk:()=>{const ds=[...SELD].map(id=>get('demands',id)).filter(Boolean);const vs=[...new Set(ds.map(d=>d.vendorId).filter(Boolean))];shareDrawer('Ask for price',inquiryText(ds),vs.length===1?(get('vendors',vs[0])||{}).phone:'');},
+  bulkAsk:()=>{const ds=[...SELD].map(id=>get('demands',id)).filter(Boolean);const vs=[...new Set(ds.map(d=>d.vendorId).filter(Boolean))];shareDrawer('Ask for price',inquiryText(ds),vs.length===1?(get('vendors',vs[0])||{}).phone:'',null,[{label:'Excel',icon:'xls',fn:()=>rfqExcel(ds)}]);},
   bulkStatus:()=>{const ids=[...SELD];openDrawer(()=>({kind:'modal',title:`Status for ${ids.length} demand${ids.length>1?'s':''}`,body:rchips('bs_st',DEMAND_ST.filter(s=>s!=='In PO'),'Approved'),foot:`<span class="sp"></span><button class="btn" data-act="back">Cancel</button><button class="btn primary" id="bs_go" data-primary>Apply</button>`,mount(r){$('#bs_go',r).onclick=()=>{const s=radioVal('bs_st');let n=0;ids.forEach(id=>{const d=get('demands',id);if(d&&d.status!==s&&!(d.poId&&s!=='Received'&&s!=='Cancelled')){const c=cp(d);c.status=s;put('demands',c);n++;}});back();SELD.clear();render();toast(`${n} set to ${s}`);};}}));},
   bulkDel:()=>{const ids=[...SELD];confirmBox(`Delete ${ids.length} demand${ids.length>1?'s':''}?`,'Delete',()=>{ids.forEach(id=>remove('demands',id));SELD.clear();render();toast('Deleted');},true);},
   bulkClear:()=>{SELD.clear();render();},
@@ -1893,7 +1974,7 @@ async function boot(){
 }
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(()=>{});});}
 
-window.__dpo={S,DOCS,PEND,cloudInfo:()=>({mode,inflight,INDEX,SUBS:Object.keys(SUBS)}),poPDF,backupJSON,poTotal,poPaid,payState,landed,vendorLedger,productStats,sellPrice,poText,parseList,nextNo,savePO,go,rsShort,matchProduct};
+window.__dpo={S,excelBook,poExcel,rfqExcel,DOCS,PEND,cloudInfo:()=>({mode,inflight,INDEX,SUBS:Object.keys(SUBS)}),poPDF,backupJSON,poTotal,poPaid,payState,landed,vendorLedger,productStats,sellPrice,poText,parseList,nextNo,savePO,go,rsShort,matchProduct};
 boot();
 })();
 </script>
